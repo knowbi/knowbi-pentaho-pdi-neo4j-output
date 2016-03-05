@@ -1,4 +1,4 @@
-package bi.know.kettle.neo4j.output.Neo4JOutput;
+package bi.know.kettle.neo4j.output;
 
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.rest.graphdb.RestAPI;
@@ -20,10 +20,8 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	private Neo4JOutputData data;
 	private Transaction tx; 
 	
-    public Neo4JOutput(StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta,
-			Trans trans) {
-		super(stepMeta, stepDataInterface, copyNr, transMeta, trans);
-		// TODO Auto-generated constructor stub
+    public Neo4JOutput(StepMeta s, StepDataInterface stepDataInterface, int c, TransMeta t, Trans dis) {
+		super(s,stepDataInterface,c,t,dis);
 	}
     
     

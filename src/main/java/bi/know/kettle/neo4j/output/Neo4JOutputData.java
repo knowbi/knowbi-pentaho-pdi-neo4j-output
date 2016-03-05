@@ -1,4 +1,4 @@
-package bi.know.kettle.neo4j.output.Neo4JOutput;
+package bi.know.kettle.neo4j.output;
 
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
