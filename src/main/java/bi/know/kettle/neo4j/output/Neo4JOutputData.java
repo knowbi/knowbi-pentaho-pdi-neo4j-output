@@ -6,7 +6,7 @@ import org.pentaho.di.trans.step.StepDataInterface;
 
 public class Neo4JOutputData extends BaseStepData implements StepDataInterface{
 	public RowMetaInterface outputRowMeta;
-	
+
 	public Neo4JOutputData(){
 		super();
 	}

@@ -12,7 +12,42 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <pdi.dir>/opt/pentaho/pdi/ce/6.0.1</pdi.dir>
   </properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<version>2.3.1</version>
+				<configuration>
+					<outputDirectory>${pdi.dir}/plugins/Neo4JOutput</outputDirectory>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<version>2.10</version>
+				<executions>
+					<execution>
+						<id>copy-dependencies</id>
+						<phase>package</phase>
+						<goals>
+							<goal>copy-dependencies</goal>
+						</goals>
+						<configuration>
+							<outputDirectory>${pdi.dir}/plugins/Neo4JOutput/lib</outputDirectory>
+							<overWriteReleases>false</overWriteReleases>
+							<overWriteSnapshots>false</overWriteSnapshots>
+							<overWriteIfNewer>true</overWriteIfNewer>
+							<excludeScope>system</excludeScope>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
   
       <repositories>
         <repository>
@@ -40,10 +75,57 @@
 			<artifactId>neo4j-rest-graphdb</artifactId>
 			<version>2.0.1</version>
 		</dependency>
-<!-- 		<dependency> -->
-<!-- 			<groupId>org.glassfish.jersey.containers</groupId> -->
-<!-- 			<artifactId>jersey-container-servlet</artifactId> -->
-<!-- 			<version>2.6</version> -->
-<!-- 		</dependency> -->
+		<dependency>
+			<groupId>commons-vfs</groupId>
+			<artifactId>commons-vfs</artifactId>
+			<version>2.2.1</version>
+			<scope>system</scope>
+			<systemPath>${pdi.dir}/lib/commons-vfs2-2.1-20150824.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>javassist</groupId>
+			<artifactId>javassist</artifactId>
+			<version>3.12.1</version>
+			<scope>system</scope>
+			<systemPath>${pdi.dir}/lib/javassist-3.12.1.GA.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>kettle-core</groupId>
+			<artifactId>kettle-core</artifactId>
+			<version>6.0.1</version>
+			<scope>system</scope>
+			<systemPath>${pdi.dir}/lib/kettle-core-6.0.1.0-386.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>kettle-engine</groupId>
+			<artifactId>kettle-engine</artifactId>
+			<version>6.0.1</version>
+			<scope>system</scope>
+			<systemPath>${pdi.dir}/lib/kettle-engine-6.0.1.0-386.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>scannotation</groupId>
+			<artifactId>scannotation</artifactId>
+			<version>1.0.2</version>
+			<scope>system</scope>
+			<systemPath>${pdi.dir}/lib/scannotation-1.0.2.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>swt</groupId>
+			<artifactId>swt</artifactId>
+			<version>1.0</version>
+			<scope>system</scope>
+			<systemPath>${pdi.dir}/libswt/linux/x86_64/swt.jar</systemPath>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>2.5</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>2.5</version>
+		</dependency>
 	</dependencies>
 </project>
