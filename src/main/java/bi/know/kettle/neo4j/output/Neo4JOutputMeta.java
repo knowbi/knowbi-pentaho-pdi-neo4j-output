@@ -273,11 +273,9 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 	
 	public void setRelProps(String[] relProps){
 		this.relProps = relProps;
-//		System.out.println( relProps.length + "relProps set");
 	}
 	
 	public String[] getRelProps(){
-//		System.out.println("Returning " + relProps.length + " relProps");
 		return relProps; 
 	}
 	

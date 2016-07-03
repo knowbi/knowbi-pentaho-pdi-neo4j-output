@@ -233,7 +233,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 				    graphDb.getAllLabelNames();
 					message = BaseMessages.getString(PKG, "Neo4JOutputDialog.ConnectionTest.Success");
 			    }catch(Exception e){
-			    	System.out.println(e.getMessage());
 					message = BaseMessages.getString(PKG, "Neo4JOutputDialog.ConnectionTest.Failed");
 			    }
 				ShowMessageDialog msgDialog = new ShowMessageDialog(shell, SWT.OK, BaseMessages.getString(PKG, "Neo4JOutputDialog.ConnectionTest.Title") , message);
@@ -513,7 +512,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 				TableItem item = wRelPropsGrid.table.getItem(i);
 				item.setText(1, relProps[i]);
 			}
-			System.out.println(relProps.length + " relProps fetched. ");
 		}
 
 	}
@@ -538,7 +536,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		String nodeLabels[] = new String[wLabelGrid.nrNonEmpty()];
 		for(int i=0; i < nodeLabels.length; i++){
 			TableItem item = wLabelGrid.table.getItem(i);
-			System.out.println("Label " + i + ": " + item.getText(1));
 			nodeLabels[i] = item.getText(1);
 		}
 		input.setLabels(nodeLabels);
@@ -546,7 +543,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		String nodeProps[] = new String[wGrid.nrNonEmpty()];
 		for(int i=0; i < nodeProps.length; i++){
 			TableItem item = wGrid.table.getItem(i);
-			System.out.println("Node " + i + ": " + item.getText(1));
 			nodeProps[i] = item.getText(1);
 		}
 		input.setNodeProps(nodeProps);
@@ -565,7 +561,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		String relProps[] = new String[wRelPropsGrid.nrNonEmpty()];
 		for(int i=0; i < relProps.length; i++){
 			TableItem item = wRelPropsGrid.table.getItem(i);
-			System.out.println("Relationship Property" + i + ": " + item.getText(1));
 			relProps[i] = item.getText(1);
 		}
 		input.setRelProps(relProps);
