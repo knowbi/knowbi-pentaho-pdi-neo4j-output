@@ -92,13 +92,49 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         	}
         	
         	try{
-      	     	 // Create node 
+      	     	 // Create relationship 
         	 	String[][] relationships = meta.getRelationships(); 
         	 	for(int i=0; i < relationships.length; i++){
-        	 		String fromNodeId = createNode(relationships[i][0], (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][0])]);
-        	 		String toNodeId = createNode(relationships[i][2], (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][2])]);
-        	 		String relationshipId = createRelationship(fromNodeId, toNodeId, (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][1])]);
+//        	 		System.out.println("####################################");
+//        	 		System.out.println(Arrays.toString(relationships[i]));
+        	 		String fromField = relationships[i][0]; 
+        	 		String fromFieldVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][0])];
+        	 		String fromProp = relationships[i][1];
+        	 		String fromPropVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][1])];
+        	 		String relLabel = relationships[i][2];
+        	 		String relLabelVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][2])];
+        	 		String toField = relationships[i][3];
+        	 		String toFieldVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][3])];
+        	 		String toProp = relationships[i][4];
+        	 		String toPropVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][4])];
+        	 		
+//        	 		System.out.println("fromField: " + fromField);
+//        	 		System.out.println("fromFieldVal: " + fromFieldVal);
+//        	 		System.out.println("fromProp: " + fromProp);
+//        	 		System.out.println("fromPropVal: " + fromPropVal);
+//        	 		System.out.println("relLabel: " + relLabel);
+//        	 		System.out.println("relLabelVal: " + relLabelVal);
+//        	 		System.out.println("toField: " + toField);
+//        	 		System.out.println("toFieldVal: " + toFieldVal);
+//        	 		System.out.println("toProp: " + toProp);
+//        	 		System.out.println("toPropVal: " + toPropVal);
+//        	 		
+        	 		
+//        	 		System.out.println("From Node: " + createNode(relationships[i][1], (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][1])]));
+//        	 		System.out.println("From Node: " + createNode(fromPropVal, fromFieldVal));
+//        	 		System.out.println("From Node: " + createNode(toPropVal, toFieldVal));
+        	 		String fromNodeId = createNode(fromPropVal, fromFieldVal);
+        	 		String toNodeId = createNode(toPropVal, toFieldVal);
+        	 		String relationshipId = createRelationship(fromNodeId, toNodeId, relLabelVal);
     	       		addRelationshipProperty(relationshipId, meta.getRelProps());
+//        	 		System.out.println("####################################");
+//        	 		String fromNodeId = createNode(relationships[i][0], (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][0])]);
+//        	 		System.out.println("############################################");
+//        	 		System.out.println(relationships[i][2] + " --" +  (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][2])]);
+//        	 		System.out.println("############################################");
+//        	 		String toNodeId = createNode(relationships[i][2], (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][2])]);
+//        	 		String relationshipId = createRelationship(fromNodeId, toNodeId, (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][1])]);
+//    	       		addRelationshipProperty(relationshipId, meta.getRelProps());
         	 	}
             	
         	}catch(Exception e){
@@ -129,6 +165,7 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     
     public String createNode(String nodeKey, String nodeValue){
     	String nodeJSON = "{\"key\": \"" + nodeKey + "\", \"value\" : \"" + nodeValue  +   "\"}";    
+    	System.out.println("nodeJSON: " + nodeJSON);
     	Client c = Client.create();
     	c.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
 	    WebResource nodeResource = c.resource(SERVER_URI + "index/node/pdi?uniqueness=get_or_create");    	
@@ -136,10 +173,13 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     	final URI nodeLocation = nodeResponse.getLocation();
     	outputRow[data.outputRowMeta.size()-1] = nodeLocation.toString();
     	if(nodeResponse.getStatus() == 201 || nodeResponse.getStatus() == 200){
+    		logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addNodeLabel") + nodeLocation);
+        	return getIdFromURI(nodeLocation);
     	}else{
     		// throw exception.
+    		logError(BaseMessages.getString("Neo4JOutput.addNodeError"));
+    		return ""; 
     	}
-    	return getIdFromURI(nodeLocation);
     }
     
     
@@ -179,6 +219,7 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     }
     
     private String createRelationship(String fromNodeId, String toNodeId, String relationshipType){
+    	logDetailed("creating relationship from " + fromNodeId + " to " + toNodeId + " , type: " + relationshipType); 
     	try{
      		URI fromNodeURI = new URI(SERVER_URI + "node/" + fromNodeId + "/relationships");
            	URI toNodeURI = new URI(SERVER_URI + "node/" + toNodeId);
@@ -191,6 +232,7 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationship") + fromNodeId + " - " + toNodeId + " - " + relationshipType + " - " + relationshipURI + " - " + relationshipResponse.getStatus() + " - " + relationshipJSON);
         	return getIdFromURI(relationshipURI);
     	}catch(Exception e){
+        	logError(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipError") + fromNodeId + ", "  + toNodeId  + ", " + relationshipType);
         	return ""; 
     	}
     }

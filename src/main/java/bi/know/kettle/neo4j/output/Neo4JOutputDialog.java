@@ -1,5 +1,7 @@
 package bi.know.kettle.neo4j.output;
 
+import java.util.Arrays;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
 import org.eclipse.swt.custom.CTabItem;
@@ -391,8 +393,10 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		wlRelationship.setLayoutData(fdlRelationship);
 		ColumnInfo[] relationshipInf = new ColumnInfo[]{
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelationshipTable.FromNodeField"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
+			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelationshipTable.FromNodeProperty"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelationshipTable.Relationship"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
-			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelationshipTable.ToNodeField"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames )
+			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelationshipTable.ToNodeField"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
+			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelationshipTable.ToNodeProperty"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames )
 		};
 		wRelationshipGrid =
 			    new TableView( Variables.getADefaultVariableSpace(), wRelationshipComp, SWT.BORDER
@@ -547,13 +551,18 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		}
 		input.setNodeProps(nodeProps);
 		
-		String[][] relationships = new String[wRelationshipGrid.nrNonEmpty()][3];
+		String[][] relationships = new String[wRelationshipGrid.nrNonEmpty()][5];
 		for(int i=0; i<relationships.length; i++){
 			TableItem item = wRelationshipGrid.table.getItem(i);
-			String relationship[] = new String[3];
+			String relationship[] = new String[5];
 			relationship[0] = item.getText(1); 
 			relationship[1] = item.getText(2); 
 			relationship[2] = item.getText(3);
+			relationship[3] = item.getText(4);
+			relationship[4] = item.getText(5);
+//			System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
+//			System.out.println(Arrays.toString(relationships));
+//			System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
 			relationships[i] = relationship;
 		}
 		input.setRelationships(relationships);

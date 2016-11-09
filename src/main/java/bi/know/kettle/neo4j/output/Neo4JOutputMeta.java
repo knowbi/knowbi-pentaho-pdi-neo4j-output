@@ -88,8 +88,10 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		for(int i=0; i < relationships.length ; i++){
 			retval += "<relationship>"  + Const.CR; 
 			retval += "<fromnode>" +relationships[i][0] + "</fromnode>" + Const.CR; 
-			retval += "<relationship>" +relationships[i][1] + "</relationship>" + Const.CR; 
-			retval += "<tonode>" +relationships[i][2] + "</tonode>" + Const.CR; 
+			retval += "<fromnodeprop>" + relationships[i][1] + "</fromnodeprop>" + Const.CR;
+			retval += "<relationship>" +relationships[i][2] + "</relationship>" + Const.CR; 
+			retval += "<tonode>" +relationships[i][3] + "</tonode>" + Const.CR; 
+			retval += "<tonodeprop>" + relationships[i][4] + "</tonodeprop>" + Const.CR;
 			retval += "</relationship>"  + Const.CR; 
 		}
 		retval += "</relationships>" + Const.CR;
@@ -122,12 +124,14 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		
 		Node relationshipsNode = XMLHandler.getSubNode(stepnode, "relationships");
 		int nbRelationships = XMLHandler.countNodes(relationshipsNode, "relationship");
-		relationships = new String[nbRelationships][3];
+		relationships = new String[nbRelationships][5];
 		for(int i=0; i < relationships.length; i++){
 			Node relationshipNode = XMLHandler.getSubNodeByNr(relationshipsNode, "relationship", i);
 			relationships[i][0] = XMLHandler.getSubNode(relationshipNode, "fromnode").getTextContent(); 
-			relationships[i][1] = XMLHandler.getSubNode(relationshipNode, "relationship").getTextContent(); 
-			relationships[i][2] = XMLHandler.getSubNode(relationshipNode, "tonode").getTextContent(); 
+			relationships[i][1] = XMLHandler.getSubNode(relationshipNode, "fromnodeprop").getTextContent(); 			
+			relationships[i][2] = XMLHandler.getSubNode(relationshipNode, "relationship").getTextContent(); 
+			relationships[i][3] = XMLHandler.getSubNode(relationshipNode, "tonode").getTextContent(); 
+			relationships[i][4] = XMLHandler.getSubNode(relationshipNode, "tonodeprop").getTextContent(); 
 		}
 		
 		

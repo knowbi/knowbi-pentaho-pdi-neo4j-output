@@ -12,7 +12,7 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <pdi.dir>/opt/pentaho/pdi/ce/6.0.1</pdi.dir>
+    <pdi.dir>/opt/pentaho/pdi/ce/6.1.0</pdi.dir>
   </properties>
 
 	<build>
@@ -92,16 +92,16 @@
 		<dependency>
 			<groupId>kettle-core</groupId>
 			<artifactId>kettle-core</artifactId>
-			<version>6.0.1</version>
+			<version>6.1.0</version>
 			<scope>system</scope>
-			<systemPath>${pdi.dir}/lib/kettle-core-6.0.1.0-386.jar</systemPath>
+			<systemPath>${pdi.dir}/lib/kettle-core-6.1.0.1-196.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>kettle-engine</groupId>
 			<artifactId>kettle-engine</artifactId>
 			<version>6.0.1</version>
 			<scope>system</scope>
-			<systemPath>${pdi.dir}/lib/kettle-engine-6.0.1.0-386.jar</systemPath>
+			<systemPath>${pdi.dir}/lib/kettle-engine-6.1.0.1-196.jar</systemPath>
 		</dependency>
 		<dependency>
 			<groupId>scannotation</groupId>
