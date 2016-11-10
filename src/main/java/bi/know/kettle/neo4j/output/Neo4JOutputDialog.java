@@ -506,6 +506,8 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 				item.setText(1, relationships[i][0]);
 				item.setText(2, relationships[i][1]);
 				item.setText(3, relationships[i][2]);
+				item.setText(4, relationships[i][3]);
+				item.setText(5, relationships[i][4]);
 			}
 		}
 		
@@ -560,9 +562,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 			relationship[2] = item.getText(3);
 			relationship[3] = item.getText(4);
 			relationship[4] = item.getText(5);
-//			System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
-//			System.out.println(Arrays.toString(relationships));
-//			System.out.println("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@");
 			relationships[i] = relationship;
 		}
 		input.setRelationships(relationships);
