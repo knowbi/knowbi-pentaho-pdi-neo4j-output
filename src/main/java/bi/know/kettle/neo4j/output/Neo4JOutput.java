@@ -25,6 +25,7 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
+import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 
 public class Neo4JOutput  extends BaseStep implements StepInterface {
@@ -203,11 +204,14 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
      		URI fromNodeURI = new URI(SERVER_URI + "node/" + fromNodeId + "/relationships");
            	URI toNodeURI = new URI(SERVER_URI + "node/" + toNodeId);
            	String  relationshipJSON = "{ \"to\" : \"" + toNodeURI + "\", \"type\" : \"" +  relationshipType + "\"}" ;
+           	System.out.println("fromNode: " + fromNodeURI);
+           	System.out.println("relationshipJSON: " + relationshipJSON);
            	Client fromNodeClient = Client.create(); 
            	fromNodeClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
            	WebResource fromNodeResource = fromNodeClient.resource(fromNodeURI);
            	ClientResponse relationshipResponse = fromNodeResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(relationshipJSON).post(ClientResponse.class);
            	final URI relationshipURI = relationshipResponse.getLocation();
+           	System.out.println("relationshipURI: " + relationshipURI);
            	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationship") + fromNodeId + " - " + toNodeId + " - " + relationshipType + " - " + relationshipURI + " - " + relationshipResponse.getStatus() + " - " + relationshipJSON);
    	     	nbRows++;
    	     	setLinesWritten(nbRows);
@@ -222,15 +226,29 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     
     
       private int addRelationshipProperty(String relationshipId, String[] relProps){
+ 		System.out.println("######## creating relationship: " + relationshipId + ", " + Arrays.toString(relProps));
+
     	try{
     		String relPropsJSON = "{";
     		for(int i=0; i < relProps.length; i++){
-    			relPropsJSON += "\"" + relProps[i] + "\" : \"" +  (String)r[Arrays.asList(fieldNames).indexOf(relProps[i])] + "\" ";
+    			System.out.println("%%%%%% In loop");
+    			String propName = (String)relProps[i];
+//    			System.out.println("propName: " + propName);
+//    			System.out.println("propVal parts: " + Arrays.toString(fieldNames) + " -- " + (String)relProps[i] + " -- " + Arrays.asList(fieldNames).indexOf(relProps[i]));
+//    			System.out.println("Distance: " + Arrays.toString(r));
+//    			System.out.println("val: " + r[Arrays.asList(fieldNames).indexOf(relProps[i])]);
+    			String propVal = (String)r[Arrays.asList(fieldNames).indexOf(relProps[i])];
+//    			System.out.println("propVal: " + propVal);
+//    			System.out.println("Name: " + propName + ", val: " + propVal);
+    			relPropsJSON += "\"" + propName + "\" : \"" +  propVal + "\" ";
     			if(i <  (relProps.length-1)){
     				relPropsJSON += ", ";
     			}
     		}
     		relPropsJSON += "}" ;
+    		System.out.println("#############################");
+    		System.out.println("relPropsJSON: " + relPropsJSON);
+    		System.out.println("#############################");
 	       	Client relPropsClient = Client.create(); 
         	relPropsClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
         	String relationshipURI = SERVER_URI +  "relationship/" + relationshipId + "/properties"; 
@@ -240,6 +258,7 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipProperty") + relPropsURI);
 	       	return 0; 
     	}catch(Exception e){
+    		System.out.println("ERROR adding relationship properties: " + e.getMessage());
         	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipPropertyError") + relationshipId);
         	return -1; 
     	}
