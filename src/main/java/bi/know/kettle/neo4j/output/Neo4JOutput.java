@@ -2,12 +2,12 @@ package bi.know.kettle.neo4j.output;
 
 import java.net.URI;
 import java.util.Arrays;
-
-import javax.ws.rs.core.MediaType;
-
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.rest.graphdb.RestAPI;
-import org.neo4j.rest.graphdb.RestAPIFacade;
+import org.neo4j.driver.v1.AuthTokens;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.Transaction;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -21,11 +21,6 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 
-import com.sun.jersey.api.client.Client;
-import com.sun.jersey.api.client.ClientResponse;
-import com.sun.jersey.api.client.WebResource;
-import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
-import com.sun.xml.internal.bind.v2.runtime.unmarshaller.XsiNilLoader.Array;
 
 
 public class Neo4JOutput  extends BaseStep implements StepInterface {
@@ -33,13 +28,13 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 
 	private Neo4JOutputMeta meta; 
 	private Neo4JOutputData data;
-	private RestAPI graphDb; 
 	private Transaction tx;
 	private int nbRows;
 	private String[] fieldNames;
-	private static String SERVER_URI; 
 	private Object[] r; 
 	private Object[] outputRow;
+	private Driver driver; 
+	private Session session;
 	
     public Neo4JOutput(StepMeta s, StepDataInterface stepDataInterface, int c, TransMeta t, Trans dis) {
 		super(s,stepDataInterface,c,t,dis);
@@ -57,7 +52,7 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
             first = false;
             nbRows= 0;
             
-	         data.outputRowMeta = (RowMetaInterface)getInputRowMeta().clone();
+	        data.outputRowMeta = (RowMetaInterface)getInputRowMeta().clone();
           	data.outputRowMeta.addValueMeta(new ValueMetaString("nodeURI"));
    	        fieldNames =  data.outputRowMeta.getFieldNames(); 
         }
@@ -67,48 +62,31 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         	return false; 
         }else{
         	try{ 
-   	     	 outputRow = RowDataUtil.resizeArray( r, data.outputRowMeta.size());
-
-   	     	 // create node
-   	     	 String nodeKey = meta.getKey();
-   	     	 Object nodeValue = r[Arrays.asList(fieldNames).indexOf(meta.getKey())];
-   	     	String nodeId = createNode(nodeKey, nodeValue); 
-   	     	putRow(data.outputRowMeta, outputRow);
-   	     	nbRows++;
-   	     	setLinesWritten(nbRows);
-   	     	setLinesOutput(nbRows);
-        	
-        	// add label
-        	String nodeLabels[] = meta.getNodeLabels();
-        	for(int i=0; i < nodeLabels.length; i++){
-        		addNodeToLabel(nodeId, (String)r[Arrays.asList(fieldNames).indexOf(nodeLabels[i])]); 
-        	}
-        	        	
-        	// add properties
-        	String nodeProps[] = meta.getNodeProps();
-        	for(int i=0; i < nodeProps.length; i++){
-        		addNodeProperty(nodeId, nodeProps[i], (String)r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]);
-        	}
-        	
+        		outputRow = RowDataUtil.resizeArray( r, data.outputRowMeta.size());
+	   	     	createNode(); 
+	   	     	putRow(data.outputRowMeta, outputRow);
+	   	     	nbRows++;
+	   	     	setLinesWritten(nbRows);
+	   	     	setLinesOutput(nbRows);
         	}catch(Exception e){
         		logError(BaseMessages.getString(PKG, "Neo4JOutput.addNodeError") + e.getMessage());
         	}
         	
         	try{
       	     	 // Create relationship 
-        	 	String[][] relationships = meta.getRelationships(); 
-        	 	for(int i=0; i < relationships.length; i++){
-        	 		Object fromFieldVal = r[Arrays.asList(fieldNames).indexOf(relationships[i][0])];
-        	 		String fromPropVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][1])];
-        	 		String relLabelVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][2])];
-        	 		Object toFieldVal = r[Arrays.asList(fieldNames).indexOf(relationships[i][3])];
-        	 		String toPropVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][4])];
-        	 		
-        	 		String fromNodeId = createNode(fromPropVal, fromFieldVal);
-        	 		String toNodeId = createNode(toPropVal, toFieldVal);
-        	 		String relationshipId = createRelationship(fromNodeId, toNodeId, relLabelVal);
-    	       		addRelationshipProperty(relationshipId, meta.getRelProps());
-        	 	}
+//        	 	String[][] relationships = meta.getRelationships(); 
+//        	 	for(int i=0; i < relationships.length; i++){
+//        	 		Object fromFieldVal = r[Arrays.asList(fieldNames).indexOf(relationships[i][0])];
+//        	 		String fromPropVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][1])];
+//        	 		String relLabelVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][2])];
+//        	 		Object toFieldVal = r[Arrays.asList(fieldNames).indexOf(relationships[i][3])];
+//        	 		String toPropVal = (String)r[Arrays.asList(fieldNames).indexOf(relationships[i][4])];
+//        	 		
+//        	 		String fromNodeId = createNode(fromPropVal, fromFieldVal);
+//        	 		String toNodeId = createNode(toPropVal, toFieldVal);
+//        	 		String relationshipId = createRelationship(fromNodeId, toNodeId, relLabelVal);
+//    	       		addRelationshipProperty(relationshipId, meta.getRelProps());
+//        	 	}
             	
         	}catch(Exception e){
         		logError(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipError") + e.getMessage());
@@ -122,106 +100,174 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	    meta = (Neo4JOutputMeta)smi;
 	    data = (Neo4JOutputData)sdi;
 	    
-	    SERVER_URI = meta.getProtocol() + "://" + meta.getHost() + ":" + meta.getPort() + "/db/data/";
-	    graphDb = new RestAPIFacade(SERVER_URI, meta.getUsername(), meta.getPassword());	    
-	    tx = graphDb.beginTx();  
+	    String url = meta.getProtocol() + "://" + meta.getHost() + ":" + meta.getPort();  
+	    driver = GraphDatabase.driver(url, AuthTokens.basic(meta.getUsername(), meta.getPassword()));
+	    session = driver.session();
+	    tx = session.beginTransaction();
 	    
 	    return super.init(smi, sdi);
 	}
-	
+
+	/**
+	 * TODO: 
+	 * 1. handle errors on session.close();
+	 */
 	public void dispose(StepMetaInterface smi, StepDataInterface sdi){
-	    tx.success();  
-	    tx.close(); 
+		tx.success();
+		tx.close();
+		session.close();
+		driver.close();
 	    super.dispose(smi, sdi);
 	}
 
-    
-    public String createNode(String nodeKey, Object nodeValue){
-    		String nodeJSON = ""; 
-    		if(nodeValue instanceof String){
-    	    	nodeJSON = "{\"key\": \"" + nodeKey + "\", \"value\" : \"" + nodeValue  +   "\"}";    
-    		}else{
-    	    	nodeJSON = "{\"key\": \"" + nodeKey + "\", \"value\" : " + nodeValue  +   "}";    
+	
+	/**
+	 * TODO: 
+	 * 1. parameterized statements 
+	 * 2. batch mode 
+	 * 3. option to return node id (compatible with batch mode?)
+	 * @return
+	 */
+	public int createNode() {
+//		String nodeVal = escapeStr(String.valueOf(r[Arrays.asList(fieldNames).indexOf(meta.getKey())]));
+		
+//		System.out.println("nodeVal: " + nodeVal);
+		
+		// Add labels
+		String labels = "";
+		// TODO: convert to List<String>
+    	String nodeLabels[] = meta.getFromNodeLabels();
+    	for(int i=0; i < nodeLabels.length; i++){
+    		String label = escapeStr(String.valueOf(r[Arrays.asList(fieldNames).indexOf(nodeLabels[i])]));
+    		labels += label;
+    		if(i != (nodeLabels.length)-1) {
+    			labels += ":";
     		}
-    	System.out.println("nodeJSON: " + nodeJSON);
-    	Client c = Client.create();
-    	c.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
-	    WebResource nodeResource = c.resource(SERVER_URI + "index/node/pdi?uniqueness=get_or_create");    	
-    	ClientResponse nodeResponse = nodeResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(nodeJSON).post(ClientResponse.class);
-    	final URI nodeLocation = nodeResponse.getLocation();
-    	outputRow[data.outputRowMeta.size()-1] = nodeLocation.toString();
-    	if(nodeResponse.getStatus() == 201 || nodeResponse.getStatus() == 200){
-    		logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addNodeLabel") + nodeLocation);
-        	return getIdFromURI(nodeLocation);
-    	}else{
-    		// throw exception.
-    		logError(BaseMessages.getString("Neo4JOutput.addNodeError"));
-    		return ""; 
+    		System.out.println("label: " + label);
     	}
-    }
-    
-    
-    
-    
-    private int addNodeToLabel(String nodeId, String labelStr){
+		
+    	// Add properties
+    	String props = " { "; 
+    	String nodeProps[] = meta.getFromNodeProps();
+    	for(int i=0; i < nodeProps.length; i++){
+    		props += nodeProps[i] + " : " + "\"" + String.valueOf(r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]) + "\"";
+    		if(i != (nodeProps.length)-1) {
+    			props += ", ";
+    		}
+    		// e.g. { name: 'Andres', title: 'Developer' }
+    	}
+    	props += "}";
+
+		// CREATE (n:Person:Mens:`Human Being` { name: 'Andres', title: 'Developer' }) return n;
+//    	String stmt = "CREATE (" + nodeVal + ":" + labels + props + ");";
+    	String stmt = "CREATE (" + labels + props + ");";
+    	
+    	System.out.println(stmt);
+    	
+    	
     	try{
-        	URI labelURI = new URI(SERVER_URI + "node/" + nodeId + "/labels");
-        	Client labelClient = Client.create();
-        	labelClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
-    	    WebResource labelResource = labelClient.resource(labelURI);
-    		String labelJSON = "\"" + labelStr + "\"";
-        	ClientResponse labelResponse = labelResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(labelJSON).post(ClientResponse.class);
-        	final URI labelLocation = labelResponse.getLocation();
-        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addNodeLabel") + labelLocation);
-        	return 0; 
-    	}catch(Exception e){
-    		logError(BaseMessages.getString(PKG, "Neo4JOutput.addNodeLabelError") + nodeId);
-    		return -1; 
+    		tx.run(stmt);
+    	}catch(Exception e) {
+        	logError("Error executing statement: " + stmt);
     	}
-    }
+		return 0; 
+	}
+	
+	
+	public String escapeStr(String str) {
+		if(str.contains(" ") || str.contains(".")) {
+			str = "`" + str + "`";
+		}
+		return str; 
+	}
+    
+//    public String createNode(String nodeKey, Object nodeValue){
+//    		String nodeJSON = ""; 
+//    		if(nodeValue instanceof String){
+//    	    	nodeJSON = "{\"key\": \"" + nodeKey + "\", \"value\" : \"" + nodeValue  +   "\"}";    
+//    		}else{
+//    	    	nodeJSON = "{\"key\": \"" + nodeKey + "\", \"value\" : " + nodeValue  +   "}";    
+//    		}
+//    	System.out.println("nodeJSON: " + nodeJSON);
+//    	Client c = Client.create();
+//    	c.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
+//	    WebResource nodeResource = c.resource(SERVER_URI + "index/node/pdi?uniqueness=get_or_create");    	
+//    	ClientResponse nodeResponse = nodeResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(nodeJSON).post(ClientResponse.class);
+//    	final URI nodeLocation = nodeResponse.getLocation();
+//    	outputRow[data.outputRowMeta.size()-1] = nodeLocation.toString();
+//    	if(nodeResponse.getStatus() == 201 || nodeResponse.getStatus() == 200){
+//    		logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addNodeLabel") + nodeLocation);
+//        	return getIdFromURI(nodeLocation);
+//    	}else{
+//    		// throw exception.
+//    		logError(BaseMessages.getString("Neo4JOutput.addNodeError"));
+//    		return ""; 
+//    	}
+//    }
     
     
-    private int addNodeProperty(String nodeId, String propKey, String propValue){
-    	try{
-        	URI propertyURI = new URI(SERVER_URI + "node/" + nodeId + "/properties/" + propKey);
-        	Client propertyClient = Client.create();
-        	propertyClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
-    	    WebResource propertyResource = propertyClient.resource(propertyURI);
-    		String propertyJSON = "\"" + propValue + "\"";
-        	ClientResponse propertyResponse = propertyResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(propertyJSON).put(ClientResponse.class);
-        	final URI propertyLocation = propertyResponse.getLocation();
-        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addNodeProperty") + propertyLocation);
-        	return 0; 
-    	}catch(Exception e ){
-        	logError(BaseMessages.getString(PKG, "Neo4JOutput.addNodePropertyError") + nodeId);
-        	return -1; 
-    	}
-    }
+    
+    
+//    private int addNodeToLabel(String nodeId, String labelStr){
+//    	try{
+//        	URI labelURI = new URI(SERVER_URI + "node/" + nodeId + "/labels");
+//        	Client labelClient = Client.create();
+//        	labelClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
+//    	    WebResource labelResource = labelClient.resource(labelURI);
+//    		String labelJSON = "\"" + labelStr + "\"";
+//        	ClientResponse labelResponse = labelResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(labelJSON).post(ClientResponse.class);
+//        	final URI labelLocation = labelResponse.getLocation();
+//        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addNodeLabel") + labelLocation);
+//        	return 0; 
+//    	}catch(Exception e){
+//    		logError(BaseMessages.getString(PKG, "Neo4JOutput.addNodeLabelError") + nodeId);
+//    		return -1; 
+//    	}
+//    }
+    
+    
+//    private int addNodeProperty(String nodeId, String propKey, String propValue){
+//    	try{
+//        	URI propertyURI = new URI(SERVER_URI + "node/" + nodeId + "/properties/" + propKey);
+//        	Client propertyClient = Client.create();
+//        	propertyClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
+//    	    WebResource propertyResource = propertyClient.resource(propertyURI);
+//    		String propertyJSON = "\"" + propValue + "\"";
+//        	ClientResponse propertyResponse = propertyResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(propertyJSON).put(ClientResponse.class);
+//        	final URI propertyLocation = propertyResponse.getLocation();
+//        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addNodeProperty") + propertyLocation);
+//        	return 0; 
+//    	}catch(Exception e ){
+//        	logError(BaseMessages.getString(PKG, "Neo4JOutput.addNodePropertyError") + nodeId);
+//        	return -1; 
+//    	}
+//    }
     
     private String createRelationship(String fromNodeId, String toNodeId, String relationshipType){
     	logDetailed("creating relationship from " + fromNodeId + " to " + toNodeId + " , type: " + relationshipType); 
-    	try{
-     		URI fromNodeURI = new URI(SERVER_URI + "node/" + fromNodeId + "/relationships");
-           	URI toNodeURI = new URI(SERVER_URI + "node/" + toNodeId);
-           	String  relationshipJSON = "{ \"to\" : \"" + toNodeURI + "\", \"type\" : \"" +  relationshipType + "\"}" ;
-           	System.out.println("fromNode: " + fromNodeURI);
-           	System.out.println("relationshipJSON: " + relationshipJSON);
-           	Client fromNodeClient = Client.create(); 
-           	fromNodeClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
-           	WebResource fromNodeResource = fromNodeClient.resource(fromNodeURI);
-           	ClientResponse relationshipResponse = fromNodeResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(relationshipJSON).post(ClientResponse.class);
-           	final URI relationshipURI = relationshipResponse.getLocation();
-           	System.out.println("relationshipURI: " + relationshipURI);
-           	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationship") + fromNodeId + " - " + toNodeId + " - " + relationshipType + " - " + relationshipURI + " - " + relationshipResponse.getStatus() + " - " + relationshipJSON);
-   	     	nbRows++;
-   	     	setLinesWritten(nbRows);
-   	     	setLinesOutput(nbRows);
-
-           	return getIdFromURI(relationshipURI);
-    	}catch(Exception e){
-        	logError(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipError") + fromNodeId + ", "  + toNodeId  + ", " + relationshipType);
-        	return ""; 
-    	}
+    	return "";
+//    	try{
+//     		URI fromNodeURI = new URI(SERVER_URI + "node/" + fromNodeId + "/relationships");
+//           	URI toNodeURI = new URI(SERVER_URI + "node/" + toNodeId);
+//           	String  relationshipJSON = "{ \"to\" : \"" + toNodeURI + "\", \"type\" : \"" +  relationshipType + "\"}" ;
+//           	System.out.println("fromNode: " + fromNodeURI);
+//           	System.out.println("relationshipJSON: " + relationshipJSON);
+//           	Client fromNodeClient = Client.create(); 
+//           	fromNodeClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
+//           	WebResource fromNodeResource = fromNodeClient.resource(fromNodeURI);
+//           	ClientResponse relationshipResponse = fromNodeResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(relationshipJSON).post(ClientResponse.class);
+//           	final URI relationshipURI = relationshipResponse.getLocation();
+//           	System.out.println("relationshipURI: " + relationshipURI);
+//           	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationship") + fromNodeId + " - " + toNodeId + " - " + relationshipType + " - " + relationshipURI + " - " + relationshipResponse.getStatus() + " - " + relationshipJSON);
+//   	     	nbRows++;
+//   	     	setLinesWritten(nbRows);
+//   	     	setLinesOutput(nbRows);
+//
+//           	return getIdFromURI(relationshipURI);
+//    	}catch(Exception e){
+//        	logError(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipError") + fromNodeId + ", "  + toNodeId  + ", " + relationshipType);
+//        	return ""; 
+//    	}
     }
     
     
@@ -245,17 +291,17 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     				relPropsJSON += ", ";
     			}
     		}
-    		relPropsJSON += "}" ;
-    		System.out.println("#############################");
-    		System.out.println("relPropsJSON: " + relPropsJSON);
-    		System.out.println("#############################");
-	       	Client relPropsClient = Client.create(); 
-        	relPropsClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
-        	String relationshipURI = SERVER_URI +  "relationship/" + relationshipId + "/properties"; 
-	       	WebResource relPropsResource = relPropsClient.resource(relationshipURI);
-	       	ClientResponse relPropsResponse = relPropsResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(relPropsJSON).put(ClientResponse.class);
-	       	final URI relPropsURI = relPropsResponse.getLocation();
-        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipProperty") + relPropsURI);
+//    		relPropsJSON += "}" ;
+//    		System.out.println("#############################");
+//    		System.out.println("relPropsJSON: " + relPropsJSON);
+//    		System.out.println("#############################");
+//	       	Client relPropsClient = Client.create(); 
+//        	relPropsClient.addFilter(new HTTPBasicAuthFilter(meta.getUsername(), meta.getPassword()));
+//        	String relationshipURI = SERVER_URI +  "relationship/" + relationshipId + "/properties"; 
+//	       	WebResource relPropsResource = relPropsClient.resource(relationshipURI);
+//	       	ClientResponse relPropsResponse = relPropsResource.accept(MediaType.APPLICATION_JSON).type(MediaType.APPLICATION_JSON).entity(relPropsJSON).put(ClientResponse.class);
+//	       	final URI relPropsURI = relPropsResponse.getLocation();
+//        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipProperty") + relPropsURI);
 	       	return 0; 
     	}catch(Exception e){
     		System.out.println("ERROR adding relationship properties: " + e.getMessage());

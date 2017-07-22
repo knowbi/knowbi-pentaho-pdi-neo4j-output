@@ -30,19 +30,18 @@ import org.pentaho.di.trans.step.StepMetaInterface;
 import org.w3c.dom.Node;
 
 
-
-@Step( id = "Neo4JOutput",
+@Step(id = "Neo4JOutput", 
 image = "NEO4J.svg",
 i18nPackageName="bi.know.kettle.neo4j.output",
 name="Neo4JOutput.Step.Name",
 description = "Neo4JOutput.Step.Description",
-categoryDescription="Neo4JOutput.Step.Category",
-isSeparateClassLoaderNeeded=true
+categoryDescription="Neo4JOutput.Step.Category" //,
+/// isSeparateClassLoaderNeeded=true
 )
 public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 	
 	public String protocol, host, port, dbName, username, password, key;  /*label, labelsSeparator*/ 
-	public String[] nodeProps, nodeLabels, relProps;
+	public String[] fromNodeProps, toNodeProps, fromNodeLabels, toNodeLabels, relProps;
 	
 	public String[][] relationships;
 
@@ -60,9 +59,9 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 
 
 	public void setDefault() {
-		protocol = "http";
+		protocol = "bolt";
 		host = "localhost";
-		port = "7474"; 
+		port = "7687"; 
 		dbName = "data"; 
 	}
 	
@@ -73,34 +72,69 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		retval += "<port>" + port + "</port>"  + Const.CR;
 		retval += "<username>" + username + "</username>"  + Const.CR;
 		retval += "<password>" + password + "</password>"  + Const.CR;
-		retval += "<key>" + key + "</key>" + Const.CR;
+//		retval += "<key>" + key + "</key>" + Const.CR;
+		retval += "<from>" + Const.CR;
 		retval += "<labels>" + Const.CR;
-		for(int i=0; i < nodeLabels.length; i++){
-			retval += "    <label>" + nodeLabels[i] + "</label>" + Const.CR; 
+		for(int i=0; i < fromNodeLabels.length; i++){
+			retval += "    <label>" + fromNodeLabels[i] + "</label>" + Const.CR; 
 		}
-		retval += "</labels>" + Const.CR;		
-		retval += "<nodes>" + Const.CR;
-		for(int i=0; i < nodeProps.length; i++){
-			retval += "    <node>" + nodeProps[i] + "</node>" + Const.CR; 
+		retval += "</labels>" + Const.CR;
+		retval += "<properties>" + Const.CR;
+		for(int i=0; i < fromNodeProps.length; i++){
+		retval += "    <property>" + fromNodeProps[i] + "</property>" + Const.CR; 
+	}
+		retval += "</properties>" + Const.CR;
+		retval += "</from>" + Const.CR;
+		retval += "<to>" + Const.CR;
+		retval += "<labels>" + Const.CR;
+		for(int i=0; i < toNodeLabels.length; i++){
+			retval += "    <label>" + toNodeLabels[i] + "</label>" + Const.CR; 
 		}
-		retval += "</nodes>" + Const.CR;
-		retval += "<relationships>" + Const.CR;
-		for(int i=0; i < relationships.length ; i++){
-			retval += "<relationship>"  + Const.CR; 
-			retval += "<fromnode>" +relationships[i][0] + "</fromnode>" + Const.CR; 
-			retval += "<fromnodeprop>" + relationships[i][1] + "</fromnodeprop>" + Const.CR;
-			retval += "<relationship>" +relationships[i][2] + "</relationship>" + Const.CR; 
-			retval += "<tonode>" +relationships[i][3] + "</tonode>" + Const.CR; 
-			retval += "<tonodeprop>" + relationships[i][4] + "</tonodeprop>" + Const.CR;
-			retval += "</relationship>"  + Const.CR; 
-		}
-		retval += "</relationships>" + Const.CR;
+		retval += "</labels>" + Const.CR;
+		retval += "<properties>" + Const.CR;
+		for(int i=0; i < toNodeProps.length; i++){
+		retval += "    <property>" + toNodeProps[i] + "</property>" + Const.CR; 
+	}
+		retval += "</properties>" + Const.CR;
+		retval += "</to>" + Const.CR;
+		
+		
 		
 		retval += "<relprops>" + Const.CR;
 		for(int i=0; i < relProps.length; i++){
 			retval += "    <relprop>" + relProps[i] + "</relprop>" + Const.CR; 
 		}
 		retval += "</relprops>" + Const.CR;
+		
+
+//		retval += "<labels>" + Const.CR;
+//		for(int i=0; i < nodeLabels.length; i++){
+//			retval += "    <label>" + nodeLabels[i] + "</label>" + Const.CR; 
+//		}
+//		retval += "</labels>" + Const.CR;		
+//		retval += "<nodes>" + Const.CR;
+//		for(int i=0; i < nodeProps.length; i++){
+//			retval += "    <node>" + nodeProps[i] + "</node>" + Const.CR; 
+//		}
+//		retval += "</nodes>" + Const.CR;
+		
+//		retval += "<relationships>" + Const.CR;
+//		for(int i=0; i < relationships.length ; i++){
+//			retval += "<relationship>"  + Const.CR; 
+//			retval += "<fromnode>" +relationships[i][0] + "</fromnode>" + Const.CR; 
+//			retval += "<fromnodeprop>" + relationships[i][1] + "</fromnodeprop>" + Const.CR;
+//			retval += "<relationship>" +relationships[i][2] + "</relationship>" + Const.CR; 
+//			retval += "<tonode>" +relationships[i][3] + "</tonode>" + Const.CR; 
+//			retval += "<tonodeprop>" + relationships[i][4] + "</tonodeprop>" + Const.CR;
+//			retval += "</relationship>"  + Const.CR; 
+//		}
+//		retval += "</relationships>" + Const.CR;
+//		
+//		retval += "<relprops>" + Const.CR;
+//		for(int i=0; i < relProps.length; i++){
+//			retval += "    <relprop>" + relProps[i] + "</relprop>" + Const.CR; 
+//		}
+//		retval += "</relprops>" + Const.CR;
 		
 		return retval;
 	}
@@ -113,46 +147,88 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		password = XMLHandler.getTagValue(stepnode, "password");
 		key= XMLHandler.getTagValue(stepnode, "key");
 		
-		Node labelsNode = XMLHandler.getSubNode(stepnode, "labels");
-		int nbLabelFields =  XMLHandler.countNodes(labelsNode, "label");
-		nodeLabels= new String[nbLabelFields];
-		for(int i=0; i < nbLabelFields; i++){
-			Node labelNode = XMLHandler.getSubNodeByNr(labelsNode, "label", i);
-			nodeLabels[i] = labelNode.getTextContent();
-			logBasic("Node " + i + ": " + nodeLabels[i]);
+		Node fromNode = XMLHandler.getSubNode(stepnode, "from");
+		Node fromLabelsNode = XMLHandler.getSubNode(fromNode, "labels");
+		int nbFromLabelFields =  XMLHandler.countNodes(fromLabelsNode, "label");
+		fromNodeLabels= new String[nbFromLabelFields];
+		for(int i=0; i < nbFromLabelFields; i++){
+			Node labelNode = XMLHandler.getSubNodeByNr(fromLabelsNode, "label", i);
+			fromNodeLabels[i] = labelNode.getTextContent();
+			logBasic("From Node " + i + ": " + fromNodeLabels[i]);
+		}
+		Node fromPropsNode = XMLHandler.getSubNode(fromNode, "to");
+		int nbFromPropFields =  XMLHandler.countNodes(fromPropsNode, "properties");
+		fromNodeProps = new String[nbFromPropFields];
+		for(int i=0; i < nbFromPropFields; i++){
+			Node propNode = XMLHandler.getSubNodeByNr(fromPropsNode, "property", i);
+			fromNodeProps[i] = propNode.getTextContent();
+			logBasic("To Node " + i + ": " + fromNodeProps[i]);
 		}
 		
-		Node relationshipsNode = XMLHandler.getSubNode(stepnode, "relationships");
-		int nbRelationships = XMLHandler.countNodes(relationshipsNode, "relationship");
-		relationships = new String[nbRelationships][5];
-		for(int i=0; i < relationships.length; i++){
-			Node relationshipNode = XMLHandler.getSubNodeByNr(relationshipsNode, "relationship", i);
-			relationships[i][0] = XMLHandler.getSubNode(relationshipNode, "fromnode").getTextContent(); 
-			relationships[i][1] = XMLHandler.getSubNode(relationshipNode, "fromnodeprop").getTextContent(); 			
-			relationships[i][2] = XMLHandler.getSubNode(relationshipNode, "relationship").getTextContent(); 
-			relationships[i][3] = XMLHandler.getSubNode(relationshipNode, "tonode").getTextContent(); 
-			relationships[i][4] = XMLHandler.getSubNode(relationshipNode, "tonodeprop").getTextContent(); 
-		}
-		
-		
-		Node nodesNode = XMLHandler.getSubNode(stepnode, "nodes");
-		int nbFields =  XMLHandler.countNodes(nodesNode, "node");
-		nodeProps = new String[nbFields];
-		for(int i=0; i < nbFields; i++){
-			Node nodeNode = XMLHandler.getSubNodeByNr(nodesNode, "node", i);
-			nodeProps[i] = nodeNode.getTextContent();
-			logBasic("Node " + i + ": " + nodeProps[i]);
-		}
 
-
-		Node relPropsNode = XMLHandler.getSubNode(stepnode, "relprops");
-		nbFields =  XMLHandler.countNodes(relPropsNode, "relprop");
-		relProps = new String[nbFields];
-		for(int i=0; i < nbFields; i++){
-			Node relPropNode = XMLHandler.getSubNodeByNr(relPropsNode, "relprop", i);
-			relProps[i] = relPropNode.getTextContent();
-			logBasic("Relationship Property" + i + ": " + relProps[i]);
+		
+		
+		
+		Node toNode = XMLHandler.getSubNode(stepnode, "to");
+		Node toLabelsNode = XMLHandler.getSubNode(toNode, "labels");
+		int nbToLabelFields =  XMLHandler.countNodes(toLabelsNode, "label");
+		toNodeLabels= new String[nbToLabelFields];
+		for(int i=0; i < nbToLabelFields; i++){
+			Node labelNode = XMLHandler.getSubNodeByNr(toLabelsNode, "label", i);
+			toNodeLabels[i] = labelNode.getTextContent();
+			logBasic("To Node " + i + ": " + toNodeLabels[i]);
 		}
+		Node toPropsNode = XMLHandler.getSubNode(toNode, "to");
+		int nbToPropFields =  XMLHandler.countNodes(toPropsNode, "properties");
+		toNodeProps = new String[nbToPropFields];
+		for(int i=0; i < nbToPropFields; i++){
+			Node propNode = XMLHandler.getSubNodeByNr(toPropsNode, "property", i);
+			toNodeProps[i] = propNode.getTextContent();
+			logBasic("To Node " + i + ": " + toNodeProps[i]);
+		}
+		
+		
+		
+//		Node labelsNode = XMLHandler.getSubNode(stepnode, "labels");
+//		int nbLabelFields =  XMLHandler.countNodes(labelsNode, "label");
+//		nodeLabels= new String[nbLabelFields];
+//		for(int i=0; i < nbLabelFields; i++){
+//			Node labelNode = XMLHandler.getSubNodeByNr(labelsNode, "label", i);
+//			nodeLabels[i] = labelNode.getTextContent();
+//			logBasic("Node " + i + ": " + nodeLabels[i]);
+//		}
+//		
+//		Node relationshipsNode = XMLHandler.getSubNode(stepnode, "relationships");
+//		int nbRelationships = XMLHandler.countNodes(relationshipsNode, "relationship");
+//		relationships = new String[nbRelationships][5];
+//		for(int i=0; i < relationships.length; i++){
+//			Node relationshipNode = XMLHandler.getSubNodeByNr(relationshipsNode, "relationship", i);
+//			relationships[i][0] = XMLHandler.getSubNode(relationshipNode, "fromnode").getTextContent(); 
+//			relationships[i][1] = XMLHandler.getSubNode(relationshipNode, "fromnodeprop").getTextContent(); 			
+//			relationships[i][2] = XMLHandler.getSubNode(relationshipNode, "relationship").getTextContent(); 
+//			relationships[i][3] = XMLHandler.getSubNode(relationshipNode, "tonode").getTextContent(); 
+//			relationships[i][4] = XMLHandler.getSubNode(relationshipNode, "tonodeprop").getTextContent(); 
+//		}
+//		
+//		
+//		Node nodesNode = XMLHandler.getSubNode(stepnode, "nodes");
+//		int nbFields =  XMLHandler.countNodes(nodesNode, "node");
+//		nodeProps = new String[nbFields];
+//		for(int i=0; i < nbFields; i++){
+//			Node nodeNode = XMLHandler.getSubNodeByNr(nodesNode, "node", i);
+//			nodeProps[i] = nodeNode.getTextContent();
+//			logBasic("Node " + i + ": " + nodeProps[i]);
+//		}
+//
+//
+//		Node relPropsNode = XMLHandler.getSubNode(stepnode, "relprops");
+//		nbFields =  XMLHandler.countNodes(relPropsNode, "relprop");
+//		relProps = new String[nbFields];
+//		for(int i=0; i < nbFields; i++){
+//			Node relPropNode = XMLHandler.getSubNodeByNr(relPropsNode, "relprop", i);
+//			relProps[i] = relPropNode.getTextContent();
+//			logBasic("Relationship Property" + i + ": " + relProps[i]);
+//		}
 	}
 		
 	public void readRep(Repository rep, ObjectId id_step, List<DatabaseMeta> databases, Map<String,Counter> counters) throws KettleException{
@@ -251,20 +327,36 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		return key;
 	}
 	
-	public void setLabels(String[] nodeLabels){
-		this.nodeLabels = nodeLabels;
+	public void setFromNodeLabels(String[] fromNodeLabels){
+		this.fromNodeLabels = fromNodeLabels;
 	}
 	
-	public String[] getNodeLabels(){
-		return nodeLabels;
+	public String[] getFromNodeLabels(){
+		return fromNodeLabels;
 	}
 	
-	public void setNodeProps(String[] nodeProps){
-		this.nodeProps = nodeProps;
+	public void setFromNodeProps(String[] fromNodeProps){
+		this.fromNodeProps = fromNodeProps;
 	}
 	
-	public String[] getNodeProps(){
-		return nodeProps; 
+	public String[] getFromNodeProps(){
+		return fromNodeProps; 
+	}
+	
+	public void setToNodeLabels(String[] toNodeLabels){
+		this.toNodeLabels = toNodeLabels;
+	}
+	
+	public String[] getToNodeLabels(){
+		return toNodeLabels;
+	}
+	
+	public void setToNodeProps(String[] toNodeProps){
+		this.toNodeProps = toNodeProps;
+	}
+	
+	public String[] getToNodeProps(){
+		return toNodeProps; 
 	}
 	
 	public void setRelationships(String[][] relationships){

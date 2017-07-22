@@ -2,7 +2,7 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>bi.know.kettle.neo4j.out</groupId>
+  <groupId>bi.know.kettle.neo4j.output</groupId>
   <artifactId>Neo4JOutput</artifactId>
   <version>0.0.1-SNAPSHOT</version>
   <packaging>jar</packaging>
@@ -12,7 +12,9 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <pdi.dir>/opt/pentaho/pdi/ce/6.1.0</pdi.dir>
+    <pdi.version>7.1-SNAPSHOT</pdi.version>
+    <swt.version>4.6</swt.version>
+    <pdi.dir>/opt/pentaho/pdi/ce/7.1</pdi.dir>
   </properties>
 
 	<build>
@@ -42,26 +44,44 @@
 							<overWriteSnapshots>false</overWriteSnapshots>
 							<overWriteIfNewer>true</overWriteIfNewer>
 							<excludeScope>system</excludeScope>
+							<excludeScope>runtime</excludeScope>
+							<excludeScope>compile</excludeScope>
+							<excludeScope>provided</excludeScope>
 						</configuration>
 					</execution>
 				</executions>
 			</plugin>
-		</plugins>
+	      <plugin>
+	        <groupId>org.apache.maven.plugins</groupId>
+	        <artifactId>maven-compiler-plugin</artifactId>
+	        <version>3.6.1</version>
+	        <configuration>
+	          <source>1.8</source>
+	          <target>1.8</target>
+	        </configuration>
+	      </plugin>
+    </plugins>
 	</build>
-  
-      <repositories>
-        <repository>
-            <id>neo4j-release-repository</id>
-            <name>Neo4j Maven 2 release repository</name>
-            <url>http://m2.neo4j.org/content/repositories/releases/</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
+
+	<repositories>
+		<repository>
+			<id>neo4j-release-repository</id>
+			<name>Neo4j Maven 2 release repository</name>
+			<url>http://m2.neo4j.org/content/repositories/releases/</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+
+		<repository>
+			<id>pentaho-releases</id>
+			<url>http://repository.pentaho.org/artifactory/repo/</url>
+		</repository>
+
+	</repositories>
 
 	<dependencies>
 		<dependency>
@@ -70,62 +90,110 @@
 			<version>3.8.1</version>
 			<scope>test</scope>
 		</dependency>
+		
 		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-rest-graphdb</artifactId>
-			<version>2.0.1</version>
+		    <groupId>org.neo4j</groupId>
+		    <artifactId>neo4j</artifactId>
+		    <version>3.2.0</version>
 		</dependency>
+
+<!-- 		<dependency> -->
+<!-- 		    <groupId>org.neo4j</groupId> -->
+<!-- 		    <artifactId>neo4j-rest-graphdb</artifactId> -->
+<!-- 		    <version>2.0.0</version> -->
+<!-- 		</dependency> -->
+
 		<dependency>
-			<groupId>commons-vfs</groupId>
-			<artifactId>commons-vfs</artifactId>
-			<version>2.2.1</version>
-			<scope>system</scope>
-			<systemPath>${pdi.dir}/lib/commons-vfs2-2.1-20150824.jar</systemPath>
+		    <groupId>org.neo4j.driver</groupId>
+		    <artifactId>neo4j-java-driver</artifactId>
+		    <version>1.1.1</version>
 		</dependency>
+
 		<dependency>
-			<groupId>javassist</groupId>
-			<artifactId>javassist</artifactId>
-			<version>3.12.1</version>
-			<scope>system</scope>
-			<systemPath>${pdi.dir}/lib/javassist-3.12.1.GA.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>kettle-core</groupId>
+			<groupId>pentaho-kettle</groupId>
 			<artifactId>kettle-core</artifactId>
-			<version>6.1.0</version>
-			<scope>system</scope>
-			<systemPath>${pdi.dir}/lib/kettle-core-6.1.0.1-196.jar</systemPath>
+			<version>${pdi.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>kettle-engine</groupId>
+			<groupId>pentaho-kettle</groupId>
 			<artifactId>kettle-engine</artifactId>
-			<version>6.0.1</version>
-			<scope>system</scope>
-			<systemPath>${pdi.dir}/lib/kettle-engine-6.1.0.1-196.jar</systemPath>
+			<version>${pdi.version}</version>
+			<scope>provided</scope>
 		</dependency>
-		<dependency>
-			<groupId>scannotation</groupId>
-			<artifactId>scannotation</artifactId>
-			<version>1.0.2</version>
-			<scope>system</scope>
-			<systemPath>${pdi.dir}/lib/scannotation-1.0.2.jar</systemPath>
-		</dependency>
-		<dependency>
-			<groupId>swt</groupId>
-			<artifactId>swt</artifactId>
-			<version>1.0</version>
-			<scope>system</scope>
-			<systemPath>${pdi.dir}/libswt/linux/x86_64/swt.jar</systemPath>
-		</dependency>
+
+	    <dependency>
+	      <groupId>pentaho-kettle</groupId>
+	      <artifactId>kettle-ui-swt</artifactId>
+	      <version>${pdi.version}</version>
+	      <scope>provided</scope>
+	    </dependency>
+
+	    <dependency>
+	      <groupId>org.javassist</groupId>
+	      <artifactId>javassist</artifactId>
+	      <version>3.20.0-GA</version>
+	      <scope>runtime</scope>
+	      <exclusions>
+	        <exclusion>
+	          <groupId>*</groupId>
+	          <artifactId>*</artifactId>
+	        </exclusion>
+	      </exclusions>
+	    </dependency>
+
+	    <dependency>
+	      <groupId>net.sf.scannotation</groupId>
+	      <artifactId>scannotation</artifactId>
+	      <version>1.0.2</version>
+	      <scope>compile</scope>
+	      <exclusions>
+	        <exclusion>
+	          <groupId>*</groupId>
+	          <artifactId>*</artifactId>
+	        </exclusion>
+	      </exclusions>
+	    </dependency>
+
+<!-- 	    <dependency> -->
+<!-- 	      <groupId>org.eclipse.swt</groupId> -->
+<!-- 	      <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId> -->
+<!-- 	      <version>${swt.version}</version> -->
+<!-- 	      <scope>compile</scope> -->
+<!-- 	      <exclusions> -->
+<!-- 	        <exclusion> -->
+<!-- 	          <artifactId>*</artifactId> -->
+<!-- 	          <groupId>*</groupId> -->
+<!-- 	        </exclusion> -->
+<!-- 	      </exclusions> -->
+<!-- 	    </dependency> -->
+
+	    <dependency>
+	      <groupId>com.google.guava</groupId>
+	      <artifactId>guava</artifactId>
+	      <version>17.0</version>
+	      <scope>compile</scope>
+	      <exclusions>
+	        <exclusion>
+	          <groupId>*</groupId>
+	          <artifactId>*</artifactId>
+	        </exclusion>
+	      </exclusions>
+	    </dependency>
+
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
 			<version>2.5</version>
+			<scope>provided</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
 			<version>2.5</version>
+			<scope>provided</scope>
 		</dependency>
+			
 	</dependencies>
 </project>
