@@ -1,6 +1,5 @@
 package bi.know.kettle.neo4j.output;
 
-import java.util.Arrays;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CTabFolder;
@@ -30,8 +29,6 @@ import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Transaction;
-//import org.neo4j.rest.graphdb.RestAPI;
-//import org.neo4j.rest.graphdb.RestAPIFacade;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Props;
 import org.pentaho.di.core.exception.KettleException;
@@ -59,23 +56,17 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 	
 	private Neo4JOutputMeta input; 
 	
-	private Label wlProtocol, wlHost, wlRel; 
+	private Label wlProtocol, wlHost; 
 	private TextVar wProtocol, wHost, wPort, wUsername, wPassword;
-	private FormData fdTabFolder, fdlProtocol, fdProtocol, fdlHost, fdHost, fdlPort, fdPort, fdlUsername, fdUsername, fdlPassword, fdPassword, fdRel, 
-	 fdFromComp, fdToComp, fdRelationshipsComp, fdGetFromLabel, fdGetFromProps, fdGetToLabel, fdGetToProps, fdRelProps;
+	private FormData fdTabFolder, fdlProtocol, fdProtocol, fdlHost, fdHost, fdlPort, fdPort, fdlUsername, fdUsername, fdlPassword, fdPassword, fdFromComp, fdToComp, fdRelationshipsComp, fdGetFromLabel, fdGetFromProps, fdGetToLabel, fdGetToProps, fdRelProps;
 	private Combo wRel;
-	private TableView 	 wFromPropsGrid, wFromLabelGrid, wToPropsGrid, wToLabelGrid, wRelationshipGrid, wRelPropsGrid; 
+	private TableView 	 wFromPropsGrid, wFromLabelGrid, wToPropsGrid, wToLabelGrid, wRelPropsGrid; 
 	private String[]  fieldNames;
 	private CTabFolder wTabFolder;
-//	private CTabItem wNodeTab, wRelationshipTab;
 	private CTabItem wFromTab, wToTab, wRelationshipsTab; 
 	private Button wGetFromLabel, wGetFromProps, wGetToLabel, wGetToProps, wRelProps;
 
 
-	
-	/**
-	 * TODO: set right property on labels
-	 */
 	
 	public Neo4JOutputDialog(Shell parent, Object in, TransMeta transMeta, String sname)
 	{
@@ -108,9 +99,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		}catch(KettleStepException kse){
 			logError( BaseMessages.getString( PKG, "TripleOutput.Log.ErrorGettingFieldNames" ));
 		}
-
-//		lsGet      = new Listener(){ public void handleEvent(Event e) { get(e);    } };
-		
 
 		FormLayout formLayout = new FormLayout ();
 		formLayout.marginWidth  = Const.FORM_MARGIN;
@@ -248,6 +236,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 				    Driver driver = GraphDatabase.driver(SERVER_URI, AuthTokens.basic(wUsername.getText(), wPassword.getText()));
 				    Session session = driver.session();
 				    Transaction tx = session.beginTransaction();
+				    tx.close();
 
 					message = BaseMessages.getString(PKG, "Neo4JOutputDialog.ConnectionTest.Success");
 			    }catch(Exception e){
@@ -876,11 +865,8 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 	private void get(int button){
 		try{
             RowMetaInterface r = transMeta.getPrevStepFields(stepname);
-            //SelectionEvent se = e.; 
-            
             if (r!=null && !r.isEmpty()){
             	System.out.println("Selected button: " + wTabFolder.getSelectionIndex());
-//    			switch (wTabFolder.getSelectionIndex())
     			switch (button){
     			/* 0: from labels grid
     			 * 1: from properties grid

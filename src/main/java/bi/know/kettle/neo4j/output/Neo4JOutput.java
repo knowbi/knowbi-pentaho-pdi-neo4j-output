@@ -1,9 +1,6 @@
 package bi.know.kettle.neo4j.output;
 
-import java.net.URI;
 import java.util.Arrays;
-import java.util.regex.Matcher;
-
 import org.apache.commons.lang.StringEscapeUtils;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
@@ -11,7 +8,6 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.exceptions.ClientException;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -107,16 +103,12 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	    return super.init(smi, sdi);
 	}
 
-	/**
-	 * TODO: 
-	 * 1. handle errors on session.close();
-	 */
 	public void dispose(StepMetaInterface smi, StepDataInterface sdi){
 		try {
 			tx.success();
 			tx.close();
 		}catch(ClientException ce) {
-			System.out.println("CE: " + ce.getMessage());
+			logError("Error while closing session: " + ce.getMessage());
 		}
 		session.close();
 		driver.close();
@@ -138,7 +130,6 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     	
 		// Add labels
 		String labels = "n:";
-		// TODO: convert to List<String> 
     	for(int i=0; i < nodeLabels.length; i++){
     		String label = escapeLabel(String.valueOf(r[Arrays.asList(fieldNames).indexOf(nodeLabels[i])]));
     		labels += label;
@@ -168,9 +159,6 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 
 		// CREATE (n:Person:Mens:`Human Being` { name: 'Andres', title: 'Developer' }) return n;
     	String stmt = "MERGE (" + labels + props + ");";
-    	
-    	System.out.println(stmt);
-    	
     	
     	try{
     		tx.run(stmt);
@@ -278,9 +266,9 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
             	logError("Error executing statement: " + stmt);
         	}
     	}catch(NullPointerException npe) {
-    		System.out.println("Not all relationship properties (from node, to node, relationship) were provided. No relationship will be created.");
+    		logError("Not all relationship properties (from node, to node, relationship) were provided. No relationship will be created.");
     	}catch(ArrayIndexOutOfBoundsException oobe) {
-    		System.out.println("Not all relationship properties (from node, to node, relationship) were provided. No relationship will be created.");
+    		logError("Not all relationship properties (from node, to node, relationship) were provided. No relationship will be created.");
     	}
     }
     
@@ -289,36 +277,32 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 		if(str.contains(" ") || str.contains(".")) {
 			str = "`" + str + "`";
 		}
-		
 		return str; 
 	}
     
 	public String escapeProp(String str) {
-		String newStr = "";
-		StringEscapeUtils su = new StringEscapeUtils();
-		newStr = su.escapeJava(str);
-		return newStr; 
+		return StringEscapeUtils.escapeJava(str); 
 	}
     
-      private int addRelationshipProperty(String relationshipId, String[] relProps){
-    	try{
-    		String relPropsJSON = "{";
-    		for(int i=0; i < relProps.length; i++){
-    			String propName = (String)relProps[i];
-    			String propVal = (String)r[Arrays.asList(fieldNames).indexOf(relProps[i])];
-    			relPropsJSON += "\"" + propName + "\" : \"" +  propVal + "\" ";
-    			if(i <  (relProps.length-1)){
-    				relPropsJSON += ", ";
-    			}
-    		}
-	       	return 0; 
-    	}catch(Exception e){
-        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipPropertyError") + relationshipId);
-        	return -1; 
-    	}
-    }
+//    private int addRelationshipProperty(String relationshipId, String[] relProps){
+//    	try{
+//    		String relPropsJSON = "{";
+//    		for(int i=0; i < relProps.length; i++){
+//    			String propName = (String)relProps[i];
+//    			String propVal = (String)r[Arrays.asList(fieldNames).indexOf(relProps[i])];
+//    			relPropsJSON += "\"" + propName + "\" : \"" +  propVal + "\" ";
+//    			if(i <  (relProps.length-1)){
+//    				relPropsJSON += ", ";
+//    			}
+//    		}
+//	       	return 0; 
+//    	}catch(Exception e){
+//        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipPropertyError") + relationshipId);
+//        	return -1; 
+//    	}
+//    }
     
-    private String getIdFromURI(URI uri){
-    	return uri.toString().substring(uri.toString().lastIndexOf("/")+1);
-    }
+//    private String getIdFromURI(URI uri){
+//    	return uri.toString().substring(uri.toString().lastIndexOf("/")+1);
+//    }
 }
