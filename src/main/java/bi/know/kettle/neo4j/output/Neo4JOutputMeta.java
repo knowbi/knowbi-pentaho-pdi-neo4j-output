@@ -2,6 +2,7 @@ package bi.know.kettle.neo4j.output;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.eclipse.swt.widgets.Shell;
 import org.pentaho.di.core.CheckResult;
@@ -40,10 +41,10 @@ categoryDescription="Neo4JOutput.Step.Category" //,
 )
 public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 	
-	public String protocol, host, port, dbName, username, password, key;  /*label, labelsSeparator*/ 
-	public String[] fromNodeProps, toNodeProps, fromNodeLabels, toNodeLabels, relProps;
+	public String protocol, host, port, dbName, username, password, key, relationship;  /*label, labelsSeparator*/ 
+	public String[] fromNodeProps, fromNodePropNames, toNodeProps, toNodePropNames, fromNodeLabels, toNodeLabels, relProps, relPropNames;
 	
-	public String[][] relationships;
+//	public String[][] relationships;
 
 	public StepInterface getStep(StepMeta stepMeta, StepDataInterface stepDataInterface, int cnr, TransMeta transMeta, Trans disp) {
 		return new Neo4JOutput(stepMeta, stepDataInterface, cnr, transMeta, disp);
@@ -81,8 +82,8 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		retval += "</labels>" + Const.CR;
 		retval += "<properties>" + Const.CR;
 		for(int i=0; i < fromNodeProps.length; i++){
-		retval += "    <property>" + fromNodeProps[i] + "</property>" + Const.CR; 
-	}
+			retval += "    <property><name>" + fromNodePropNames[i] + "</name><value>" + fromNodeProps[i] + "</value></property>" + Const.CR; 
+		}
 		retval += "</properties>" + Const.CR;
 		retval += "</from>" + Const.CR;
 		retval += "<to>" + Const.CR;
@@ -93,16 +94,16 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		retval += "</labels>" + Const.CR;
 		retval += "<properties>" + Const.CR;
 		for(int i=0; i < toNodeProps.length; i++){
-		retval += "    <property>" + toNodeProps[i] + "</property>" + Const.CR; 
-	}
+			retval += "    <property><name>" + toNodePropNames[i] + "</name><value>" + toNodeProps[i] + "</value></property>" + Const.CR; 
+		}
 		retval += "</properties>" + Const.CR;
 		retval += "</to>" + Const.CR;
 		
-		
+		retval += "<relationship>" + relationship + "</relationship>" + Const.CR;
 		
 		retval += "<relprops>" + Const.CR;
 		for(int i=0; i < relProps.length; i++){
-			retval += "    <relprop>" + relProps[i] + "</relprop>" + Const.CR; 
+			retval += "    <relprop><name>" + relPropNames[i] + "</name><value>" + relProps[i] + "</value></relprop>" + Const.CR; 
 		}
 		retval += "</relprops>" + Const.CR;
 		
@@ -156,18 +157,23 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 			fromNodeLabels[i] = labelNode.getTextContent();
 			logBasic("From Node " + i + ": " + fromNodeLabels[i]);
 		}
-		Node fromPropsNode = XMLHandler.getSubNode(fromNode, "to");
-		int nbFromPropFields =  XMLHandler.countNodes(fromPropsNode, "properties");
+		Node fromPropsNode = XMLHandler.getSubNode(fromNode, "properties");
+		int nbFromPropFields =  XMLHandler.countNodes(fromPropsNode, "property");
 		fromNodeProps = new String[nbFromPropFields];
+		fromNodePropNames = new String[nbFromPropFields];
 		for(int i=0; i < nbFromPropFields; i++){
 			Node propNode = XMLHandler.getSubNodeByNr(fromPropsNode, "property", i);
-			fromNodeProps[i] = propNode.getTextContent();
-			logBasic("To Node " + i + ": " + fromNodeProps[i]);
+			fromNodeProps[i] = XMLHandler.getSubNode(propNode, "value").getTextContent();
+			//Optional.ofNullable(id).orElse("");
+			if(XMLHandler.getSubNode(propNode, "name").getTextContent().isEmpty()) {
+				fromNodePropNames[i] = "";
+			}else {
+				System.out.println("PropName: " + XMLHandler.getSubNode(propNode, "name").getTextContent());
+				fromNodePropNames[i] = XMLHandler.getSubNode(propNode, "name").getTextContent();
+			}
+//			fromNodeProps[i] = propNode.getTextContent();
+			logBasic("From Node " + i + ": " + fromNodeProps[i] + ", name: " + fromNodePropNames[i]);
 		}
-		
-
-		
-		
 		
 		Node toNode = XMLHandler.getSubNode(stepnode, "to");
 		Node toLabelsNode = XMLHandler.getSubNode(toNode, "labels");
@@ -178,16 +184,40 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 			toNodeLabels[i] = labelNode.getTextContent();
 			logBasic("To Node " + i + ": " + toNodeLabels[i]);
 		}
-		Node toPropsNode = XMLHandler.getSubNode(toNode, "to");
-		int nbToPropFields =  XMLHandler.countNodes(toPropsNode, "properties");
+		Node toPropsNode = XMLHandler.getSubNode(toNode, "properties");
+		int nbToPropFields =  XMLHandler.countNodes(toPropsNode, "property");
 		toNodeProps = new String[nbToPropFields];
+		toNodePropNames = new String[nbToPropFields];
 		for(int i=0; i < nbToPropFields; i++){
 			Node propNode = XMLHandler.getSubNodeByNr(toPropsNode, "property", i);
-			toNodeProps[i] = propNode.getTextContent();
-			logBasic("To Node " + i + ": " + toNodeProps[i]);
+//			toNodeProps[i] = propNode.getTextContent();
+			toNodeProps[i] = XMLHandler.getSubNode(propNode, "value").getTextContent();
+			if(XMLHandler.getSubNode(propNode, "name").getTextContent().isEmpty()) {
+				toNodePropNames[i] = "";
+			}else {
+				toNodePropNames[i] = XMLHandler.getSubNode(propNode, "name").getTextContent();
+			}
+			logBasic("To Node " + i + ": " + toNodeProps[i] +", name: " + toNodePropNames[i]);
 		}
 		
 		
+		relationship = XMLHandler.getTagValue(stepnode, "relationship");
+		
+		Node relPropsNode = XMLHandler.getSubNode(stepnode, "relprops");
+		int nbFields =  XMLHandler.countNodes(relPropsNode, "relprop");
+		relProps = new String[nbFields];
+		relPropNames = new String[nbFields];
+		for(int i=0; i < nbFields; i++){
+			Node relPropNode = XMLHandler.getSubNodeByNr(relPropsNode, "relprop", i);
+			relProps[i] = XMLHandler.getSubNode(relPropNode, "value").getTextContent();
+			if(XMLHandler.getSubNode(relPropNode, "name").getTextContent().isEmpty()) {
+				relPropNames[i] = "";
+			}else {
+				relPropNames[i] = XMLHandler.getSubNode(relPropNode, "name").getTextContent();
+			}
+			logBasic("Relationship Property" + i + ": " + relProps[i] + ", name: " + relPropNames[i]);
+		}
+
 		
 //		Node labelsNode = XMLHandler.getSubNode(stepnode, "labels");
 //		int nbLabelFields =  XMLHandler.countNodes(labelsNode, "label");
@@ -221,14 +251,6 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 //		}
 //
 //
-//		Node relPropsNode = XMLHandler.getSubNode(stepnode, "relprops");
-//		nbFields =  XMLHandler.countNodes(relPropsNode, "relprop");
-//		relProps = new String[nbFields];
-//		for(int i=0; i < nbFields; i++){
-//			Node relPropNode = XMLHandler.getSubNodeByNr(relPropsNode, "relprop", i);
-//			relProps[i] = relPropNode.getTextContent();
-//			logBasic("Relationship Property" + i + ": " + relProps[i]);
-//		}
 	}
 		
 	public void readRep(Repository rep, ObjectId id_step, List<DatabaseMeta> databases, Map<String,Counter> counters) throws KettleException{
@@ -339,8 +361,16 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		this.fromNodeProps = fromNodeProps;
 	}
 	
+	public void setFromNodePropNames(String[] fromNodePropNames){
+		this.fromNodePropNames = fromNodePropNames;
+	}
+	
 	public String[] getFromNodeProps(){
 		return fromNodeProps; 
+	}
+	
+	public String[] getFromNodePropNames(){
+		return fromNodePropNames; 
 	}
 	
 	public void setToNodeLabels(String[] toNodeLabels){
@@ -355,24 +385,48 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		this.toNodeProps = toNodeProps;
 	}
 	
+	public void setToNodePropNames(String[] toNodePropNames){
+		this.toNodePropNames = toNodePropNames;
+	}
+	
 	public String[] getToNodeProps(){
 		return toNodeProps; 
 	}
 	
-	public void setRelationships(String[][] relationships){
-		this.relationships = relationships; 
+	public String[] getToNodePropNames(){
+		return toNodePropNames; 
 	}
 	
-	public String[][] getRelationships(){
-		return relationships; 
+	public void setRelationship(String relationship){
+		this.relationship = relationship; 
 	}
 	
+	public String getRelationship(){
+		return relationship; 
+	}
+	
+//	public void setRelationships(String[][] relationships){
+//		this.relationships = relationships; 
+//	}
+//	
+//	public String[][] getRelationships(){
+//		return relationships; 
+//	}
+//	
 	public void setRelProps(String[] relProps){
 		this.relProps = relProps;
 	}
 	
 	public String[] getRelProps(){
 		return relProps; 
+	}
+	
+	public void setRelPropNames(String[] relPropNames) {
+		this.relPropNames = relPropNames;
+	}
+	
+	public String[] getRelPropNames() {
+		return relPropNames; 
 	}
 	
 }
