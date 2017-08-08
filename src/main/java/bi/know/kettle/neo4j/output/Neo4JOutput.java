@@ -147,9 +147,15 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     		}else {
     			propName = nodeProps[i]; 
     		}
-    		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]);
-    		tmpPropStr = escapeProp(tmpPropStr);
-    		props += propName + " : " + "\"" + tmpPropStr + "\"";
+    		if(r[Arrays.asList(fieldNames).indexOf(nodeProps[i])] instanceof java.lang.Long
+    				|| r[Arrays.asList(fieldNames).indexOf(nodeProps[i])] instanceof java.lang.Double 
+    				|| r[Arrays.asList(fieldNames).indexOf(nodeProps[i])] instanceof java.math.BigDecimal ){
+        		props += propName + " : " + r[Arrays.asList(fieldNames).indexOf(nodeProps[i])];
+    		}else{
+        		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]);
+        		tmpPropStr = escapeProp(tmpPropStr);
+        		props += propName + " : " + "\"" + tmpPropStr + "\"";
+    		}
     		if(i != (nodeProps.length)-1) {
     			props += ", ";
     		}
