@@ -66,7 +66,10 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 	private CTabItem wFromTab, wToTab, wRelationshipsTab; 
 	private Button wGetFromLabel, wGetFromProps, wGetToLabel, wGetToProps, wRelProps;
 
-
+	/**
+	 * TODO: 
+	 * - grids: increase initial number of rows for grids when opening ktrs with more than 5 lines in grid. 
+	 */
 	
 	public Neo4JOutputDialog(Shell parent, Object in, TransMeta transMeta, String sname)
 	{
@@ -327,12 +330,13 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdlFromLabels.left = new FormAttachment(0, 0);
 		fdlFromLabels.top = new FormAttachment(wPassword, margin*10);
 		wlFromLabel.setLayoutData(fdlFromLabels);
+		final int fromLabelRows = input.getFromNodeLabels().length;
 		ColumnInfo[] fromLabelInf = new ColumnInfo[]{
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.FromLabelsTable.FromFields"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
 		};
 		wFromLabelGrid =
 			    new TableView( Variables.getADefaultVariableSpace(), wFromComp, SWT.BORDER
-			      | SWT.FULL_SELECTION | SWT.MULTI, fromLabelInf, 5, null, PropsUI.getInstance() );
+			      | SWT.FULL_SELECTION | SWT.MULTI, fromLabelInf, fromLabelRows, null, PropsUI.getInstance() );
 		props.setLook(wFromLabelGrid);		
 		
 		wGetFromLabel= new Button(wFromComp, SWT.PUSH);
@@ -377,7 +381,8 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		FormData fdlFromFields = new FormData();
 		fdlFromFields.left = new FormAttachment(0,0);
 		fdlFromFields.top = new FormAttachment(wFromLabelGrid, margin);
-		wlFromFields.setLayoutData(fdlFromFields);		
+		wlFromFields.setLayoutData(fdlFromFields);	
+		final int fromPropsRows = input.getFromNodeProps().length;
 		ColumnInfo[] colinf =
 				    new ColumnInfo[] {
 				      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.FromFieldsTable.FromPropFields"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
@@ -385,7 +390,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 				      };
 		wFromPropsGrid =
 				    new TableView( Variables.getADefaultVariableSpace(), wFromComp, SWT.BORDER
-				      | SWT.FULL_SELECTION | SWT.MULTI, colinf, 5, null, props );
+				      | SWT.FULL_SELECTION | SWT.MULTI, colinf, fromPropsRows, null, props );
 		props.setLook(wFromPropsGrid);
 		
 		wGetFromProps= new Button(wFromComp, SWT.PUSH);
@@ -460,13 +465,13 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 //		fdlToLabels.right = new FormAttachment(middle, -margin);
 		fdlToLabels.top = new FormAttachment(wPassword, margin*10);
 		wlToLabel.setLayoutData(fdlToLabels);
-		
+		final int toLabelRows = input.getToNodeLabels().length;
 		ColumnInfo[] toLabelInf = new ColumnInfo[]{
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.ToLabelsTable.ToFields"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
 		};
 		wToLabelGrid =
 			    new TableView( Variables.getADefaultVariableSpace(), wToComp, SWT.BORDER
-			      | SWT.FULL_SELECTION | SWT.MULTI, toLabelInf, 5, null, PropsUI.getInstance() );
+			      | SWT.FULL_SELECTION | SWT.MULTI, toLabelInf, toLabelRows, null, PropsUI.getInstance() );
 		props.setLook(wToLabelGrid);
 		
 		wGetToLabel= new Button(wToComp, SWT.PUSH);
@@ -520,7 +525,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 //		fdlToFields.right = new FormAttachment(middle, -margin);
 		fdlToFields.top = new FormAttachment(wToLabelGrid, margin);
 		wlToFields.setLayoutData(fdlToFields);
-		
+		final int toPropsRows = input.getToNodeProps().length;
 		ColumnInfo[] toColinf =
 				    new ColumnInfo[] {
 				      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.ToFieldsTable.ToFields"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
@@ -529,7 +534,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
 		wToPropsGrid =
 				    new TableView( Variables.getADefaultVariableSpace(), wToComp, SWT.BORDER
-				      | SWT.FULL_SELECTION | SWT.MULTI, toColinf, 5, null, PropsUI.getInstance() );
+				      | SWT.FULL_SELECTION | SWT.MULTI, toColinf, toPropsRows, null, PropsUI.getInstance() );
 
 		props.setLook(wToPropsGrid);
 		
@@ -624,13 +629,14 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdlRelProps.left = new FormAttachment(0, 0);
 		fdlRelProps.top = new FormAttachment(wRel, margin*5);
 		wlRelProps.setLayoutData(fdlRelProps);
+		final int relPropsRows = input.getRelProps().length;
 		ColumnInfo[] relPropsInf = new ColumnInfo[]{
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelPropsTable.PropertiesField"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelPropsTable.PropertiesFieldName"), ColumnInfo.COLUMN_TYPE_TEXT, false)
 		};
 		wRelPropsGrid =
 			    new TableView( Variables.getADefaultVariableSpace(), wRelationshipsComp, SWT.BORDER
-			      | SWT.FULL_SELECTION | SWT.MULTI, relPropsInf, 5, null, PropsUI.getInstance() );
+			      | SWT.FULL_SELECTION | SWT.MULTI, relPropsInf, relPropsRows, null, PropsUI.getInstance() );
 		props.setLook(wRelPropsGrid);
 		
 		
