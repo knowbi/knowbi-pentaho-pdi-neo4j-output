@@ -66,10 +66,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 	private CTabItem wFromTab, wToTab, wRelationshipsTab; 
 	private Button wGetFromLabel, wGetFromProps, wGetToLabel, wGetToProps, wRelProps;
 
-	/**
-	 * TODO: 
-	 * - grids: increase initial number of rows for grids when opening ktrs with more than 5 lines in grid. 
-	 */
 	
 	public Neo4JOutputDialog(Shell parent, Object in, TransMeta transMeta, String sname)
 	{
@@ -221,13 +217,11 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
         wbTest.addSelectionListener(new SelectionListener(){
 
 			public void widgetDefaultSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
 
 			public void widgetSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
@@ -279,23 +273,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		
 		wCancel.addListener(SWT.Selection, lsCancel);
 		wOK.addListener    (SWT.Selection, lsOK    );
-
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
 		
         wTabFolder = new CTabFolder(shell, SWT.BORDER);
  		props.setLook(wTabFolder, Props.WIDGET_STYLE_TAB);
@@ -345,14 +322,12 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
 
 			@Override
 			public void widgetSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
@@ -399,14 +374,12 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
 
 			@Override
 			public void widgetSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
@@ -462,7 +435,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		props.setLook(wlToLabel);
 		FormData fdlToLabels = new FormData();
 		fdlToLabels.left = new FormAttachment(0, 0);
-//		fdlToLabels.right = new FormAttachment(middle, -margin);
 		fdlToLabels.top = new FormAttachment(wPassword, margin*10);
 		wlToLabel.setLayoutData(fdlToLabels);
 		final int toLabelRows = input.getToNodeLabels().length;
@@ -480,14 +452,12 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
 
 			@Override
 			public void widgetSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
@@ -510,10 +480,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdToLabelGrid.top = new FormAttachment( wPassword, margin );
 		wToLabelGrid.setLayoutData( fdToLabelGrid );
 
-
-		
-		
-		
 		
 		
 		// Node properties
@@ -522,7 +488,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		props.setLook(wlToFields);
 		FormData fdlToFields = new FormData();
 		fdlToFields.left = new FormAttachment(0,0);
-//		fdlToFields.right = new FormAttachment(middle, -margin);
 		fdlToFields.top = new FormAttachment(wToLabelGrid, margin);
 		wlToFields.setLayoutData(fdlToFields);
 		final int toPropsRows = input.getToNodeProps().length;
@@ -545,14 +510,12 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
 
 			@Override
 			public void widgetSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
@@ -646,14 +609,12 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
 
 			@Override
 			public void widgetSelected(SelectionEvent arg0) {
-				// TODO Auto-generated method stub
 				processClick(arg0);
 				
 			}
@@ -844,7 +805,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 			TableItem item = wToPropsGrid.table.getItem(i);
 			toNodeProps[i] = item.getText(1);
 			toNodePropNames[i] = item.getText(2);
-			System.out.println("to value: " + item.getText(1) + ", name: " + item.getText(2));
 		}
 		input.setToNodeProps(toNodeProps);
 		input.setToNodePropNames(toNodePropNames);
@@ -872,7 +832,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		try{
             RowMetaInterface r = transMeta.getPrevStepFields(stepname);
             if (r!=null && !r.isEmpty()){
-            	System.out.println("Selected button: " + wTabFolder.getSelectionIndex());
     			switch (button){
     			/* 0: from labels grid
     			 * 1: from properties grid

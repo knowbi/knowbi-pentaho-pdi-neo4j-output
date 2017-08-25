@@ -133,7 +133,6 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 			if(XMLHandler.getSubNode(propNode, "name").getTextContent().isEmpty()) {
 				fromNodePropNames[i] = "";
 			}else {
-				System.out.println("PropName: " + XMLHandler.getSubNode(propNode, "name").getTextContent());
 				fromNodePropNames[i] = XMLHandler.getSubNode(propNode, "name").getTextContent();
 			}
 			logBasic("From Node " + i + ": " + fromNodeProps[i] + ", name: " + fromNodePropNames[i]);

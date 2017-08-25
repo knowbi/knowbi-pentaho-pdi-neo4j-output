@@ -9,13 +9,11 @@ import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.exceptions.ClientException;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
-import org.pentaho.di.core.row.value.ValueMetaString;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
@@ -44,7 +42,13 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 		super(s,stepDataInterface,c,t,dis);
 	}
     
-    
+
+    /**
+	 * TODO:
+	 * 1. option to do CREATE/MERGE (merge default?)
+	 * 2. optional commit size 
+	 * 3. option to return node id?
+	 */
     public boolean processRow(StepMetaInterface smi, StepDataInterface sdi) throws KettleException{
     	
     	meta = (Neo4JOutputMeta)smi;
@@ -57,7 +61,6 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
             nbRows= 0;
             
 	        data.outputRowMeta = (RowMetaInterface)getInputRowMeta().clone();
-//          	data.outputRowMeta.addValueMeta(new ValueMetaString("nodeURI"));
    	        fieldNames =  data.outputRowMeta.getFieldNames(); 
         }
         
@@ -69,24 +72,18 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         		outputRow = RowDataUtil.resizeArray( r, data.outputRowMeta.size());
         		if(meta.getFromNodeProps().length > 0) {
     	   	     	createNode(meta.getFromNodeLabels(), meta.getFromNodeProps(), meta.getFromNodePropNames()); 
-        		}else {
-        			//System.out.println("From node has no properties, ignoring");
         		}
         		if(meta.getToNodeProps().length > 0) {
     	   	     	createNode(meta.getToNodeLabels(), meta.getToNodeProps(), meta.getToNodePropNames()); 
-        		}else {
-        			//System.out.println("To node has no properties, ignoring.");
         		}
     			createRelationship();
 	   	     	putRow(data.outputRowMeta, outputRow);
 	   	     	nbRows++;
 	   	     	setLinesWritten(nbRows);
 	   	     	setLinesOutput(nbRows);
-//	   	     	if(nbRows%1000 == 0) {
-//	   	     		commit();
-//	   	     	}else {
-//	   	     		tx.isOpen();
-//	   	     	}
+	   	     	if(nbRows%10000 == 0) {
+	   	     		commit();
+	   	     	}
         	}catch(Exception e){
         		logError(BaseMessages.getString(PKG, "Neo4JOutput.addNodeError") + e.getMessage());
         	}
@@ -107,16 +104,16 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	    String url = meta.getProtocol() + "://" + meta.getHost() + ":" + meta.getPort();  
 	    driver = GraphDatabase.driver(url, AuthTokens.basic(meta.getUsername(), meta.getPassword()));
 	    session = driver.session();
-//	    tx = session.beginTransaction();
+	    tx = session.beginTransaction();
 	    
 	    return super.init(smi, sdi);
 	}
 
 	public void dispose(StepMetaInterface smi, StepDataInterface sdi){
 		try {
-//			commit();
-//			tx.success();
-//			tx.close();
+			commit();
+			tx.success();
+			tx.close();
 			session.close();
 			driver.close();
 		    super.dispose(smi, sdi);
@@ -128,22 +125,15 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	
 	public void commit() {
 		try {
-//			tx.success();
-//			tx.close();
-//			session.beginTransaction();
-			System.out.println("Committed after " + nbRows + " rows.");
+			tx.success();
+			tx.close();
+			tx = session.beginTransaction();
+			logBasic("Committed after " + nbRows + " rows.");
 		}catch(Exception e) {
 			logError("Error committing after " + nbRows + " rows: " + e.getMessage());
 		}
 	}
     
-	/**
-	 * TODO: 
-	 * 1. parameterized statements 
-	 * 2. batch mode 
-	 * 3. option to return node id (compatible with batch mode?)
-	 * @return
-	 */
 	public int createNode(String[] nLabels, String[] nProps, String[] nPropNames) {
     	String[] nodeLabels = nLabels;
     	String[] nodeProps = nProps;
@@ -175,8 +165,6 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         		props += propName + " : " + r[Arrays.asList(fieldNames).indexOf(nodeProps[i])];
     		}else{
         		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]);
-//        		tmpPropStr = escapeProp(tmpPropStr);
-//        		props += propName + " : " + "\"" + tmpPropStr + "\"";
         		props += propName + ": {" + propName + "}";
         		parameters.put(propName, tmpPropStr);
     		}
@@ -189,14 +177,10 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 
 		// CREATE (n:Person:Mens:`Human Being` { name: 'Andres', title: 'Developer' }) return n;
     	String stmt = "MERGE (" + labels + props + ");";
-//    	String stmt = "CREATE (" + labels + props + ");";
     	
     	try{
-//       	 StatementResult cursor = session.run( "MATCH (n) WHERE n.name = {myNameParam} RETURN (n)",
-//            parameters );
-    		StatementResult cursor = session.run(stmt, parameters);
-//    		tx.run(stmt);
-//    		session.run(stmt);
+    		//StatementResult cursor = tx.run(stmt, parameters);
+    		tx.run(stmt, parameters);
     	}catch(Exception e) {
         	logError("Error executing statement: " + stmt);
         	logError(e.getMessage());
@@ -237,7 +221,6 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         		}
         	}        	
         	
-//        	Map<String, Object> parameters = new HashMap<String, Object>();
         	String props = ""; 
         	for(int i=0; i < fromNodeProps.length; i++){
         		String fromPropName = "";
@@ -249,18 +232,14 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         		}
         		if(!fromNodePropNames[i].isEmpty()) {
         			prop += fromNodePropNames[i]; 
-//        			fromPropName = fromNodePropNames[i]; 
         		}else {
         			prop += fromNodeProps[i]; 
-//        			fromPropName = fromNodeProps[i]; 
         		}
         		prop += fromPropName; 
         		
         		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])]); 
         		tmpPropStr = escapeProp(tmpPropStr);        		
         		props += prop + " = " + "\"" + tmpPropStr + "\"";
-//        		props += prop + ": {" + fromPropName + "}";
-//        		parameters.put(prop, tmpPropStr);
         	}
 
         	for(int i=0; i < toNodeProps.length; i++){
@@ -269,18 +248,14 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     			prop += " AND b.";
         		if(!toNodePropNames[i].isEmpty()) {
         			prop += toNodePropNames[i]; 
-//        			toPropName += toNodePropNames[i]; 
         		}else {
         			prop += toNodeProps[i]; 
-//        			toPropName += toNodeProps[i]; 
         		}
         		prop += toPropName;
         		
         		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])]);
         		tmpPropStr = escapeProp(tmpPropStr); 
         		props += prop + " = " + "\"" + tmpPropStr  + "\"";
-//        		props += prop + ": {" + toPropName + "}";
-//        		parameters.put(prop, tmpPropStr);
         	}
 
         	
@@ -298,8 +273,6 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
             		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(relProps[i])]);
             		tmpPropStr = escapeProp(tmpPropStr); 
             		relPropStr += propName + " : " + "\"" + tmpPropStr + "\"";
-//            		props += propName + ": {" + propName + "}";
-//            		parameters.put(propName, tmpPropStr);
             		if(i != (relProps.length)-1) {
             			relPropStr += ", ";
             		}
@@ -312,18 +285,16 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         			//+ " CREATE (a)-[r:`" + String.valueOf(r[Arrays.asList(fieldNames).indexOf(meta.getRelationship())]) + "` " + relPropStr + "] -> (b)"; 
         			+ " MERGE (a)-[r:`" + String.valueOf(r[Arrays.asList(fieldNames).indexOf(meta.getRelationship())]) + "` " + relPropStr + "] -> (b)"; 
         	try{
-//        		tx.run(stmt);
-        		session.run(stmt);
-//        		StatementResult cursor = session.run(stmt, parameters);
+        		//StatementResult cursor = tx.run(stmt);
+        		tx.run(stmt);
         	}catch(Exception e) {
             	logError("Error executing statement: " + stmt);
             	logError(e.getMessage());
         	}
     	}catch(NullPointerException npe) {
     		// catch without throwing an error. 
-    		//logError("Not all relationship properties (from node, to node, relationship) were provided. No relationship will be created.");
     	}catch(ArrayIndexOutOfBoundsException oobe) {
-    		//logError("Not all relationship properties (from node, to node, relationship) were provided. No relationship will be created.");
+    		// catch without throwing an error. 
     	}
     }
     
@@ -339,25 +310,4 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 		return StringEscapeUtils.escapeJava(str); 
 	}
 	
-//    private int addRelationshipProperty(String relationshipId, String[] relProps){
-//    	try{
-//    		String relPropsJSON = "{";
-//    		for(int i=0; i < relProps.length; i++){
-//    			String propName = (String)relProps[i];
-//    			String propVal = (String)r[Arrays.asList(fieldNames).indexOf(relProps[i])];
-//    			relPropsJSON += "\"" + propName + "\" : \"" +  propVal + "\" ";
-//    			if(i <  (relProps.length-1)){
-//    				relPropsJSON += ", ";
-//    			}
-//    		}
-//	       	return 0; 
-//    	}catch(Exception e){
-//        	logDetailed(BaseMessages.getString(PKG, "Neo4JOutput.addRelationshipPropertyError") + relationshipId);
-//        	return -1; 
-//    	}
-//    }
-    
-//    private String getIdFromURI(URI uri){
-//    	return uri.toString().substring(uri.toString().lastIndexOf("/")+1);
-//    }
 }
