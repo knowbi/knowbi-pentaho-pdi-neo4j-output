@@ -348,4 +348,5 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 	public String[] getRelPropNames() {
 		return relPropNames; 
 	}	
+	
 }

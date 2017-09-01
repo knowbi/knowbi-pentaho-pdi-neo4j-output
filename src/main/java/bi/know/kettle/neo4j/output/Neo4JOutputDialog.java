@@ -227,10 +227,11 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 			}
 			
 			private void processClick(SelectionEvent evt){
-			    String SERVER_URI = "bolt://" + wHost.getText() + ":" + wPort.getText();
+			    String SERVER_URI = "bolt://" + transMeta.environmentSubstitute(wHost.getText()) + ":" + transMeta.environmentSubstitute(wPort.getText());
 			    String message = "";
+			    
 			    try{
-				    Driver driver = GraphDatabase.driver(SERVER_URI, AuthTokens.basic(wUsername.getText(), wPassword.getText()));
+				    Driver driver = GraphDatabase.driver(SERVER_URI, AuthTokens.basic(transMeta.environmentSubstitute(wUsername.getText()), transMeta.environmentSubstitute(wPassword.getText())));
 				    Session session = driver.session();
 				    Transaction tx = session.beginTransaction();
 				    tx.close();
@@ -307,7 +308,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdlFromLabels.left = new FormAttachment(0, 0);
 		fdlFromLabels.top = new FormAttachment(wPassword, margin*10);
 		wlFromLabel.setLayoutData(fdlFromLabels);
-		final int fromLabelRows = input.getFromNodeLabels().length;
+		final int fromLabelRows = (input.getFromNodeLabels() != null ? input.getFromNodeLabels().length : 10);
 		ColumnInfo[] fromLabelInf = new ColumnInfo[]{
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.FromLabelsTable.FromFields"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
 		};
@@ -357,7 +358,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdlFromFields.left = new FormAttachment(0,0);
 		fdlFromFields.top = new FormAttachment(wFromLabelGrid, margin);
 		wlFromFields.setLayoutData(fdlFromFields);	
-		final int fromPropsRows = input.getFromNodeProps().length;
+		final int fromPropsRows = (input.getFromNodeProps() != null ? input.getFromNodeProps().length : 10);
 		ColumnInfo[] colinf =
 				    new ColumnInfo[] {
 				      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.FromFieldsTable.FromPropFields"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
@@ -437,7 +438,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdlToLabels.left = new FormAttachment(0, 0);
 		fdlToLabels.top = new FormAttachment(wPassword, margin*10);
 		wlToLabel.setLayoutData(fdlToLabels);
-		final int toLabelRows = input.getToNodeLabels().length;
+		final int toLabelRows = (input.getToNodeLabels() != null ? input.getToNodeLabels().length : 10);
 		ColumnInfo[] toLabelInf = new ColumnInfo[]{
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.ToLabelsTable.ToFields"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
 		};
@@ -490,7 +491,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdlToFields.left = new FormAttachment(0,0);
 		fdlToFields.top = new FormAttachment(wToLabelGrid, margin);
 		wlToFields.setLayoutData(fdlToFields);
-		final int toPropsRows = input.getToNodeProps().length;
+		final int toPropsRows = (input.getToNodeProps() != null ? input.getToNodeProps().length : 10);
 		ColumnInfo[] toColinf =
 				    new ColumnInfo[] {
 				      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.ToFieldsTable.ToFields"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
@@ -592,7 +593,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdlRelProps.left = new FormAttachment(0, 0);
 		fdlRelProps.top = new FormAttachment(wRel, margin*5);
 		wlRelProps.setLayoutData(fdlRelProps);
-		final int relPropsRows = input.getRelProps().length;
+		final int relPropsRows = (input.getRelProps() != null ? input.getRelProps().length : 10);
 		ColumnInfo[] relPropsInf = new ColumnInfo[]{
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelPropsTable.PropertiesField"), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
 			      new ColumnInfo( BaseMessages.getString(PKG, "Neo4JOutputDialog.RelPropsTable.PropertiesFieldName"), ColumnInfo.COLUMN_TYPE_TEXT, false)

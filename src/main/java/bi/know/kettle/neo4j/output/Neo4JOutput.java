@@ -9,9 +9,9 @@ import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.exceptions.ClientException;
 import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.i18n.BaseMessages;
@@ -30,7 +30,6 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 
 	private Neo4JOutputMeta meta; 
 	private Neo4JOutputData data;
-	private Transaction tx;
 	private int nbRows;
 	private String[] fieldNames;
 	private Object[] r; 
@@ -81,9 +80,6 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	   	     	nbRows++;
 	   	     	setLinesWritten(nbRows);
 	   	     	setLinesOutput(nbRows);
-	   	     	if(nbRows%10000 == 0) {
-	   	     		commit();
-	   	     	}
         	}catch(Exception e){
         		logError(BaseMessages.getString(PKG, "Neo4JOutput.addNodeError") + e.getMessage());
         	}
@@ -101,19 +97,15 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	    meta = (Neo4JOutputMeta)smi;
 	    data = (Neo4JOutputData)sdi;
 	    
-	    String url = meta.getProtocol() + "://" + meta.getHost() + ":" + meta.getPort();  
-	    driver = GraphDatabase.driver(url, AuthTokens.basic(meta.getUsername(), meta.getPassword()));
+	    String url = meta.getProtocol() + "://" + environmentSubstitute(meta.getHost()) + ":" + environmentSubstitute(meta.getPort());  
+	    driver = GraphDatabase.driver(url, AuthTokens.basic(environmentSubstitute(meta.getUsername()), environmentSubstitute(meta.getPassword())));
 	    session = driver.session();
-	    tx = session.beginTransaction();
 	    
 	    return super.init(smi, sdi);
 	}
 
 	public void dispose(StepMetaInterface smi, StepDataInterface sdi){
 		try {
-			commit();
-			tx.success();
-			tx.close();
 			session.close();
 			driver.close();
 		    super.dispose(smi, sdi);
@@ -123,18 +115,7 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	}
 
 	
-	public void commit() {
-		try {
-			tx.success();
-			tx.close();
-			tx = session.beginTransaction();
-			logBasic("Committed after " + nbRows + " rows.");
-		}catch(Exception e) {
-			logError("Error committing after " + nbRows + " rows: " + e.getMessage());
-		}
-	}
-    
-	public int createNode(String[] nLabels, String[] nProps, String[] nPropNames) {
+	public int createNode(String[] nLabels, String[] nProps, String[] nPropNames) throws KettleStepException{
     	String[] nodeLabels = nLabels;
     	String[] nodeProps = nProps;
     	String[] nodePropNames = nPropNames;
@@ -159,15 +140,8 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     		}else {
     			propName = nodeProps[i]; 
     		}
-    		if(r[Arrays.asList(fieldNames).indexOf(nodeProps[i])] instanceof java.lang.Long
-    				|| r[Arrays.asList(fieldNames).indexOf(nodeProps[i])] instanceof java.lang.Double 
-    				|| r[Arrays.asList(fieldNames).indexOf(nodeProps[i])] instanceof java.math.BigDecimal ){
-        		props += propName + " : " + r[Arrays.asList(fieldNames).indexOf(nodeProps[i])];
-    		}else{
-        		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]);
-        		props += propName + ": {" + propName + "}";
-        		parameters.put(propName, tmpPropStr);
-    		}
+    		props += propName + ": {" + propName + "}";
+    		parameters.put(propName, r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]);
     		if(i != (nodeProps.length)-1) {
     			props += ", ";
     		}
@@ -179,17 +153,21 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
     	String stmt = "MERGE (" + labels + props + ");";
     	
     	try{
-    		//StatementResult cursor = tx.run(stmt, parameters);
-    		tx.run(stmt, parameters);
+    		//tx.run(stmt, parameters);
+    		session.run(stmt, parameters);
     	}catch(Exception e) {
         	logError("Error executing statement: " + stmt);
         	logError(e.getMessage());
+			setErrors(1);
+			stopAll();
+			setOutputDone();  // signal end to receiver(s)
+			throw new KettleStepException(e.getMessage());
     	}
 		return 0; 
 	}
 	
 	
-    private void createRelationship(){
+    private void createRelationship() throws KettleStepException{
 
     	try {
         	String[] fromNodeProps = meta.getFromNodeProps();
@@ -236,10 +214,16 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         			prop += fromNodeProps[i]; 
         		}
         		prop += fromPropName; 
-        		
-        		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])]); 
-        		tmpPropStr = escapeProp(tmpPropStr);        		
-        		props += prop + " = " + "\"" + tmpPropStr + "\"";
+
+        		if(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.lang.Long
+        				|| r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.lang.Double 
+        				|| r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.math.BigDecimal ){
+        			props += prop + " = " + r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])];
+        		}else{
+            		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])]);
+            		tmpPropStr = escapeProp(tmpPropStr); 
+            		props += prop + " = " + "\"" + tmpPropStr + "\"";
+        		}
         	}
 
         	for(int i=0; i < toNodeProps.length; i++){
@@ -252,10 +236,16 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         			prop += toNodeProps[i]; 
         		}
         		prop += toPropName;
-        		
-        		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])]);
-        		tmpPropStr = escapeProp(tmpPropStr); 
-        		props += prop + " = " + "\"" + tmpPropStr  + "\"";
+
+        		if(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.lang.Long
+        				|| r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.lang.Double 
+        				|| r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.math.BigDecimal ){
+        			props += prop + " = " + r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])];
+        		}else{
+            		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])]);
+            		tmpPropStr = escapeProp(tmpPropStr); 
+            		props += prop + " = " + "\"" + tmpPropStr + "\"";
+        		}
         	}
 
         	
@@ -270,9 +260,15 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
             		}else {
             			propName = relProps[i]; 
             		}
-            		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(relProps[i])]);
-            		tmpPropStr = escapeProp(tmpPropStr); 
-            		relPropStr += propName + " : " + "\"" + tmpPropStr + "\"";
+            		if(r[Arrays.asList(fieldNames).indexOf(relProps[i])] instanceof java.lang.Long
+            				|| r[Arrays.asList(fieldNames).indexOf(relProps[i])] instanceof java.lang.Double 
+            				|| r[Arrays.asList(fieldNames).indexOf(relProps[i])] instanceof java.math.BigDecimal ){
+            			relPropStr += propName + " : " + r[Arrays.asList(fieldNames).indexOf(relProps[i])];
+            		}else{
+                		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(relProps[i])]);
+                		tmpPropStr = escapeProp(tmpPropStr); 
+                		relPropStr += propName + " : " + "\"" + tmpPropStr + "\"";
+            		}
             		if(i != (relProps.length)-1) {
             			relPropStr += ", ";
             		}
@@ -285,11 +281,14 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         			//+ " CREATE (a)-[r:`" + String.valueOf(r[Arrays.asList(fieldNames).indexOf(meta.getRelationship())]) + "` " + relPropStr + "] -> (b)"; 
         			+ " MERGE (a)-[r:`" + String.valueOf(r[Arrays.asList(fieldNames).indexOf(meta.getRelationship())]) + "` " + relPropStr + "] -> (b)"; 
         	try{
-        		//StatementResult cursor = tx.run(stmt);
-        		tx.run(stmt);
+        		session.run(stmt);
         	}catch(Exception e) {
             	logError("Error executing statement: " + stmt);
             	logError(e.getMessage());
+    			setErrors(1);
+    			stopAll();
+    			setOutputDone();  // signal end to receiver(s)
+    			throw new KettleStepException(e.getMessage());
         	}
     	}catch(NullPointerException npe) {
     		// catch without throwing an error. 
@@ -307,7 +306,7 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 	}
     
 	public String escapeProp(String str) {
-		return StringEscapeUtils.escapeJava(str); 
+		return StringEscapeUtils.escapeJava(str);
 	}
 	
 }
