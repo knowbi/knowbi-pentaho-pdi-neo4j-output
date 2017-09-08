@@ -132,20 +132,25 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
 		
     	// Add properties
     	Map<String, Object> parameters = new HashMap<String, Object>();
-    	String props = " { "; 
+    	String props = " { ";  
     	for(int i=0; i < nodeProps.length; i++){
-    		String propName = "";
-    		if(!nodePropNames[i].isEmpty()) {
-    			propName = nodePropNames[i]; 
-    		}else {
-    			propName = nodeProps[i]; 
+    		if(r[Arrays.asList(fieldNames).indexOf(nodeProps[i])] != null) {
+        		String propName = "";
+        		if(!nodePropNames[i].isEmpty()) {
+        			propName = nodePropNames[i]; 
+        		}else {
+        			propName = nodeProps[i]; 
+        		}
+        		props += propName + ": {" + propName + "}";
+        		parameters.put(propName, r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]);
+        		if(i != (nodeProps.length)-1) {
+        			props += ", ";
+        		}
+        		// e.g. { name: 'Andres', title: 'Developer' }
     		}
-    		props += propName + ": {" + propName + "}";
-    		parameters.put(propName, r[Arrays.asList(fieldNames).indexOf(nodeProps[i])]);
-    		if(i != (nodeProps.length)-1) {
-    			props += ", ";
-    		}
-    		// e.g. { name: 'Andres', title: 'Developer' }
+    	}
+    	if(props.endsWith(", ")) {
+    		props = props.substring(0, props.length()-2);
     	}
     	props += "}";
 
@@ -201,50 +206,54 @@ public class Neo4JOutput  extends BaseStep implements StepInterface {
         	
         	String props = ""; 
         	for(int i=0; i < fromNodeProps.length; i++){
-        		String fromPropName = "";
-        		String prop = "";
-        		if(i == 0) {
-        			prop += " WHERE a.";
-        		}else {
-        			prop += " AND a.";
-        		}
-        		if(!fromNodePropNames[i].isEmpty()) {
-        			prop += fromNodePropNames[i]; 
-        		}else {
-        			prop += fromNodeProps[i]; 
-        		}
-        		prop += fromPropName; 
+        		if(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] != null) {
+            		String fromPropName = "";
+            		String prop = "";
+            		if(i == 0) {
+            			prop += " WHERE a.";
+            		}else {
+            			prop += " AND a.";
+            		}
+            		if(!fromNodePropNames[i].isEmpty()) {
+            			prop += fromNodePropNames[i]; 
+            		}else {
+            			prop += fromNodeProps[i]; 
+            		}
+            		prop += fromPropName; 
 
-        		if(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.lang.Long
-        				|| r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.lang.Double 
-        				|| r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.math.BigDecimal ){
-        			props += prop + " = " + r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])];
-        		}else{
-            		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])]);
-            		tmpPropStr = escapeProp(tmpPropStr); 
-            		props += prop + " = " + "\"" + tmpPropStr + "\"";
+            		if(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.lang.Long
+            				|| r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.lang.Double 
+            				|| r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])] instanceof java.math.BigDecimal ){
+            			props += prop + " = " + r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])];
+            		}else{
+                		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(fromNodeProps[i])]);
+                		tmpPropStr = escapeProp(tmpPropStr); 
+                		props += prop + " = " + "\"" + tmpPropStr + "\"";
+            		}
         		}
         	}
 
         	for(int i=0; i < toNodeProps.length; i++){
-        		String toPropName = "";
-        		String prop = "";
-    			prop += " AND b.";
-        		if(!toNodePropNames[i].isEmpty()) {
-        			prop += toNodePropNames[i]; 
-        		}else {
-        			prop += toNodeProps[i]; 
-        		}
-        		prop += toPropName;
+        		if(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] != null) {
+            		String toPropName = "";
+            		String prop = "";
+        			prop += " AND b.";
+            		if(!toNodePropNames[i].isEmpty()) {
+            			prop += toNodePropNames[i]; 
+            		}else {
+            			prop += toNodeProps[i]; 
+            		}
+            		prop += toPropName;
 
-        		if(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.lang.Long
-        				|| r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.lang.Double 
-        				|| r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.math.BigDecimal ){
-        			props += prop + " = " + r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])];
-        		}else{
-            		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])]);
-            		tmpPropStr = escapeProp(tmpPropStr); 
-            		props += prop + " = " + "\"" + tmpPropStr + "\"";
+            		if(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.lang.Long
+            				|| r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.lang.Double 
+            				|| r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])] instanceof java.math.BigDecimal ){
+            			props += prop + " = " + r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])];
+            		}else{
+                		String tmpPropStr = String.valueOf(r[Arrays.asList(fieldNames).indexOf(toNodeProps[i])]);
+                		tmpPropStr = escapeProp(tmpPropStr); 
+                		props += prop + " = " + "\"" + tmpPropStr + "\"";
+            		}
         		}
         	}
 
