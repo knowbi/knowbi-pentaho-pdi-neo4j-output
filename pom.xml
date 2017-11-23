@@ -13,6 +13,7 @@
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<pdi.version>7.1-SNAPSHOT</pdi.version>
+		<pdi.jar.version>7.1-20170802.093637-2872.jar</pdi.jar.version>
 		<swt.version>4.6</swt.version>
 		<pdi.dir>/opt/pentaho/pdi/ce/7.1</pdi.dir>
 	</properties>
@@ -136,20 +137,20 @@
 		<dependency>
 			<groupId>pentaho-kettle</groupId>
 			<artifactId>kettle-core</artifactId>
-			<version>${pdi.version}</version>
+			<version>${pdi.jar.version}</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>pentaho-kettle</groupId>
 			<artifactId>kettle-engine</artifactId>
-			<version>${pdi.version}</version>
+			<version>${pdi.jar.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>pentaho-kettle</groupId>
 			<artifactId>kettle-ui-swt</artifactId>
-			<version>${pdi.version}</version>
+			<version>${pdi.jar.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
