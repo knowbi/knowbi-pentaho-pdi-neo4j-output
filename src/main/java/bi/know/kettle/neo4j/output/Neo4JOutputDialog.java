@@ -2,6 +2,7 @@ package bi.know.kettle.neo4j.output;
 
 
 import bi.know.kettle.neo4j.output.model.GraphPropertyType;
+import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -142,6 +143,17 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     fdNewConnection.top = new FormAttachment( wlConnection, 0, SWT.CENTER );
     fdNewConnection.right = new FormAttachment( wEditConnection, -margin );
     wNewConnection.setLayoutData( fdNewConnection );
+
+    wNewConnection.addSelectionListener( new SelectionAdapter() {
+      @Override public void widgetSelected( SelectionEvent selectionEvent ) {
+        newConnection();
+      }
+    } );
+    wEditConnection.addSelectionListener( new SelectionAdapter() {
+      @Override public void widgetSelected( SelectionEvent selectionEvent ) {
+        editConnection();
+      }
+    } );
 
     wConnection = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wConnection );
@@ -726,5 +738,16 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     item.setText( 3, type.name() );
     item.setText( 4, "N" );
     return true;
+  }
+
+  protected void newConnection() {
+    NeoConnection connection = NeoConnectionUtils.newConnection( shell, transMeta, NeoConnectionUtils.getConnectionFactory( metaStore ) );
+    if (connection!=null) {
+      wConnection.setText(connection.getName());
+    }
+  }
+
+  protected void editConnection() {
+    NeoConnectionUtils.editConnection( shell, transMeta, NeoConnectionUtils.getConnectionFactory( metaStore ), wConnection.getText() );
   }
 }
