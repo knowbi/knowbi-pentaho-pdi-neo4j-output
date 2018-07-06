@@ -4,7 +4,7 @@
 
   <groupId>bi.know.kettle.neo4j.output</groupId>
   <artifactId>Neo4JOutput</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.0.2-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>Neo4JOutput</name>
@@ -12,19 +12,19 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <pdi.version>7.1-SNAPSHOT</pdi.version>
-    <swt.version>4.6</swt.version>
-    <pdi.dir>/opt/pentaho/pdi/ce/7.1</pdi.dir>
+    <pdi.version>8.1-SNAPSHOT</pdi.version>
   </properties>
 
 	<build>
+    <defaultGoal>install</defaultGoal>
+
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-jar-plugin</artifactId>
 				<version>2.3.1</version>
 				<configuration>
-					<outputDirectory>${pdi.dir}/plugins/Neo4JOutput</outputDirectory>
+					<outputDirectory>target/Neo4JOutput</outputDirectory>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -39,7 +39,7 @@
 							<goal>copy-dependencies</goal>
 						</goals>
 						<configuration>
-							<outputDirectory>${pdi.dir}/plugins/Neo4JOutput/lib</outputDirectory>
+							<outputDirectory>target/Neo4JOutput/lib</outputDirectory>
 							<overWriteReleases>false</overWriteReleases>
 							<overWriteSnapshots>false</overWriteSnapshots>
 							<overWriteIfNewer>true</overWriteIfNewer>
@@ -61,6 +61,17 @@
 	        </configuration>
 	      </plugin>
     </plugins>
+
+    <resources>
+      <resource>
+        <directory>src/main/java</directory>
+        <includes>
+          <include>**/*.properties</include>
+          <include>**/*.svg</include>
+        </includes>
+      </resource>
+    </resources>
+
 	</build>
 
 	<repositories>
@@ -94,7 +105,7 @@
 		<dependency>
 		    <groupId>org.neo4j</groupId>
 		    <artifactId>neo4j</artifactId>
-		    <version>3.2.0</version>
+		    <version>3.4.0</version>
 		</dependency>
 
 <!-- 		<dependency> -->
@@ -106,7 +117,7 @@
 		<dependency>
 		    <groupId>org.neo4j.driver</groupId>
 		    <artifactId>neo4j-java-driver</artifactId>
-		    <version>1.1.1</version>
+		    <version>1.4.4</version>
 		</dependency>
 
 		<dependency>
@@ -115,6 +126,7 @@
 			<version>${pdi.version}</version>
 			<scope>provided</scope>
 		</dependency>
+
 		<dependency>
 			<groupId>pentaho-kettle</groupId>
 			<artifactId>kettle-engine</artifactId>
@@ -122,78 +134,12 @@
 			<scope>provided</scope>
 		</dependency>
 
-	    <dependency>
-	      <groupId>pentaho-kettle</groupId>
-	      <artifactId>kettle-ui-swt</artifactId>
-	      <version>${pdi.version}</version>
-	      <scope>provided</scope>
-	    </dependency>
-
-	    <dependency>
-	      <groupId>org.javassist</groupId>
-	      <artifactId>javassist</artifactId>
-	      <version>3.20.0-GA</version>
-	      <scope>runtime</scope>
-	      <exclusions>
-	        <exclusion>
-	          <groupId>*</groupId>
-	          <artifactId>*</artifactId>
-	        </exclusion>
-	      </exclusions>
-	    </dependency>
-
-	    <dependency>
-	      <groupId>net.sf.scannotation</groupId>
-	      <artifactId>scannotation</artifactId>
-	      <version>1.0.2</version>
-	      <scope>compile</scope>
-	      <exclusions>
-	        <exclusion>
-	          <groupId>*</groupId>
-	          <artifactId>*</artifactId>
-	        </exclusion>
-	      </exclusions>
-	    </dependency>
-
-<!-- 	    <dependency> -->
-<!-- 	      <groupId>org.eclipse.swt</groupId> -->
-<!-- 	      <artifactId>org.eclipse.swt.gtk.linux.x86_64</artifactId> -->
-<!-- 	      <version>${swt.version}</version> -->
-<!-- 	      <scope>compile</scope> -->
-<!-- 	      <exclusions> -->
-<!-- 	        <exclusion> -->
-<!-- 	          <artifactId>*</artifactId> -->
-<!-- 	          <groupId>*</groupId> -->
-<!-- 	        </exclusion> -->
-<!-- 	      </exclusions> -->
-<!-- 	    </dependency> -->
-
-	    <dependency>
-	      <groupId>com.google.guava</groupId>
-	      <artifactId>guava</artifactId>
-	      <version>17.0</version>
-	      <scope>compile</scope>
-	      <exclusions>
-	        <exclusion>
-	          <groupId>*</groupId>
-	          <artifactId>*</artifactId>
-	        </exclusion>
-	      </exclusions>
-	    </dependency>
-
 		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-api</artifactId>
-			<version>2.5</version>
+			<groupId>pentaho-kettle</groupId>
+			<artifactId>kettle-ui-swt</artifactId>
+			<version>${pdi.version}</version>
 			<scope>provided</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>org.apache.logging.log4j</groupId>
-			<artifactId>log4j-core</artifactId>
-			<version>2.5</version>
-			<scope>provided</scope>
-		</dependency>
-			
 	</dependencies>
 </project>

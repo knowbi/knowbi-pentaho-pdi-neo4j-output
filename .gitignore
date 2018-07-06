@@ -3,3 +3,9 @@
 .settings/
 target/
 /.apt_generated/
+.idea/.name
+.idea/misc.xml
+.idea/workspace.xml
+.idea/compiler.xml
+.idea/encodings.xml
+.idea/vcs.xml
