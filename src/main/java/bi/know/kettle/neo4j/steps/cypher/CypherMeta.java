@@ -8,6 +8,7 @@ import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettlePluginException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleXMLException;
+import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
@@ -77,7 +78,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
         int type = ValueMetaFactory.getIdForValueMeta( returnValue.getType() );
         ValueMetaInterface valueMeta =  ValueMetaFactory.createValueMeta( returnValue.getName(), type);
         valueMeta.setOrigin( name );
-        rowMeta.addValueMeta( new ValueMetaString( returnValue.getName()) );
+        rowMeta.addValueMeta( valueMeta );
       } catch ( KettlePluginException e ) {
         throw new KettleStepException( "Unknown data type '"+returnValue.getType()+"' for value named '"+returnValue.getName()+"'" );
       }
@@ -172,7 +173,6 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
       rep.saveStepAttribute( id_transformation, id_step, i, "return_name",  returnValue.getName());
       rep.saveStepAttribute( id_transformation, id_step, i, "return_type",  returnValue.getType());
     }
-
   }
 
   @Override public void readRep( Repository rep, IMetaStore metaStore, ObjectId id_step, List<DatabaseMeta> databases ) throws KettleException {
