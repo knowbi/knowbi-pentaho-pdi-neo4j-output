@@ -1,6 +1,6 @@
-package bi.know.kettle.neo4j.output;
+package bi.know.kettle.neo4j.steps.output;
 
-import bi.know.kettle.neo4j.output.model.GraphPropertyType;
+import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;

@@ -3,6 +3,7 @@
 .settings/
 target/
 /.apt_generated/
+.idea
 .idea/.name
 .idea/misc.xml
 .idea/workspace.xml

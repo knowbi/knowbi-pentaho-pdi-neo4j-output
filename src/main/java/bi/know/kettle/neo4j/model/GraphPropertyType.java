@@ -1,9 +1,10 @@
-package bi.know.kettle.neo4j.output.model;
+package bi.know.kettle.neo4j.model;
 
 import org.pentaho.di.core.exception.KettleValueException;
 import org.pentaho.di.core.row.ValueMetaInterface;
 
 import java.time.ZoneId;
+import java.util.Arrays;
 
 public enum GraphPropertyType {
   String,
