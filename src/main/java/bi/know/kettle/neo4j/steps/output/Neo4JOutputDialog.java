@@ -1,7 +1,7 @@
-package bi.know.kettle.neo4j.output;
+package bi.know.kettle.neo4j.steps.output;
 
 
-import bi.know.kettle.neo4j.output.model.GraphPropertyType;
+import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.eclipse.swt.SWT;

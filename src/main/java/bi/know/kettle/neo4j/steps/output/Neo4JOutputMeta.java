@@ -1,4 +1,4 @@
-package bi.know.kettle.neo4j.output;
+package bi.know.kettle.neo4j.steps.output;
 
 import java.util.List;
 
@@ -30,7 +30,7 @@ import org.w3c.dom.Node;
 @Step(
   id = "Neo4JOutput",
   image = "NEO4J.svg",
-  i18nPackageName="bi.know.kettle.neo4j.output",
+  i18nPackageName="bi.know.kettle.neo4j.steps.output",
   name="Neo4JOutput.Step.Name",
   description = "Neo4JOutput.Step.Description",
   categoryDescription="Neo4JOutput.Step.Category"

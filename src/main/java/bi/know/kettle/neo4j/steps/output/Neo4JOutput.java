@@ -1,4 +1,4 @@
-package bi.know.kettle.neo4j.output;
+package bi.know.kettle.neo4j.steps.output;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import bi.know.kettle.neo4j.output.model.GraphPropertyType;
+import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
@@ -417,12 +417,6 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
   private void createNodePropertyIndexes( Neo4JOutputMeta meta, Neo4JOutputData data, RowMetaInterface rowMeta, Object[] rowData )
     throws KettleException {
-
-    // Only try to create an index on the first step copy
-    //
-    if (getCopy()>0) {
-      return;
-    }
 
     createIndexForNode(data, meta.getFromNodeLabels(), meta.getFromNodeProps(), meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), rowMeta, rowData);
     createIndexForNode(data, meta.getToNodeLabels(), meta.getToNodeProps(), meta.getToNodePropNames(), meta.getToNodePropPrimary(), rowMeta, rowData);
