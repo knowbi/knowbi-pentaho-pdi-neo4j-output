@@ -55,6 +55,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 	private CCombo wConnection;
   private TextVar wBatchSize;
   private Button wCreateIndexes;
+  private Button wUseCreate;
 
   private Combo wRel;
 	private TableView 	 wFromPropsGrid;
@@ -199,8 +200,25 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     fdCreateIndexes.top = new FormAttachment( wlCreateIndexes, 0, SWT.CENTER );
     wCreateIndexes.setLayoutData( fdCreateIndexes );
     lastControl = wCreateIndexes;
-		
-		// Some buttons
+
+    Label wlUseCreate = new Label( shell, SWT.RIGHT );
+    wlUseCreate.setText( "Use CREATE instead of MERGE? " );
+    props.setLook( wlUseCreate );
+    FormData fdlUseCreate = new FormData();
+    fdlUseCreate.left = new FormAttachment( 0, 0 );
+    fdlUseCreate.right = new FormAttachment( middle, -margin );
+    fdlUseCreate.top = new FormAttachment( lastControl, 2*margin );
+    wlUseCreate.setLayoutData( fdlUseCreate );
+    wUseCreate = new Button( shell, SWT.CHECK | SWT.BORDER );
+    props.setLook( wUseCreate );
+    FormData fdUseCreate = new FormData();
+    fdUseCreate.left = new FormAttachment( middle, 0 );
+    fdUseCreate.right = new FormAttachment( 100, 0 );
+    fdUseCreate.top = new FormAttachment( wlUseCreate, 0, SWT.CENTER );
+    wUseCreate.setLayoutData( fdUseCreate );
+    lastControl = wUseCreate;
+
+    // Some buttons
 		wOK=new Button(shell, SWT.PUSH);
 		wOK.setText(BaseMessages.getString(PKG, "System.Button.OK")); //$NON-NLS-1$
 		wCancel=new Button(shell, SWT.PUSH);
@@ -377,8 +395,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		fdGetToLabel.top   = new FormAttachment(0, margin*3);
     wGetToLabel.setLayoutData(fdGetToLabel);
 
-		
-		
 		FormData fdToLabelGrid = new FormData();
 		fdToLabelGrid.left = new FormAttachment( wlToLabel, margin );
 		fdToLabelGrid.right = new FormAttachment( wGetToLabel, 0);
@@ -386,8 +402,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     fdToLabelGrid.bottom = new FormAttachment( 0, margin*2+150 );
     wToLabelGrid.setLayoutData( fdToLabelGrid );
 
-		
-		
 		// Node properties
 		Label wlToFields = new Label(wToComp, SWT.RIGHT);
 		wlToFields.setText(BaseMessages.getString(PKG, "Neo4JOutputDialog.ToFields.Properties"));
@@ -557,6 +571,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		wConnection.setText(Const.NVL(input.getConnection(), ""));
 		wBatchSize.setText(Const.NVL(input.getBatchSize(), ""));
     wCreateIndexes.setSelection( input.isCreatingIndexes() );
+    wUseCreate.setSelection( input.isUsingCreate() );
 
     // List of connections...
     //
@@ -632,6 +647,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 		input.setConnection(wConnection.getText());
 		input.setBatchSize(wBatchSize.getText());
     input.setCreatingIndexes( wCreateIndexes.getSelection() );
+    input.setUsingCreate( wUseCreate.getSelection() );
 
     String fromNodeLabels[] = new String[wFromLabelGrid.nrNonEmpty()];
 		for(int i=0; i < fromNodeLabels.length; i++){
@@ -718,11 +734,11 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
           case 0:
             BaseStepDialog.getFieldsFromPrevious( r, wFromLabelGrid, 1, new int[] { 1 }, new int[] {}, -1, -1, null ); break;
           case 1:
-            BaseStepDialog.getFieldsFromPrevious( r, wFromPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1, (item, valueMeta)-> getPropertyType(item, valueMeta) ); break;
+            BaseStepDialog.getFieldsFromPrevious( r, wFromPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1, this::getPropertyType ); break;
           case 2:
             BaseStepDialog.getFieldsFromPrevious( r, wToLabelGrid, 1, new int[] { 1 }, new int[] {}, -1, -1, null ); break;
           case 3:
-            BaseStepDialog.getFieldsFromPrevious( r, wToPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1, (item, valueMeta)-> getPropertyType(item, valueMeta) ); break;
+            BaseStepDialog.getFieldsFromPrevious( r, wToPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1, this::getPropertyType ); break;
           case 4:
             BaseStepDialog.getFieldsFromPrevious( r, wRelPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1, null ); break;
         }
@@ -740,14 +756,14 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     return true;
   }
 
-  protected void newConnection() {
+  private void newConnection() {
     NeoConnection connection = NeoConnectionUtils.newConnection( shell, transMeta, NeoConnectionUtils.getConnectionFactory( metaStore ) );
     if (connection!=null) {
       wConnection.setText(connection.getName());
     }
   }
 
-  protected void editConnection() {
+  private void editConnection() {
     NeoConnectionUtils.editConnection( shell, transMeta, NeoConnectionUtils.getConnectionFactory( metaStore ), wConnection.getText() );
   }
 }

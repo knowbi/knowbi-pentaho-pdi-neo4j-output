@@ -9,6 +9,9 @@ import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
 
+import java.util.List;
+import java.util.Map;
+
 public class Neo4JOutputData extends BaseStepData implements StepDataInterface{
 
 	public RowMetaInterface outputRowMeta;
@@ -33,4 +36,6 @@ public class Neo4JOutputData extends BaseStepData implements StepDataInterface{
   public GraphPropertyType[] fromNodePropTypes;
   public GraphPropertyType[] toNodePropTypes;
   public GraphPropertyType[] relPropTypes;
+
+  public List<Map<String, Object>> unwindList;
 }
