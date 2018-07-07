@@ -53,7 +53,8 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
   private static final String STRING_RELATIONSHIP = "relationship";
   private static final String STRING_RELPROPS = "relprops";
   private static final String STRING_RELPROP = "relprop";
-  public static final String STRING_CREATE_INDEXES = "create_indexes";
+  private static final String STRING_CREATE_INDEXES = "create_indexes";
+  private static final String STRING_USE_CREATE = "use_create";
 
   private String connection;
 	private String key;
@@ -77,8 +78,10 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 
   private String batchSize;
   private boolean creatingIndexes;
+  private boolean usingCreate;
 
-	public StepInterface getStep(StepMeta stepMeta, StepDataInterface stepDataInterface, int cnr, TransMeta transMeta, Trans disp) {
+
+  public StepInterface getStep(StepMeta stepMeta, StepDataInterface stepDataInterface, int cnr, TransMeta transMeta, Trans disp) {
 		return new Neo4JOutput(stepMeta, stepDataInterface, cnr, transMeta, disp);
 	}
 
@@ -120,6 +123,7 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		xml.append( XMLHandler.addTagValue( STRING_BATCH_SIZE, batchSize) );
 		xml.append( XMLHandler.addTagValue( STRING_KEY, key) );
     xml.append( XMLHandler.addTagValue( STRING_CREATE_INDEXES, creatingIndexes) );
+    xml.append( XMLHandler.addTagValue( STRING_USE_CREATE, usingCreate) );
 
 		xml.append( XMLHandler.openTag( STRING_FROM ) );
 
@@ -182,6 +186,7 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
 		batchSize = XMLHandler.getTagValue(stepnode, STRING_BATCH_SIZE );
 		key = XMLHandler.getTagValue(stepnode, STRING_KEY );
     creatingIndexes = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, STRING_CREATE_INDEXES ));
+    usingCreate = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, STRING_USE_CREATE ));
 
     Node fromNode = XMLHandler.getSubNode(stepnode, STRING_FROM );
 		Node fromLabelsNode = XMLHandler.getSubNode(fromNode, STRING_LABELS );
@@ -261,6 +266,7 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
     rep.saveStepAttribute( transId, stepId, STRING_BATCH_SIZE, batchSize );
     rep.saveStepAttribute( transId, stepId, STRING_KEY, key );
     rep.saveStepAttribute( transId, stepId, STRING_CREATE_INDEXES, creatingIndexes);
+    rep.saveStepAttribute( transId, stepId, STRING_USE_CREATE, usingCreate);
 
     String fromLabelKey = STRING_FROM+"_"+STRING_LABEL;
     for(int i=0; i < fromNodeLabels.length; i++) {
@@ -306,6 +312,7 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
     batchSize = rep.getStepAttributeString( stepId, STRING_BATCH_SIZE );
     key = rep.getStepAttributeString( stepId, STRING_KEY );
     creatingIndexes = rep.getStepAttributeBoolean( stepId, STRING_CREATE_INDEXES );
+    usingCreate = rep.getStepAttributeBoolean( stepId, STRING_USE_CREATE );
 
     String fromLabelKey = STRING_FROM+"_"+STRING_LABEL;
     int nrFromLabels = rep.countNrStepAttributes( stepId, fromLabelKey );
@@ -550,4 +557,13 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface{
   public void setCreatingIndexes( boolean creatingIndexes ) {
     this.creatingIndexes = creatingIndexes;
   }
+
+  public boolean isUsingCreate() {
+    return usingCreate;
+  }
+
+  public void setUsingCreate( boolean usingCreate ) {
+    this.usingCreate = usingCreate;
+  }
+
 }

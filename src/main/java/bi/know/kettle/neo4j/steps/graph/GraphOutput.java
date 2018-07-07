@@ -8,11 +8,14 @@ import bi.know.kettle.neo4j.model.GraphProperty;
 import bi.know.kettle.neo4j.model.GraphRelationship;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleValueException;
+import org.pentaho.di.core.logging.LogChannel;
+import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.trans.Trans;
@@ -169,6 +172,8 @@ public class GraphOutput extends BaseStep implements StepInterface {
       return;
     }
 
+    Map<GraphNode, List<String>> nodePropertiesMap = new HashMap<>();
+
     for (int f=0;f<meta.getFieldModelMappings().size();f++) {
       FieldModelMapping fieldModelMapping = meta.getFieldModelMappings().get(f);
 
@@ -190,24 +195,22 @@ public class GraphOutput extends BaseStep implements StepInterface {
       // See if this is a primary property...
       //
       if (graphProperty.isPrimary()) {
-        // CREATE INDEX ON :NodeLabel(property);
-        //
-        String indexCypher = "CREATE INDEX ON ";
-        String labelsClause = "";
-        if (node.getLabels().size()>0) {
-          String label = node.getLabels().get( 0 ); // Only the first label
-          labelsClause += ":" + label;
 
-          indexCypher += labelsClause;
-          indexCypher += "(" + graphProperty.getName() + ")";
-          indexCypher += ";";
-
-          logBasic( "Creating index : " + indexCypher );
-          data.session.run( indexCypher );
+        List<String> propertiesList = nodePropertiesMap.get(node);
+        if (propertiesList==null) {
+          propertiesList=new ArrayList<>();
+          nodePropertiesMap.put(node, propertiesList);
         }
+        propertiesList.add( graphProperty.getName() );
       }
     }
-  }
+
+    // Loop over map keys...
+    //
+    for (GraphNode node : nodePropertiesMap.keySet()) {
+      NeoConnectionUtils.createNodeIndex(log, data.session, node.getLabels(), nodePropertiesMap.get(node));
+    }
+   }
 
   private void executeStatement( GraphOutputData data, String cypher, Map<String, Object> parameters ) {
     StatementResult result;
