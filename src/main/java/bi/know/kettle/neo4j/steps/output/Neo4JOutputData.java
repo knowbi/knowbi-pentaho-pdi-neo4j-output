@@ -37,5 +37,9 @@ public class Neo4JOutputData extends BaseStepData implements StepDataInterface{
   public GraphPropertyType[] toNodePropTypes;
   public GraphPropertyType[] relPropTypes;
 
-  public List<Map<String, Object>> unwindList;
+  public List<Map<String, Object>> fromUnwindList;
+  public String fromLabelsClause;
+  public List<Map<String, Object>> toUnwindList;
+  public String toLabelsClause;
+
 }

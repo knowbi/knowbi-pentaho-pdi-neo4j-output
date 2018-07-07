@@ -96,7 +96,9 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
           }
         }
       }
-      data.unwindList = new ArrayList<>();
+      data.fromUnwindList = new ArrayList<>();
+      data.toUnwindList = new ArrayList<>();
+
     }
 
     if ( row == null ) {
@@ -107,8 +109,14 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     try {
       if ( meta.getFromNodeProps().length > 0 ) {
         if (meta.isUsingCreate()) {
+
+          if (data.fromLabelsClause==null) {
+            data.fromLabelsClause = getLabels( "n", getInputRowMeta(), row, data.fromNodeLabelIndexes);
+          }
+
           createNode(getInputRowMeta(), row, data, data.fromNodeLabelIndexes, data.fromNodePropIndexes, meta.getFromNodePropNames(),
-            data.fromNodePropTypes, meta.getFromNodePropPrimary() );
+            data.fromNodePropTypes, data.fromLabelsClause, data.fromUnwindList );
+
         } else {
           mergeNode( getInputRowMeta(), row, data, data.fromNodeLabelIndexes, data.fromNodePropIndexes, meta.getFromNodePropNames(),
             data.fromNodePropTypes, meta.getFromNodePropPrimary() );
@@ -116,6 +124,15 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
       }
       if ( meta.getToNodeProps().length > 0 ) {
         if (meta.isUsingCreate()) {
+
+          if (data.toLabelsClause==null) {
+            data.toLabelsClause = getLabels( "n", getInputRowMeta(), row, data.toNodeLabelIndexes);
+          }
+
+          createNode( getInputRowMeta(), row, data, data.toNodeLabelIndexes, data.toNodePropIndexes, meta.getToNodePropNames(), data.toNodePropTypes,
+            data.toLabelsClause, data.toUnwindList );
+
+        } else {
           mergeNode( getInputRowMeta(), row, data, data.toNodeLabelIndexes, data.toNodePropIndexes, meta.getToNodePropNames(), data.toNodePropTypes,
             meta.getToNodePropPrimary() );
         }
@@ -169,8 +186,19 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
   public void dispose( StepMetaInterface smi, StepDataInterface sdi ) {
     Neo4JOutputData data = (Neo4JOutputData) sdi;
 
+    // Empty unwind lists...
+    //
+    if (data.fromUnwindList.size()>0) {
+      createNodeEmptyUnwindList( data, data.fromUnwindList, data.fromLabelsClause );
+    }
+    if (data.toUnwindList.size()>0) {
+      createNodeEmptyUnwindList( data, data.toUnwindList, data.toLabelsClause );
+    }
+
     // Allow gc
-    data.unwindList = null;
+    //
+    data.fromUnwindList = null;
+    data.toUnwindList = null;
 
     if ( data.outputCount >0) {
       data.transaction.success();
@@ -184,8 +212,10 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     super.dispose( smi, sdi );
   }
 
-  private void createNode( RowMetaInterface rowMeta, Object[] row, Neo4JOutputData data, int[] nodeLabelIndexes, int[] nodePropIndexes, String[] nodePropNames,
-                           GraphPropertyType[] propertyTypes, boolean[] nodePropPrimary ) throws KettleException {
+  private void createNode( RowMetaInterface rowMeta, Object[] row, Neo4JOutputData data, int[] nodeLabelIndexes, int[] nodePropIndexes,
+                           String[] nodePropNames,
+                           GraphPropertyType[] propertyTypes, String labelsClause,
+                           List<Map<String, Object>> unwindList ) throws KettleException {
 
     // Let's use UNWIND by default for now
     //
@@ -213,31 +243,36 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
     // Add the rowMap to the unwindList...
     //
-    data.unwindList.add(rowMap);
+    unwindList.add(rowMap);
 
     // See if it's time to push the collected data to the database
     //
-    if (data.unwindList.size()>=data.batchSize) {
-      Map<String, Object> properties = Collections.singletonMap( "props", data.unwindList);
+    if (unwindList.size()>=data.batchSize) {
 
-      // Build cypher statement...
-      //
-      String labels = getLabels( "n", rowMeta, row, nodeLabelIndexes);
-      String cypher = "UNWIND $props as properties CREATE("+labels+") SET n = properties";
+      createNodeEmptyUnwindList(data, unwindList, labelsClause);
 
-      if (log.isDebug()) {
-        logDebug( "Running Cypher: " + cypher );
-        logDebug( "properties list size : " + data.unwindList.size() );
-      }
-
-      // Run it always without transactions...
-      //
-      data.session.writeTransaction( tx -> tx.run(cypher, properties ));
-
-      // Clear the list
-      //
-      data.unwindList.clear();
     }
+  }
+
+  private void createNodeEmptyUnwindList( Neo4JOutputData data, List<Map<String,Object>> unwindList, String labelsClause ) {
+    Map<String, Object> properties = Collections.singletonMap( "props", unwindList);
+
+    // Build cypher statement...
+    //
+    String cypher = "UNWIND $props as properties CREATE("+labelsClause+") SET n = properties";
+
+    if (log.isDebug()) {
+      logDebug( "Running Cypher: " + cypher );
+      logDebug( "properties list size : " + unwindList.size() );
+    }
+
+    // Run it always without transactions...
+    //
+    data.session.writeTransaction( tx -> tx.run(cypher, properties ));
+
+    // Clear the list
+    //
+    unwindList.clear();
   }
 
   private void mergeNode( RowMetaInterface rowMeta, Object[] row, Neo4JOutputData data, int[] nodeLabelIndexes, int[] nodePropIndexes,
