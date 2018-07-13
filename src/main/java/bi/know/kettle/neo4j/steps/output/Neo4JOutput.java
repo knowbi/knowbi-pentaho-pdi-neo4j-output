@@ -297,7 +297,7 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     boolean firstSet = true;
     boolean firstMerge = true;
     String mergeCypher = " { ";
-    String setCypher = " ON MATCH SET ";
+    String setCypher = " SET ";
     for ( int i = 0; i < nodePropIndexes.length; i++ ) {
       if (nodePropPrimary[i]) {
         if (firstMerge) {
