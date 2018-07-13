@@ -200,7 +200,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     lastControl = wCypherField;
 
     Label wlCypher = new Label( shell, SWT.LEFT );
-    wlCypher.setText( "GraphOutput" );
+    wlCypher.setText( "Cypher:" );
     props.setLook( wlCypher );
     FormData fdlServers = new FormData();
     fdlServers.left = new FormAttachment( 0, 0 );
