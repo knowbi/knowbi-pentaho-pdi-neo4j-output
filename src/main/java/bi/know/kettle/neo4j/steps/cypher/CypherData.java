@@ -7,6 +7,7 @@ import org.neo4j.driver.v1.Transaction;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
+import org.pentaho.metastore.api.IMetaStore;
 
 public class CypherData extends BaseStepData implements StepDataInterface {
 
@@ -22,4 +23,5 @@ public class CypherData extends BaseStepData implements StepDataInterface {
   public long outputCount;
   public boolean hasInput;
   public int cypherFieldIndex;
+  public IMetaStore metaStore;
 }

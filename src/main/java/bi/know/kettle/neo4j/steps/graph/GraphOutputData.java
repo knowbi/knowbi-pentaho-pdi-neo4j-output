@@ -8,6 +8,7 @@ import org.neo4j.driver.v1.Transaction;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
+import org.pentaho.metastore.api.IMetaStore;
 
 public class GraphOutputData extends BaseStepData implements StepDataInterface {
 
@@ -23,4 +24,5 @@ public class GraphOutputData extends BaseStepData implements StepDataInterface {
   public boolean hasInput;
   public GraphModel graphModel;
   public int nodeCount;
+  public IMetaStore metaStore;
 }

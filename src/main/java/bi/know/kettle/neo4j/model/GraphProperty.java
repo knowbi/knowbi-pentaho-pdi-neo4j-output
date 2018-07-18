@@ -1,10 +1,6 @@
 package bi.know.kettle.neo4j.model;
 
-import org.pentaho.di.core.exception.KettleValueException;
-import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
-
-import java.time.ZoneId;
 
 public class GraphProperty {
 

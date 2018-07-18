@@ -34,40 +34,41 @@ public class GraphNode implements Cloneable {
   @Override protected GraphNode clone() {
 
     GraphNode node = new GraphNode();
-    node.replace(this);
+    node.replace( this );
     return node;
   }
 
   @Override public String toString() {
-    return name==null ? super.toString() : name;
+    return name == null ? super.toString() : name;
   }
 
   @Override public boolean equals( Object o ) {
-    if (o==null) {
+    if ( o == null ) {
       return false;
     }
-    if (!(o instanceof GraphNode)) {
+    if ( !( o instanceof GraphNode ) ) {
       return false;
     }
-    if (o==this) {
+    if ( o == this ) {
       return true;
     }
     return ( (GraphNode) o ).getName().equalsIgnoreCase( name );
   }
 
   private void replace( GraphNode graphNode ) {
-    setName(graphNode.getName());
+    setName( graphNode.getName() );
     setDescription( graphNode.getDescription() );
 
     // Copy labels
-    setLabels(new ArrayList<>(graphNode.getLabels()));
+    setLabels( new ArrayList<>( graphNode.getLabels() ) );
 
     // Copy properties
     List<GraphProperty> propertiesCopy = new ArrayList<>();
-    for (GraphProperty propertyCopy : graphNode.getProperties()) {
-      propertiesCopy.add( new GraphProperty( propertyCopy.getName(), propertyCopy.getDescription(), propertyCopy.getType(), propertyCopy.isPrimary() ) );
+    for ( GraphProperty propertyCopy : graphNode.getProperties() ) {
+      propertiesCopy
+        .add( new GraphProperty( propertyCopy.getName(), propertyCopy.getDescription(), propertyCopy.getType(), propertyCopy.isPrimary() ) );
     }
-    setProperties(propertiesCopy);
+    setProperties( propertiesCopy );
   }
 
   public String getName() {
@@ -104,12 +105,13 @@ public class GraphNode implements Cloneable {
 
   /**
    * Search for the property with the given name, case insensitive
+   *
    * @param name the name of the property to look for
    * @return the property or null if nothing could be found.
    */
   public GraphProperty findProperty( String name ) {
-    for (GraphProperty property : properties) {
-      if (property.getName().equalsIgnoreCase(name)) {
+    for ( GraphProperty property : properties ) {
+      if ( property.getName().equalsIgnoreCase( name ) ) {
         return property;
       }
     }

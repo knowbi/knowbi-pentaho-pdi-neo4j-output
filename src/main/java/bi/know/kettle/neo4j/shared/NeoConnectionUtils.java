@@ -1,7 +1,6 @@
 package bi.know.kettle.neo4j.shared;
 
 import bi.know.kettle.neo4j.core.Neo4jDefaults;
-import bi.know.kettle.neo4j.model.GraphNode;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MessageBox;
@@ -18,41 +17,42 @@ import java.util.List;
 
 public class NeoConnectionUtils {
   private static Class<?> PKG = NeoConnectionUtils.class; // for i18n purposes, needed by Translator2!!
-  
+
   private static MetaStoreFactory<NeoConnection> staticFactory;
-  public static MetaStoreFactory<NeoConnection> getConnectionFactory(IMetaStore metaStore) {
-    if (staticFactory==null) {
-      staticFactory = new MetaStoreFactory<>(NeoConnection.class, metaStore, Neo4jDefaults.NAMESPACE );
+
+  public static MetaStoreFactory<NeoConnection> getConnectionFactory( IMetaStore metaStore ) {
+    if ( staticFactory == null ) {
+      staticFactory = new MetaStoreFactory<>( NeoConnection.class, metaStore, Neo4jDefaults.NAMESPACE );
     }
     return staticFactory;
   }
 
-  public static NeoConnection newConnection( Shell shell, VariableSpace space, MetaStoreFactory<NeoConnection> factory) {
-    NeoConnection connection = new NeoConnection(space);
+  public static NeoConnection newConnection( Shell shell, VariableSpace space, MetaStoreFactory<NeoConnection> factory ) {
+    NeoConnection connection = new NeoConnection( space );
     boolean ok = false;
-    while (!ok) {
-      NeoConnectionDialog dialog = new NeoConnectionDialog(shell, connection);
-      if (dialog.open()) {
+    while ( !ok ) {
+      NeoConnectionDialog dialog = new NeoConnectionDialog( shell, connection );
+      if ( dialog.open() ) {
         // write to metastore...
         try {
-          if (factory.loadElement(connection.getName())!=null) {
-            MessageBox box = new MessageBox(shell, SWT.YES | SWT.NO | SWT.ICON_ERROR);
-            box.setText(BaseMessages.getString(PKG, "NeoConnectionUtils.Error.ConnectionExists.Title"));
-            box.setMessage(BaseMessages.getString(PKG, "NeoConnectionUtils.Error.ConnectionExists.Message"));
-            int answer = box.open();      
-            if ((answer&SWT.YES)!=0) {
-              factory.saveElement(connection);
-              ok=true;
+          if ( factory.loadElement( connection.getName() ) != null ) {
+            MessageBox box = new MessageBox( shell, SWT.YES | SWT.NO | SWT.ICON_ERROR );
+            box.setText( BaseMessages.getString( PKG, "NeoConnectionUtils.Error.ConnectionExists.Title" ) );
+            box.setMessage( BaseMessages.getString( PKG, "NeoConnectionUtils.Error.ConnectionExists.Message" ) );
+            int answer = box.open();
+            if ( ( answer & SWT.YES ) != 0 ) {
+              factory.saveElement( connection );
+              ok = true;
             }
           } else {
-            factory.saveElement(connection);
-            ok=true;
+            factory.saveElement( connection );
+            ok = true;
           }
-        } catch(Exception exception) {
-          new ErrorDialog(shell,
-              BaseMessages.getString(PKG, "NeoConnectionUtils.Error.ErrorSavingConnection.Title"),
-              BaseMessages.getString(PKG, "NeoConnectionUtils.Error.ErrorSavingConnection.Message"),
-              exception);
+        } catch ( Exception exception ) {
+          new ErrorDialog( shell,
+            BaseMessages.getString( PKG, "NeoConnectionUtils.Error.ErrorSavingConnection.Title" ),
+            BaseMessages.getString( PKG, "NeoConnectionUtils.Error.ErrorSavingConnection.Message" ),
+            exception );
           return null;
         }
       } else {
@@ -63,45 +63,45 @@ public class NeoConnectionUtils {
     return connection;
   }
 
-  public static void editConnection(Shell shell, VariableSpace space, MetaStoreFactory<NeoConnection> factory, String connectionName) {
-    if (StringUtils.isEmpty(connectionName)) {
+  public static void editConnection( Shell shell, VariableSpace space, MetaStoreFactory<NeoConnection> factory, String connectionName ) {
+    if ( StringUtils.isEmpty( connectionName ) ) {
       return;
     }
     try {
-      NeoConnection NeoConnection = factory.loadElement(connectionName);
-      if (NeoConnection==null) {
-        newConnection(shell, space, factory);
+      NeoConnection NeoConnection = factory.loadElement( connectionName );
+      if ( NeoConnection == null ) {
+        newConnection( shell, space, factory );
       } else {
-        NeoConnectionDialog NeoConnectionDialog = new NeoConnectionDialog(shell, NeoConnection);
-        if (NeoConnectionDialog.open()) {
-          factory.saveElement(NeoConnection);
+        NeoConnectionDialog NeoConnectionDialog = new NeoConnectionDialog( shell, NeoConnection );
+        if ( NeoConnectionDialog.open() ) {
+          factory.saveElement( NeoConnection );
         }
       }
-    } catch(Exception exception) {
-      new ErrorDialog(shell,
-          BaseMessages.getString(PKG, "NeoConnectionUtils.Error.ErrorEditingConnection.Title"),
-          BaseMessages.getString(PKG, "NeoConnectionUtils.Error.ErrorEditingConnection.Message"),
-          exception);
+    } catch ( Exception exception ) {
+      new ErrorDialog( shell,
+        BaseMessages.getString( PKG, "NeoConnectionUtils.Error.ErrorEditingConnection.Title" ),
+        BaseMessages.getString( PKG, "NeoConnectionUtils.Error.ErrorEditingConnection.Message" ),
+        exception );
     }
   }
 
-  public static void deleteConnection(Shell shell, MetaStoreFactory<NeoConnection> factory, String connectionName) {
-    if (StringUtils.isEmpty(connectionName)) {
+  public static void deleteConnection( Shell shell, MetaStoreFactory<NeoConnection> factory, String connectionName ) {
+    if ( StringUtils.isEmpty( connectionName ) ) {
       return;
     }
-    
-    MessageBox box = new MessageBox(shell, SWT.YES | SWT.NO | SWT.ICON_ERROR);
-    box.setText(BaseMessages.getString(PKG, "NeoConnectionUtils.DeleteConnectionConfirmation.Title"));
-    box.setMessage(BaseMessages.getString(PKG, "NeoConnectionUtils.DeleteConnectionConfirmation.Message", connectionName));
-    int answer = box.open();      
-    if ((answer&SWT.YES)!=0) {
+
+    MessageBox box = new MessageBox( shell, SWT.YES | SWT.NO | SWT.ICON_ERROR );
+    box.setText( BaseMessages.getString( PKG, "NeoConnectionUtils.DeleteConnectionConfirmation.Title" ) );
+    box.setMessage( BaseMessages.getString( PKG, "NeoConnectionUtils.DeleteConnectionConfirmation.Message", connectionName ) );
+    int answer = box.open();
+    if ( ( answer & SWT.YES ) != 0 ) {
       try {
-        factory.deleteElement(connectionName);
-      } catch(Exception exception) {
-        new ErrorDialog(shell,
-            BaseMessages.getString(PKG, "NeoConnectionUtils.Error.ErrorDeletingConnection.Title"),
-            BaseMessages.getString(PKG, "NeoConnectionUtils.Error.ErrorDeletingConnection.Message", connectionName),
-            exception);
+        factory.deleteElement( connectionName );
+      } catch ( Exception exception ) {
+        new ErrorDialog( shell,
+          BaseMessages.getString( PKG, "NeoConnectionUtils.Error.ErrorDeletingConnection.Title" ),
+          BaseMessages.getString( PKG, "NeoConnectionUtils.Error.ErrorDeletingConnection.Message", connectionName ),
+          exception );
       }
     }
   }
@@ -110,25 +110,25 @@ public class NeoConnectionUtils {
 
     // If we have no properties or labels, we have nothing to do here
     //
-    if (keyProperties.size()==0) {
+    if ( keyProperties.size() == 0 ) {
       return;
     }
-    if (labels.size()==0) {
+    if ( labels.size() == 0 ) {
       return;
     }
 
     // We only use the first label for index or constraint
     //
-    String labelsClause = ":"+labels.get(0);
+    String labelsClause = ":" + labels.get( 0 );
 
     // CREATE CONSTRAINT ON (n:NodeLabel) ASSERT n.property1 IS UNIQUE
     //
-    if (keyProperties.size()==1) {
-      String property = keyProperties.get(0);
-      String constraintCypher = "CREATE CONSTRAINT ON (n"+labelsClause+") ASSERT n."+property+" IS UNIQUE;";
+    if ( keyProperties.size() == 1 ) {
+      String property = keyProperties.get( 0 );
+      String constraintCypher = "CREATE CONSTRAINT ON (n" + labelsClause + ") ASSERT n." + property + " IS UNIQUE;";
 
-      log.logDetailed( "Creating constraint : " + constraintCypher);
-      session.run(constraintCypher);
+      log.logDetailed( "Creating constraint : " + constraintCypher );
+      session.run( constraintCypher );
 
       // This creates an index, no need to go further here...
       //
@@ -144,15 +144,15 @@ public class NeoConnectionUtils {
     indexCypher += labelsClause;
     indexCypher += "(";
     boolean firstProperty = true;
-    for (String property : keyProperties) {
-      if (firstProperty) {
-        firstProperty=false;
+    for ( String property : keyProperties ) {
+      if ( firstProperty ) {
+        firstProperty = false;
       } else {
-        indexCypher+=", ";
+        indexCypher += ", ";
       }
       indexCypher += property;
     }
-    indexCypher+=")";
+    indexCypher += ")";
 
     log.logDetailed( "Creating index : " + indexCypher );
     session.run( indexCypher );

@@ -39,33 +39,33 @@ public class GraphRelationship implements Cloneable {
   }
 
   @Override public boolean equals( Object o ) {
-    if (o==null) {
+    if ( o == null ) {
       return false;
     }
-    if (!(o instanceof GraphRelationship)) {
+    if ( !( o instanceof GraphRelationship ) ) {
       return false;
     }
-    if (o==this) {
+    if ( o == this ) {
       return true;
     }
     return ( (GraphRelationship) o ).getName().equalsIgnoreCase( name );
   }
 
   @Override public String toString() {
-    return name==null ? super.toString() : name;
+    return name == null ? super.toString() : name;
   }
 
   @Override
   protected GraphRelationship clone() {
     GraphRelationship relationship = new GraphRelationship();
-    relationship.replace(this);
+    relationship.replace( this );
     return relationship;
   }
 
   private void replace( GraphRelationship graphRelationship ) {
 
     List<GraphProperty> properties = new ArrayList<>();
-    for (GraphProperty property : graphRelationship.getProperties()) {
+    for ( GraphProperty property : graphRelationship.getProperties() ) {
       properties.add( new GraphProperty( property.getName(), property.getDescription(), property.getType(), property.isPrimary() ) );
     }
 

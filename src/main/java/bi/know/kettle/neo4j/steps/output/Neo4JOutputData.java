@@ -8,20 +8,21 @@ import org.neo4j.driver.v1.Transaction;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
+import org.pentaho.metastore.api.IMetaStore;
 
 import java.util.List;
 import java.util.Map;
 
-public class Neo4JOutputData extends BaseStepData implements StepDataInterface{
+public class Neo4JOutputData extends BaseStepData implements StepDataInterface {
 
-	public RowMetaInterface outputRowMeta;
+  public RowMetaInterface outputRowMeta;
 
-	public String[] fieldNames;
+  public String[] fieldNames;
 
-	public NeoConnection neoConnection;
-	public String url;
-	public Driver driver;
-	public Session session;
+  public NeoConnection neoConnection;
+  public String url;
+  public Driver driver;
+  public Session session;
   public Transaction transaction;
 
   public long batchSize;
@@ -42,4 +43,5 @@ public class Neo4JOutputData extends BaseStepData implements StepDataInterface{
   public List<Map<String, Object>> toUnwindList;
   public String toLabelsClause;
 
+  public IMetaStore metaStore;
 }
