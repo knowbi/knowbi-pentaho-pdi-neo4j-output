@@ -28,12 +28,10 @@ import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 /**
- *
  * Dialog that allows you to edit the settings of a Neo4j connection
  *
- * @see NeoConnection
  * @author Matt
- *
+ * @see NeoConnection
  */
 
 public class NeoConnectionDialog extends Dialog {
@@ -54,7 +52,7 @@ public class NeoConnectionDialog extends Dialog {
   private Button wRouting, wEncryption;
 
   Control lastControl;
-  
+
   private PropsUI props;
 
   private int middle;
@@ -77,7 +75,7 @@ public class NeoConnectionDialog extends Dialog {
     shell.setImage( GUIResource.getInstance().getImageSlave() );
 
     middle = props.getMiddlePct();
-    margin = Const.MARGIN+2;
+    margin = Const.MARGIN + 2;
 
     FormLayout formLayout = new FormLayout();
     formLayout.marginWidth = Const.FORM_MARGIN;
@@ -87,7 +85,7 @@ public class NeoConnectionDialog extends Dialog {
     shell.setLayout( formLayout );
 
     addFormWidgets();
-    
+
     // Buttons
     Button wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
@@ -116,7 +114,7 @@ public class NeoConnectionDialog extends Dialog {
     wServer.addSelectionListener( selAdapter );
     wBoltPort.addSelectionListener( selAdapter );
     wPolicy.addSelectionListener( selAdapter );
-    
+
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
       public void shellClosed( ShellEvent e ) {
@@ -139,7 +137,7 @@ public class NeoConnectionDialog extends Dialog {
   }
 
   private void addFormWidgets() {
-    
+
     // The name
     Label wlName = new Label( shell, SWT.RIGHT );
     props.setLook( wlName );
@@ -157,7 +155,7 @@ public class NeoConnectionDialog extends Dialog {
     fdName.right = new FormAttachment( 95, 0 );
     wName.setLayoutData( fdName );
     lastControl = wName;
-    
+
     // The server
     Label wlServer = new Label( shell, SWT.RIGHT );
     props.setLook( wlServer );
@@ -254,7 +252,7 @@ public class NeoConnectionDialog extends Dialog {
     fdUsername.right = new FormAttachment( 95, 0 );
     wUsername.setLayoutData( fdUsername );
     lastControl = wUsername;
-    
+
     // Password
     Label wlPassword = new Label( shell, SWT.RIGHT );
     wlPassword.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.Password.Label" ) );
@@ -293,8 +291,8 @@ public class NeoConnectionDialog extends Dialog {
   }
 
   private void enableFields() {
-    wlPolicy.setEnabled(wRouting.getSelection());
-    wPolicy.setEnabled(wRouting.getSelection());
+    wlPolicy.setEnabled( wRouting.getSelection() );
+    wPolicy.setEnabled( wRouting.getSelection() );
   }
 
   public void dispose() {
@@ -317,15 +315,15 @@ public class NeoConnectionDialog extends Dialog {
   }
 
   private void cancel() {
-    ok=false;
+    ok = false;
     dispose();
   }
 
   public void ok() {
-    if (StringUtils.isEmpty(wName.getText())) {
-      MessageBox box = new MessageBox(shell, SWT.ICON_ERROR | SWT.OK);
-      box.setText(BaseMessages.getString(PKG, "NeoConnectionDialog.NoNameDialog.Title"));
-      box.setMessage(BaseMessages.getString(PKG, "NeoConnectionDialog.NoNameDialog.Message"));
+    if ( StringUtils.isEmpty( wName.getText() ) ) {
+      MessageBox box = new MessageBox( shell, SWT.ICON_ERROR | SWT.OK );
+      box.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.NoNameDialog.Title" ) );
+      box.setMessage( BaseMessages.getString( PKG, "NeoConnectionDialog.NoNameDialog.Message" ) );
       box.open();
       return;
     }
@@ -335,31 +333,31 @@ public class NeoConnectionDialog extends Dialog {
   }
 
   // Get dialog info in securityService
-  private void getInfo(NeoConnection neo) {
+  private void getInfo( NeoConnection neo ) {
     neo.setName( wName.getText() );
     neo.setServer( wServer.getText() );
     neo.setBoltPort( wBoltPort.getText() );
-    neo.setRouting(wRouting.getSelection() );
+    neo.setRouting( wRouting.getSelection() );
     neo.setRoutingPolicy( wPolicy.getText() );
     neo.setUsername( wUsername.getText() );
     neo.setPassword( wPassword.getText() );
-    neo.setUsingEncryption(wEncryption.getSelection() );
+    neo.setUsingEncryption( wEncryption.getSelection() );
   }
 
   public void test() {
-    NeoConnection neo = new NeoConnection(neoConnection); // parent as variable space
+    NeoConnection neo = new NeoConnection( neoConnection ); // parent as variable space
     try {
-      getInfo(neo);
+      getInfo( neo );
       neo.test();
-      MessageBox box = new MessageBox(shell, SWT.OK);
-      box.setText("OK");
-      String message = "Connection successful!"+Const.CR;
-      message+=Const.CR;
-      message+="URL : "+neo.getUrl();
-      box.setMessage(message);
+      MessageBox box = new MessageBox( shell, SWT.OK );
+      box.setText( "OK" );
+      String message = "Connection successful!" + Const.CR;
+      message += Const.CR;
+      message += "URL : " + neo.getUrl();
+      box.setMessage( message );
       box.open();
-    } catch(Exception e) {
-      new ErrorDialog(shell, "Error", "Error connecting to Neo with URL : "+ neo.getUrl(), e);
+    } catch ( Exception e ) {
+      new ErrorDialog( shell, "Error", "Error connecting to Neo with URL : " + neo.getUrl(), e );
     }
   }
 }

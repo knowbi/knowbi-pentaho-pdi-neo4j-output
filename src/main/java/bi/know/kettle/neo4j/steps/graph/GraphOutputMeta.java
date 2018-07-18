@@ -39,10 +39,10 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
   private List<FieldModelMapping> fieldModelMappings;
 
 
- public GraphOutputMeta() {
-   super();
-   fieldModelMappings = new ArrayList<>();
-   creatingIndexes=true;
+  public GraphOutputMeta() {
+    super();
+    fieldModelMappings = new ArrayList<>();
+    creatingIndexes = true;
   }
 
   @Override public void setDefault() {
@@ -64,26 +64,26 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
   @Override public void getFields( RowMetaInterface rowMeta, String name, RowMetaInterface[] info, StepMeta nextStep, VariableSpace space,
                                    Repository repository, IMetaStore metaStore ) {
 
-   // No output fields for now
+    // No output fields for now
   }
 
   @Override public String getXML() {
-    StringBuilder xml = new StringBuilder( );
-    xml.append( XMLHandler.addTagValue( "connection", connectionName) );
-    xml.append( XMLHandler.addTagValue( "model", model) );
-    xml.append( XMLHandler.addTagValue( "batch_size", batchSize) );
-    xml.append( XMLHandler.addTagValue( "create_indexes", creatingIndexes) );
+    StringBuilder xml = new StringBuilder();
+    xml.append( XMLHandler.addTagValue( "connection", connectionName ) );
+    xml.append( XMLHandler.addTagValue( "model", model ) );
+    xml.append( XMLHandler.addTagValue( "batch_size", batchSize ) );
+    xml.append( XMLHandler.addTagValue( "create_indexes", creatingIndexes ) );
 
-    xml.append( XMLHandler.openTag( "mappings") );
-    for (FieldModelMapping fieldModelMapping : fieldModelMappings ) {
-      xml.append( XMLHandler.openTag( "mapping") );
+    xml.append( XMLHandler.openTag( "mappings" ) );
+    for ( FieldModelMapping fieldModelMapping : fieldModelMappings ) {
+      xml.append( XMLHandler.openTag( "mapping" ) );
       xml.append( XMLHandler.addTagValue( "source_field", fieldModelMapping.getField() ) );
-      xml.append( XMLHandler.addTagValue( "target_type", ModelTargetType.getCode( fieldModelMapping.getTargetType()) ) );
+      xml.append( XMLHandler.addTagValue( "target_type", ModelTargetType.getCode( fieldModelMapping.getTargetType() ) ) );
       xml.append( XMLHandler.addTagValue( "target_name", fieldModelMapping.getTargetName() ) );
       xml.append( XMLHandler.addTagValue( "target_property", fieldModelMapping.getTargetProperty() ) );
-      xml.append( XMLHandler.closeTag( "mapping") );
+      xml.append( XMLHandler.closeTag( "mapping" ) );
     }
-    xml.append( XMLHandler.closeTag( "mappings") );
+    xml.append( XMLHandler.closeTag( "mappings" ) );
 
     return xml.toString();
   }
@@ -92,37 +92,37 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
     connectionName = XMLHandler.getTagValue( stepnode, "connection" );
     model = XMLHandler.getTagValue( stepnode, "model" );
     batchSize = XMLHandler.getTagValue( stepnode, "batch_size" );
-    creatingIndexes = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, "create_indexes" ));
+    creatingIndexes = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, "create_indexes" ) );
 
     // Parse parameter mappings
     //
     Node mappingsNode = XMLHandler.getSubNode( stepnode, "mappings" );
     List<Node> mappingNodes = XMLHandler.getNodes( mappingsNode, "mapping" );
     fieldModelMappings = new ArrayList<>();
-    for (Node mappingNode : mappingNodes) {
+    for ( Node mappingNode : mappingNodes ) {
       String field = XMLHandler.getTagValue( mappingNode, "source_field" );
       ModelTargetType targetType = ModelTargetType.parseCode( XMLHandler.getTagValue( mappingNode, "target_type" ) );
       String targetName = XMLHandler.getTagValue( mappingNode, "target_name" );
       String targetProperty = XMLHandler.getTagValue( mappingNode, "target_property" );
 
-      fieldModelMappings.add(new FieldModelMapping( field, targetType, targetName, targetProperty));
+      fieldModelMappings.add( new FieldModelMapping( field, targetType, targetName, targetProperty ) );
     }
 
     super.loadXML( stepnode, databases, metaStore );
   }
 
   @Override public void saveRep( Repository rep, IMetaStore metaStore, ObjectId transId, ObjectId stepId ) throws KettleException {
-    rep.saveStepAttribute( transId, stepId, "connection", connectionName);
+    rep.saveStepAttribute( transId, stepId, "connection", connectionName );
     rep.saveStepAttribute( transId, stepId, "model", model );
-    rep.saveStepAttribute( transId, stepId, "batch_size", batchSize);
-    rep.saveStepAttribute( transId, stepId, "create_indexes", creatingIndexes);
+    rep.saveStepAttribute( transId, stepId, "batch_size", batchSize );
+    rep.saveStepAttribute( transId, stepId, "create_indexes", creatingIndexes );
 
-    for ( int i = 0; i< fieldModelMappings.size(); i++) {
+    for ( int i = 0; i < fieldModelMappings.size(); i++ ) {
       FieldModelMapping fieldModelMapping = fieldModelMappings.get( i );
-      rep.saveStepAttribute( transId, stepId, i, "source_field",  fieldModelMapping.getField());
-      rep.saveStepAttribute( transId, stepId, i, "target_type",  ModelTargetType.getCode( fieldModelMapping.getTargetType() ));
-      rep.saveStepAttribute( transId, stepId, i, "target_name",  fieldModelMapping.getField());
-      rep.saveStepAttribute( transId, stepId, i, "target_property",  fieldModelMapping.getField());
+      rep.saveStepAttribute( transId, stepId, i, "source_field", fieldModelMapping.getField() );
+      rep.saveStepAttribute( transId, stepId, i, "target_type", ModelTargetType.getCode( fieldModelMapping.getTargetType() ) );
+      rep.saveStepAttribute( transId, stepId, i, "target_name", fieldModelMapping.getField() );
+      rep.saveStepAttribute( transId, stepId, i, "target_property", fieldModelMapping.getField() );
     }
 
   }
@@ -135,13 +135,13 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
 
     fieldModelMappings = new ArrayList<>();
     int nrMappings = rep.countNrStepAttributes( stepId, "source_field" );
-    for (int i=0;i<nrMappings;i++) {
+    for ( int i = 0; i < nrMappings; i++ ) {
       String field = rep.getStepAttributeString( stepId, i, "source_field" );
       ModelTargetType targetType = ModelTargetType.parseCode( rep.getStepAttributeString( stepId, i, "target_type" ) );
       String targetName = rep.getStepAttributeString( stepId, i, "target_name" );
       String targetProperty = rep.getStepAttributeString( stepId, i, "target_property" );
 
-      fieldModelMappings.add(new FieldModelMapping( field, targetType, targetName, targetProperty));
+      fieldModelMappings.add( new FieldModelMapping( field, targetType, targetName, targetProperty ) );
     }
 
   }

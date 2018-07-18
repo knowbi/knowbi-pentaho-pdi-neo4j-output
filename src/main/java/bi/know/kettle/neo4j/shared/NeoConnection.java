@@ -1,7 +1,5 @@
 package bi.know.kettle.neo4j.shared;
 
-import java.net.URLEncoder;
-
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Config;
@@ -15,7 +13,9 @@ import org.pentaho.di.core.variables.Variables;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
 
-@MetaStoreElementType(name = "Neo4j Connection", description = "A shared connection to a Neo4j server")
+import java.net.URLEncoder;
+
+@MetaStoreElementType( name = "Neo4j Connection", description = "A shared connection to a Neo4j server" )
 public class NeoConnection extends Variables implements Cloneable {
   private String name;
 
@@ -34,7 +34,7 @@ public class NeoConnection extends Variables implements Cloneable {
   @MetaStoreAttribute
   private String username;
 
-  @MetaStoreAttribute(password = true)
+  @MetaStoreAttribute( password = true )
   private String password;
 
   @MetaStoreAttribute
@@ -43,10 +43,10 @@ public class NeoConnection extends Variables implements Cloneable {
   public NeoConnection() {
   }
 
-  public NeoConnection( VariableSpace parent) {
+  public NeoConnection( VariableSpace parent ) {
     super.copyVariablesFrom( parent );
     super.setParentVariableSpace( parent );
-    usingEncryption=true;
+    usingEncryption = true;
   }
 
   @Override
@@ -60,12 +60,12 @@ public class NeoConnection extends Variables implements Cloneable {
   }
 
   @Override
-  public boolean equals(Object object) {
+  public boolean equals( Object object ) {
 
-    if (object == this) {
+    if ( object == this ) {
       return true;
     }
-    if (!(object instanceof NeoConnection )) {
+    if ( !( object instanceof NeoConnection ) ) {
       return false;
     }
 
@@ -83,7 +83,7 @@ public class NeoConnection extends Variables implements Cloneable {
     return name;
   }
 
-  public void setName(String name) {
+  public void setName( String name ) {
     this.name = name;
   }
 
@@ -91,7 +91,7 @@ public class NeoConnection extends Variables implements Cloneable {
     return server;
   }
 
-  public void setServer(String server) {
+  public void setServer( String server ) {
     this.server = server;
   }
 
@@ -107,7 +107,7 @@ public class NeoConnection extends Variables implements Cloneable {
     return username;
   }
 
-  public void setUsername(String username) {
+  public void setUsername( String username ) {
     this.username = username;
   }
 
@@ -115,7 +115,7 @@ public class NeoConnection extends Variables implements Cloneable {
     return password;
   }
 
-  public void setPassword(String password) {
+  public void setPassword( String password ) {
     this.password = password;
   }
 
@@ -145,17 +145,17 @@ public class NeoConnection extends Variables implements Cloneable {
 
   /**
    * Test this connection to Neo4j
-   * 
+   *
    * @throws Exception In case anything goes wrong
    */
   public void test() throws Exception {
 
-    try{
+    try {
       Driver driver = getDriver( LogChannel.GENERAL );
       Session session = driver.session();
       session.close();
-    } catch(Exception e) {
-      throw new Exception("Unable to connect to database '"+name+'"', e);
+    } catch ( Exception e ) {
+      throw new Exception( "Unable to connect to database '" + name + '"', e );
     }
   }
 
@@ -163,32 +163,32 @@ public class NeoConnection extends Variables implements Cloneable {
 
     /*
      * Construct the following URL:
-     * 
+     *
      * bolt://hostname:port
      * bolt+routing://core-server:port/?policy=MyPolicy
      */
     String url = "bolt";
 
-    if (routing) {
-      url+="+routing";
+    if ( routing ) {
+      url += "+routing";
     }
 
-    url+="://";
+    url += "://";
 
     // Hostname
     //
-    url += environmentSubstitute(server);
+    url += environmentSubstitute( server );
 
     // Port
     //
-    url += ":"+ environmentSubstitute(boltPort);
+    url += ":" + environmentSubstitute( boltPort );
 
     String routingPolicyString = environmentSubstitute( routingPolicy );
-    if (routing && StringUtils.isNotEmpty( routingPolicyString )) {
+    if ( routing && StringUtils.isNotEmpty( routingPolicyString ) ) {
       try {
         url += "?policy=" + URLEncoder.encode( routingPolicyString, "UTF-8" );
-      } catch(Exception e) {
-        LogChannel.GENERAL.logError("Error encoding routing policy context '"+routingPolicyString+"' in connection URL", e);
+      } catch ( Exception e ) {
+        LogChannel.GENERAL.logError( "Error encoding routing policy context '" + routingPolicyString + "' in connection URL", e );
         url += "?policy=" + routingPolicyString;
       }
     }
@@ -198,8 +198,8 @@ public class NeoConnection extends Variables implements Cloneable {
 
   public Driver getDriver( LogChannelInterface log ) {
     String url = getUrl();
-    log.logBasic( "Neo4j URI : "+url );
-    if (usingEncryption) {
+    log.logBasic( "Neo4j URI : " + url );
+    if ( usingEncryption ) {
       return GraphDatabase.driver( url, AuthTokens.basic( username, password ) );
     } else {
       return GraphDatabase.driver( url, AuthTokens.basic( username, password ), Config.build().withoutEncryption().toConfig() );

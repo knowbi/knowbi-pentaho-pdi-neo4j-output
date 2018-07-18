@@ -34,6 +34,7 @@ import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
+import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 
@@ -61,8 +62,12 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
   private GraphModel activeModel;
 
   public GraphOutputDialog( Shell parent, Object inputMetadata, TransMeta transMeta, String stepname ) {
-    super( parent, (BaseStepMeta)inputMetadata, transMeta, stepname );
+    super( parent, (BaseStepMeta) inputMetadata, transMeta, stepname );
     input = (GraphOutputMeta) inputMetadata;
+
+    // Hack the metastore...
+    //
+    metaStore = Spoon.getInstance().getMetaStore();
   }
 
   @Override
@@ -102,7 +107,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wStepname.addModifyListener( lsMod );
     fdStepname = new FormData();
     fdStepname.left = new FormAttachment( middle, 0 );
-    fdStepname.top = new FormAttachment( wlStepname, 0, SWT.CENTER);
+    fdStepname.top = new FormAttachment( wlStepname, 0, SWT.CENTER );
     fdStepname.right = new FormAttachment( 100, 0 );
     wStepname.setLayoutData( fdStepname );
     Control lastControl = wStepname;
@@ -115,18 +120,18 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     FormData fdlConnection = new FormData();
     fdlConnection.left = new FormAttachment( 0, 0 );
     fdlConnection.right = new FormAttachment( middle, -margin );
-    fdlConnection.top = new FormAttachment( lastControl, 2*margin );
+    fdlConnection.top = new FormAttachment( lastControl, 2 * margin );
     wlConnection.setLayoutData( fdlConnection );
 
     Button wEditConnection = new Button( shell, SWT.PUSH | SWT.BORDER );
-    wEditConnection.setText( BaseMessages.getString(PKG, "System.Button.Edit") );
+    wEditConnection.setText( BaseMessages.getString( PKG, "System.Button.Edit" ) );
     FormData fdEditConnection = new FormData();
     fdEditConnection.top = new FormAttachment( wlConnection, 0, SWT.CENTER );
     fdEditConnection.right = new FormAttachment( 100, 0 );
     wEditConnection.setLayoutData( fdEditConnection );
 
     Button wNewConnection = new Button( shell, SWT.PUSH | SWT.BORDER );
-    wNewConnection.setText( BaseMessages.getString(PKG, "System.Button.New") );
+    wNewConnection.setText( BaseMessages.getString( PKG, "System.Button.New" ) );
     FormData fdNewConnection = new FormData();
     fdNewConnection.top = new FormAttachment( wlConnection, 0, SWT.CENTER );
     fdNewConnection.right = new FormAttachment( wEditConnection, -margin );
@@ -151,18 +156,18 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     FormData fdlModel = new FormData();
     fdlModel.left = new FormAttachment( 0, 0 );
     fdlModel.right = new FormAttachment( middle, -margin );
-    fdlModel.top = new FormAttachment( lastControl, 2*margin );
+    fdlModel.top = new FormAttachment( lastControl, 2 * margin );
     wlModel.setLayoutData( fdlModel );
 
     Button wEditModel = new Button( shell, SWT.PUSH | SWT.BORDER );
-    wEditModel.setText( BaseMessages.getString(PKG, "System.Button.Edit") );
+    wEditModel.setText( BaseMessages.getString( PKG, "System.Button.Edit" ) );
     FormData fdEditModel = new FormData();
     fdEditModel.top = new FormAttachment( wlModel, 0, SWT.CENTER );
     fdEditModel.right = new FormAttachment( 100, 0 );
     wEditModel.setLayoutData( fdEditModel );
 
     Button wNewModel = new Button( shell, SWT.PUSH | SWT.BORDER );
-    wNewModel.setText( BaseMessages.getString(PKG, "System.Button.New") );
+    wNewModel.setText( BaseMessages.getString( PKG, "System.Button.New" ) );
     FormData fdNewModel = new FormData();
     fdNewModel.top = new FormAttachment( wlModel, 0, SWT.CENTER );
     fdNewModel.right = new FormAttachment( wEditModel, -margin );
@@ -185,7 +190,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     FormData fdlBatchSize = new FormData();
     fdlBatchSize.left = new FormAttachment( 0, 0 );
     fdlBatchSize.right = new FormAttachment( middle, -margin );
-    fdlBatchSize.top = new FormAttachment( lastControl, 2*margin );
+    fdlBatchSize.top = new FormAttachment( lastControl, 2 * margin );
     wlBatchSize.setLayoutData( fdlBatchSize );
     wBatchSize = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wBatchSize );
@@ -204,7 +209,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     FormData fdlCreateIndexes = new FormData();
     fdlCreateIndexes.left = new FormAttachment( 0, 0 );
     fdlCreateIndexes.right = new FormAttachment( middle, -margin );
-    fdlCreateIndexes.top = new FormAttachment( lastControl, 2*margin );
+    fdlCreateIndexes.top = new FormAttachment( lastControl, 2 * margin );
     wlCreateIndexes.setLayoutData( fdlCreateIndexes );
     wCreateIndexes = new Button( shell, SWT.CHECK | SWT.BORDER );
     wCreateIndexes.setToolTipText( "Create index on first row using label field and primary key properties." );
@@ -231,8 +236,8 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     String[] fieldNames;
     try {
       fieldNames = transMeta.getPrevStepFields( stepname ).getFieldNames();
-    } catch(Exception e) {
-      logError("Unable to get fields from previous steps", e);
+    } catch ( Exception e ) {
+      logError( "Unable to get fields from previous steps", e );
       fieldNames = new String[] {};
     }
 
@@ -242,8 +247,8 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
       new ColumnInfo[] {
         new ColumnInfo( "Field", ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames, false ),
         new ColumnInfo( "Target type", ColumnInfo.COLUMN_TYPE_CCOMBO, ModelTargetType.getNames(), false ),
-        new ColumnInfo( "Target", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[0], false ),
-        new ColumnInfo( "Property", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[0], false ),
+        new ColumnInfo( "Target", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[ 0 ], false ),
+        new ColumnInfo( "Property", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[ 0 ], false ),
       };
 
     Label wlFieldMappings = new Label( shell, SWT.LEFT );
@@ -254,14 +259,15 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     fdlFieldMappings.right = new FormAttachment( middle, -margin );
     fdlFieldMappings.top = new FormAttachment( lastControl, margin );
     wlFieldMappings.setLayoutData( fdlFieldMappings );
-    wFieldMappings = new TableView( transMeta, shell, SWT.FULL_SELECTION | SWT.MULTI, parameterColumns, input.getFieldModelMappings().size(), lsMod, props );
+    wFieldMappings =
+      new TableView( transMeta, shell, SWT.FULL_SELECTION | SWT.MULTI, parameterColumns, input.getFieldModelMappings().size(), lsMod, props );
     props.setLook( wFieldMappings );
     wFieldMappings.addModifyListener( lsMod );
     FormData fdFieldMappings = new FormData();
     fdFieldMappings.left = new FormAttachment( 0, 0 );
     fdFieldMappings.right = new FormAttachment( 100, 0 );
-    fdFieldMappings.top = new FormAttachment( wlFieldMappings, margin);
-    fdFieldMappings.bottom = new FormAttachment( wOK, -margin*2);
+    fdFieldMappings.top = new FormAttachment( wlFieldMappings, margin );
+    fdFieldMappings.bottom = new FormAttachment( wOK, -margin * 2 );
     wFieldMappings.setLayoutData( fdFieldMappings );
     lastControl = wFieldMappings;
 
@@ -283,9 +289,9 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wBatchSize.addSelectionListener( lsDef );
 
     wNewConnection.addListener( SWT.Selection, e -> newConnection() );
-    wEditConnection.addListener( SWT.Selection, e-> editConnection() );
-    wNewModel.addListener( SWT.Selection, e-> newModel() );
-    wEditModel.addListener( SWT.Selection, e-> editModel() );
+    wEditConnection.addListener( SWT.Selection, e -> editConnection() );
+    wNewModel.addListener( SWT.Selection, e -> newModel() );
+    wEditModel.addListener( SWT.Selection, e -> editModel() );
 
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
@@ -319,24 +325,24 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
   public void getData() {
 
     wStepname.setText( Const.NVL( stepname, "" ) );
-    wConnection.setText(Const.NVL(input.getConnectionName(), "") );
+    wConnection.setText( Const.NVL( input.getConnectionName(), "" ) );
     updateConnectionsCombo();
 
-    wModel.setText(Const.NVL(input.getModel(), ""));
+    wModel.setText( Const.NVL( input.getModel(), "" ) );
     updateModelsCombo();
 
 
-    wBatchSize.setText(Const.NVL(input.getBatchSize(), "") );
+    wBatchSize.setText( Const.NVL( input.getBatchSize(), "" ) );
     wCreateIndexes.setSelection( input.isCreatingIndexes() );
 
-    for ( int i = 0; i<input.getFieldModelMappings().size(); i++) {
+    for ( int i = 0; i < input.getFieldModelMappings().size(); i++ ) {
       FieldModelMapping mapping = input.getFieldModelMappings().get( i );
       TableItem item = wFieldMappings.table.getItem( i );
-      int idx=1;
-      item.setText( idx++, Const.NVL(mapping.getField(), ""));
-      item.setText( idx++, ModelTargetType.getCode( mapping.getTargetType() ));
-      item.setText( idx++, Const.NVL(mapping.getTargetName(), ""));
-      item.setText( idx++, Const.NVL(mapping.getTargetProperty(), ""));
+      int idx = 1;
+      item.setText( idx++, Const.NVL( mapping.getField(), "" ) );
+      item.setText( idx++, ModelTargetType.getCode( mapping.getTargetType() ) );
+      item.setText( idx++, Const.NVL( mapping.getTargetName(), "" ) );
+      item.setText( idx++, Const.NVL( mapping.getTargetProperty(), "" ) );
     }
     wFieldMappings.removeEmptyRows();
     wFieldMappings.setRowNums();
@@ -350,22 +356,22 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     try {
       MetaStoreFactory<GraphModel> modelFactory = GraphModelUtils.getModelFactory( metaStore );
       List<String> modelNames = modelFactory.getElementNames();
-      Collections.sort(modelNames);
-      wModel.setItems(modelNames.toArray( new String[ 0 ] ));
+      Collections.sort( modelNames );
+      wModel.setItems( modelNames.toArray( new String[ 0 ] ) );
 
       // Load the active model...
       //
-      if (StringUtils.isNotEmpty( wModel.getText() )) {
+      if ( StringUtils.isNotEmpty( wModel.getText() ) ) {
         activeModel = modelFactory.loadElement( wModel.getText() );
 
         // Set combo boxes in the mappings...
         //
-        wFieldMappings.getColumns()[2].setComboValues( activeModel.getNodeNames() );
+        wFieldMappings.getColumns()[ 2 ].setComboValues( activeModel.getNodeNames() );
       } else {
         activeModel = null;
       }
 
-    } catch(Exception e) {
+    } catch ( Exception e ) {
       new ErrorDialog( shell, "Error", "Unable to list Neo4j Graph Models", e );
     }
   }
@@ -375,9 +381,9 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     //
     try {
       List<String> elementNames = NeoConnectionUtils.getConnectionFactory( metaStore ).getElementNames();
-      Collections.sort(elementNames);
-      wConnection.setItems(elementNames.toArray( new String[ 0 ] ));
-    } catch(Exception e) {
+      Collections.sort( elementNames );
+      wConnection.setItems( elementNames.toArray( new String[ 0 ] ) );
+    } catch ( Exception e ) {
       new ErrorDialog( shell, "Error", "Unable to list Neo4j connections", e );
     }
   }
@@ -394,18 +400,17 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     input.setModel( wModel.getText() );
 
     List<FieldModelMapping> mappings = new ArrayList<>();
-    for ( int i = 0; i< wFieldMappings.nrNonEmpty(); i++) {
+    for ( int i = 0; i < wFieldMappings.nrNonEmpty(); i++ ) {
       TableItem item = wFieldMappings.getNonEmpty( i );
-      int idx=1;
-      String sourceField = item.getText(idx++);
-      ModelTargetType targetType = ModelTargetType.parseCode( item.getText(idx++) );
-      String targetName = item.getText(idx++);
-      String targetProperty = item.getText(idx++);
+      int idx = 1;
+      String sourceField = item.getText( idx++ );
+      ModelTargetType targetType = ModelTargetType.parseCode( item.getText( idx++ ) );
+      String targetName = item.getText( idx++ );
+      String targetProperty = item.getText( idx++ );
 
-      mappings.add( new FieldModelMapping(sourceField, targetType, targetName, targetProperty) );
+      mappings.add( new FieldModelMapping( sourceField, targetType, targetName, targetProperty ) );
     }
     input.setFieldModelMappings( mappings );
-
 
 
     dispose();
@@ -413,8 +418,8 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
 
   protected void newConnection() {
     NeoConnection connection = NeoConnectionUtils.newConnection( shell, transMeta, NeoConnectionUtils.getConnectionFactory( metaStore ) );
-    if (connection!=null) {
-      wConnection.setText(connection.getName());
+    if ( connection != null ) {
+      wConnection.setText( connection.getName() );
       updateModelsCombo();
     }
   }
@@ -426,8 +431,8 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
   protected void newModel() {
 
     GraphModel model = GraphModelUtils.newModel( shell, GraphModelUtils.getModelFactory( metaStore ), getInputRowMeta() );
-    if (model!=null) {
-      wModel.setText(model.getName());
+    if ( model != null ) {
+      wModel.setText( model.getName() );
       updateModelsCombo();
     }
   }
@@ -437,7 +442,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     try {
       inputRowMeta = transMeta.getPrevStepFields( stepname );
     } catch ( KettleStepException e ) {
-      LogChannel.GENERAL.logError("Unable to find step input field", e);
+      LogChannel.GENERAL.logError( "Unable to find step input field", e );
     }
     return inputRowMeta;
   }
