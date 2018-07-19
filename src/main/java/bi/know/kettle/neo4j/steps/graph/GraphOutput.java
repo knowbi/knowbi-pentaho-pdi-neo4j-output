@@ -456,7 +456,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
             // On match statement
             //
             if ( firstMatch ) {
-              matchCypher += "ON MATCH SET ";
+              matchCypher += "SET ";
             } else {
               matchCypher += ", ";
             }

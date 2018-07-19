@@ -85,6 +85,10 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
       }
       data.relationshipIndex = data.outputRowMeta.indexOfValue( meta.getRelationship() );
 
+      // Create a session
+      //
+      data.session = data.driver.session();
+
       if ( row != null ) {
         // Create indexes for the primary properties of the From and To nodes
         //
@@ -180,10 +184,6 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
       log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
       return false;
     }
-
-    // Create a session
-    //
-    data.session = data.driver.session();
 
     return super.init( smi, sdi );
   }
