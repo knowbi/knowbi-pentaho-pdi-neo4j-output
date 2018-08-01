@@ -32,6 +32,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class Neo4JOutput extends BaseStep implements StepInterface {
   private static Class<?> PKG = Neo4JOutput.class; // for i18n purposes, needed by Translator2!!
+  private Neo4JOutputMeta meta;
+  private Neo4JOutputData data;
 
 
   public Neo4JOutput( StepMeta s, StepDataInterface stepDataInterface, int c, TransMeta t, Trans dis ) {
@@ -47,15 +49,19 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
    */
   public boolean processRow( StepMetaInterface smi, StepDataInterface sdi ) throws KettleException {
 
-    Neo4JOutputMeta meta = (Neo4JOutputMeta) smi;
-    Neo4JOutputData data = (Neo4JOutputData) sdi;
+    meta = (Neo4JOutputMeta) smi;
+    data = (Neo4JOutputData) sdi;
 
     Object[] row = getRow();
+    if ( row == null ) {
+      setOutputDone();
+      return false;
+    }
 
     if ( first ) {
       first = false;
 
-      data.outputRowMeta = (RowMetaInterface) getInputRowMeta().clone();
+      data.outputRowMeta = getInputRowMeta().clone();
       data.fieldNames = data.outputRowMeta.getFieldNames();
       data.fromNodePropIndexes = new int[ meta.getFromNodeProps().length ];
       data.fromNodePropTypes = new GraphPropertyType[ meta.getFromNodeProps().length ];
@@ -104,11 +110,6 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
       data.fromUnwindList = new ArrayList<>();
       data.toUnwindList = new ArrayList<>();
 
-    }
-
-    if ( row == null ) {
-      setOutputDone();
-      return false;
     }
 
     try {
@@ -160,8 +161,8 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
 
   public boolean init( StepMetaInterface smi, StepDataInterface sdi ) {
-    Neo4JOutputMeta meta = (Neo4JOutputMeta) smi;
-    Neo4JOutputData data = (Neo4JOutputData) sdi;
+    meta = (Neo4JOutputMeta) smi;
+    data = (Neo4JOutputData) sdi;
 
     // To correct lazy programmers who built certain PDI steps...
     //
@@ -169,8 +170,13 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
     // Connect to Neo4j using info in Neo4j JDBC connection metadata...
     //
+    if ( StringUtils.isEmpty(meta.getConnection()) ) {
+      log.logError( "You need to specify a Neo4j connection to use in this step" );
+      return false;
+    }
     try {
       data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnection() );
+      data.neoConnection.initializeVariablesFrom( this );
     } catch ( MetaStoreException e ) {
       log.logError( "Could not load Neo4j connection '" + meta.getConnection() + "' from the metastore", e );
       return false;
@@ -189,26 +195,10 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
   }
 
   public void dispose( StepMetaInterface smi, StepDataInterface sdi ) {
-    Neo4JOutputData data = (Neo4JOutputData) sdi;
+    data = (Neo4JOutputData) sdi;
 
-    // Empty unwind lists...
-    //
-    if ( data.fromUnwindList.size() > 0 ) {
-      createNodeEmptyUnwindList( data, data.fromUnwindList, data.fromLabelsClause );
-    }
-    if ( data.toUnwindList.size() > 0 ) {
-      createNodeEmptyUnwindList( data, data.toUnwindList, data.toLabelsClause );
-    }
+    wrapUpTransaction();
 
-    // Allow gc
-    //
-    data.fromUnwindList = null;
-    data.toUnwindList = null;
-
-    if ( data.outputCount > 0 ) {
-      data.transaction.success();
-      data.transaction.close();
-    }
     if ( data.session != null ) {
       data.session.close();
     }
@@ -563,6 +553,30 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
       if ( nodeLabel != null && primaryProperties.size() > 0 ) {
         NeoConnectionUtils.createNodeIndex( log, data.session, Arrays.asList( nodeLabel ), primaryProperties );
       }
+    }
+  }
+
+  @Override public void batchComplete() {
+    wrapUpTransaction();
+  }
+
+  private void wrapUpTransaction() {
+    if ( data.fromUnwindList.size() > 0 ) {
+      createNodeEmptyUnwindList( data, data.fromUnwindList, data.fromLabelsClause );
+    }
+    if ( data.toUnwindList.size() > 0 ) {
+      createNodeEmptyUnwindList( data, data.toUnwindList, data.toLabelsClause );
+    }
+
+    // Allow gc
+    //
+    data.fromUnwindList = null;
+    data.toUnwindList = null;
+
+    if ( data.outputCount > 0 ) {
+      data.transaction.success();
+      data.transaction.close();
+      data.outputCount=0;
     }
   }
 }
