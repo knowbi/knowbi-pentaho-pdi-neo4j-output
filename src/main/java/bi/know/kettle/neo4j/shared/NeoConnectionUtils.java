@@ -68,13 +68,14 @@ public class NeoConnectionUtils {
       return;
     }
     try {
-      NeoConnection NeoConnection = factory.loadElement( connectionName );
-      if ( NeoConnection == null ) {
+      NeoConnection neoConnection = factory.loadElement( connectionName );
+      neoConnection.initializeVariablesFrom( space );
+      if ( neoConnection == null ) {
         newConnection( shell, space, factory );
       } else {
-        NeoConnectionDialog NeoConnectionDialog = new NeoConnectionDialog( shell, NeoConnection );
+        NeoConnectionDialog NeoConnectionDialog = new NeoConnectionDialog( shell, neoConnection );
         if ( NeoConnectionDialog.open() ) {
-          factory.saveElement( NeoConnection );
+          factory.saveElement( neoConnection );
         }
       }
     } catch ( Exception exception ) {

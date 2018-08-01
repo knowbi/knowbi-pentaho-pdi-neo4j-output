@@ -33,6 +33,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class GraphOutput extends BaseStep implements StepInterface {
 
+  private GraphOutputMeta meta;
+  private GraphOutputData data;
+
   public GraphOutput( StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr,
                       TransMeta transMeta, Trans trans ) {
     super( stepMeta, stepDataInterface, copyNr, transMeta, trans );
@@ -41,8 +44,8 @@ public class GraphOutput extends BaseStep implements StepInterface {
 
   @Override public boolean init( StepMetaInterface smi, StepDataInterface sdi ) {
 
-    GraphOutputMeta meta = (GraphOutputMeta) smi;
-    GraphOutputData data = (GraphOutputData) sdi;
+    meta = (GraphOutputMeta) smi;
+    data = (GraphOutputData) sdi;
 
     // To correct lazy programmers who built certain PDI steps...
     //
@@ -50,8 +53,14 @@ public class GraphOutput extends BaseStep implements StepInterface {
 
     // Load some extra metadata...
     //
+    if ( StringUtils.isEmpty(meta.getConnectionName()) ) {
+      log.logError( "You need to specify a Neo4j connection to use in this step" );
+      return false;
+    }
     try {
       data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
+      data.neoConnection.initializeVariablesFrom( this );
+
       if ( StringUtils.isEmpty( meta.getModel() ) ) {
         logError( "No model name is specified" );
         return false;
@@ -92,23 +101,22 @@ public class GraphOutput extends BaseStep implements StepInterface {
 
   @Override public void dispose( StepMetaInterface smi, StepDataInterface sdi ) {
 
-    GraphOutputData data = (GraphOutputData) sdi;
+    data = (GraphOutputData) sdi;
 
-    if ( data.outputCount > 0 ) {
-      data.transaction.success();
-      data.transaction.close();
-    }
+    wrapUpTransaction();
+
     if ( data.session != null ) {
       data.session.close();
     }
+    data.driver.close();
 
     super.dispose( smi, sdi );
   }
 
   @Override public boolean processRow( StepMetaInterface smi, StepDataInterface sdi ) throws KettleException {
 
-    GraphOutputMeta meta = (GraphOutputMeta) smi;
-    GraphOutputData data = (GraphOutputData) sdi;
+    meta = (GraphOutputMeta) smi;
+    data = (GraphOutputData) sdi;
 
     // Only if we actually have previous steps to read from...
     // This way the step also acts as an GraphOutput query step
@@ -494,4 +502,18 @@ public class GraphOutput extends BaseStep implements StepInterface {
     }
   }
 
+  @Override public void batchComplete() {
+   wrapUpTransaction();
+  }
+
+  private void wrapUpTransaction() {
+    if ( data.outputCount > 0 ) {
+      data.transaction.success();
+      data.transaction.close();
+
+      // Force creation of a new transaction on the next batch of records
+      //
+      data.outputCount=0;
+    }
+  }
 }

@@ -4,6 +4,8 @@ package bi.know.kettle.neo4j.steps.cypher;
 import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
+import bsh.StringUtil;
+import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Value;
@@ -31,6 +33,9 @@ import java.util.Map;
 
 public class Cypher extends BaseStep implements StepInterface {
 
+  private CypherMeta meta;
+  private CypherData data;
+
   public Cypher( StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr,
                  TransMeta transMeta, Trans trans ) {
     super( stepMeta, stepDataInterface, copyNr, transMeta, trans );
@@ -39,8 +44,8 @@ public class Cypher extends BaseStep implements StepInterface {
 
   @Override public boolean init( StepMetaInterface smi, StepDataInterface sdi ) {
 
-    CypherMeta meta = (CypherMeta) smi;
-    CypherData data = (CypherData) sdi;
+    meta = (CypherMeta) smi;
+    data = (CypherData) sdi;
 
     // To correct lazy programmers who built certain PDI steps...
     //
@@ -51,10 +56,16 @@ public class Cypher extends BaseStep implements StepInterface {
     List<StepMeta> steps = getTransMeta().findPreviousSteps( getStepMeta() );
     data.hasInput = steps != null && steps.size() > 0;
 
-    // Connect to Neo4j using info in Neo4j JDBC connection metadata...
+    // Connect to Neo4j
     //
+    if ( StringUtils.isEmpty(meta.getConnectionName()) ) {
+      log.logError( "You need to specify a Neo4j connection to use in this step" );
+      return false;
+    }
     try {
       data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
+      data.neoConnection.initializeVariablesFrom( this );
+
     } catch ( MetaStoreException e ) {
       log.logError( "Could not load Neo4j connection '" + meta.getConnectionName() + "' from the metastore", e );
       return false;
@@ -74,12 +85,11 @@ public class Cypher extends BaseStep implements StepInterface {
 
   @Override public void dispose( StepMetaInterface smi, StepDataInterface sdi ) {
 
-    CypherData data = (CypherData) sdi;
+    meta = (CypherMeta) smi;
+    data = (CypherData) sdi;
 
-    if ( data.outputCount > 0 ) {
-      data.transaction.success();
-      data.transaction.close();
-    }
+    wrapUpTransaction();
+
     if ( data.session != null ) {
       data.session.close();
     }
@@ -90,8 +100,8 @@ public class Cypher extends BaseStep implements StepInterface {
 
   @Override public boolean processRow( StepMetaInterface smi, StepDataInterface sdi ) throws KettleException {
 
-    CypherMeta meta = (CypherMeta) smi;
-    CypherData data = (CypherData) sdi;
+    meta = (CypherMeta) smi;
+    data = (CypherData) sdi;
 
     // Input row
     //
@@ -258,6 +268,22 @@ public class Cypher extends BaseStep implements StepInterface {
     } else {
       setOutputDone();
       return false;
+    }
+  }
+
+  @Override public void batchComplete() {
+
+    wrapUpTransaction();
+
+  }
+
+  private void wrapUpTransaction() {
+    // At the end of each batch, do a commit.
+    //
+    if ( data.outputCount > 0 ) {
+      data.transaction.success();
+      data.transaction.close();
+      data.outputCount=0;
     }
   }
 }

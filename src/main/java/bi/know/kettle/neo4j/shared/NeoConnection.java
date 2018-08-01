@@ -44,8 +44,7 @@ public class NeoConnection extends Variables implements Cloneable {
   }
 
   public NeoConnection( VariableSpace parent ) {
-    super.copyVariablesFrom( parent );
-    super.setParentVariableSpace( parent );
+    super.initializeVariablesFrom( parent );
     usingEncryption = true;
   }
 
@@ -198,11 +197,12 @@ public class NeoConnection extends Variables implements Cloneable {
 
   public Driver getDriver( LogChannelInterface log ) {
     String url = getUrl();
-    log.logBasic( "Neo4j URI : " + url );
+    String realUsername = environmentSubstitute( username );
+    String realPassword = environmentSubstitute( password );
     if ( usingEncryption ) {
-      return GraphDatabase.driver( url, AuthTokens.basic( username, password ) );
+      return GraphDatabase.driver( url, AuthTokens.basic( realUsername, realPassword ) );
     } else {
-      return GraphDatabase.driver( url, AuthTokens.basic( username, password ), Config.build().withoutEncryption().toConfig() );
+      return GraphDatabase.driver( url, AuthTokens.basic( realUsername, realPassword ), Config.build().withoutEncryption().toConfig() );
     }
   }
 }
