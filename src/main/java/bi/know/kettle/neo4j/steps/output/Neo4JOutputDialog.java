@@ -4,6 +4,7 @@ package bi.know.kettle.neo4j.steps.output;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
+import org.apache.commons.lang.WordUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.custom.CTabFolder;
@@ -518,9 +519,8 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
       new ColumnInfo( BaseMessages.getString( PKG, "Neo4JOutputDialog.PropType" ), ColumnInfo.COLUMN_TYPE_CCOMBO, GraphPropertyType.getNames(),
         false ),
     };
-    wRelPropsGrid =
-      new TableView( Variables.getADefaultVariableSpace(), wRelationshipsComp, SWT.BORDER
-        | SWT.FULL_SELECTION | SWT.MULTI, relPropsInf, relPropsRows, null, PropsUI.getInstance() );
+    wRelPropsGrid = new TableView( Variables.getADefaultVariableSpace(), wRelationshipsComp, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI,
+      relPropsInf, relPropsRows, null, PropsUI.getInstance() );
     props.setLook( wRelPropsGrid );
 
     Button wRelProps = new Button( wRelationshipsComp, SWT.PUSH );
@@ -541,6 +541,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     fdRelPropsGrid.left = new FormAttachment( wlRelProps, margin );
     fdRelPropsGrid.right = new FormAttachment( wRelProps, 0 );
     fdRelPropsGrid.top = new FormAttachment( wRel, margin * 3 );
+    fdRelPropsGrid.bottom = new FormAttachment( 100, 0 );
     wRelPropsGrid.setLayoutData( fdRelPropsGrid );
 
 
@@ -755,16 +756,22 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
             BaseStepDialog.getFieldsFromPrevious( r, wFromLabelGrid, 1, new int[] { 1 }, new int[] {}, -1, -1, null );
             break;
           case 1:
-            BaseStepDialog.getFieldsFromPrevious( r, wFromPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1, this::getPropertyType );
+            BaseStepDialog.getFieldsFromPrevious( r, wFromPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1,
+              (item, valueMeta) -> getPropertyNameTypePrimary(item, valueMeta, new int[] {2}, new int[] {3}, 4 )
+            );
             break;
           case 2:
             BaseStepDialog.getFieldsFromPrevious( r, wToLabelGrid, 1, new int[] { 1 }, new int[] {}, -1, -1, null );
             break;
           case 3:
-            BaseStepDialog.getFieldsFromPrevious( r, wToPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1, this::getPropertyType );
+            BaseStepDialog.getFieldsFromPrevious( r, wToPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1,
+              (item, valueMeta) -> getPropertyNameTypePrimary(item, valueMeta, new int[] {2}, new int[] {3}, 4 )
+            );
             break;
           case 4:
-            BaseStepDialog.getFieldsFromPrevious( r, wRelPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1, null );
+            BaseStepDialog.getFieldsFromPrevious( r, wRelPropsGrid, 1, new int[] { 1, 2 }, new int[] {}, -1, -1,
+              (item, valueMeta) -> getPropertyNameTypePrimary(item, valueMeta, new int[] {2}, new int[] {3}, 4 )
+            );
             break;
         }
       }
@@ -774,10 +781,38 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     }
   }
 
-  private boolean getPropertyType( TableItem item, ValueMetaInterface valueMeta ) {
-    GraphPropertyType type = GraphPropertyType.getTypeFromKettle( valueMeta );
-    item.setText( 3, type.name() );
-    item.setText( 4, "N" );
+  private static final char[] delimitersLiteral = new char[] { ' ', '\t', ',', ';', '_', '-' };
+  private static final String[] delimitersRegex = new String[] { "\\s", "\\t", ",", ";", "_", "-" };
+
+  private boolean getPropertyNameTypePrimary( TableItem item, ValueMetaInterface valueMeta, int[] nameColumns, int[] typeColumns, int primaryColumn ) {
+
+    for (int nameColumn : nameColumns) {
+      // Initcap the names in there, remove spaces and weird characters, lowercase first character
+      // Issue #13
+      //   Text Area 1 --> textArea1
+      //   My_Silly_Column --> mySillyColumn
+      //
+      String propertyName = valueMeta.getName();
+      propertyName = WordUtils.capitalize( propertyName, delimitersLiteral );
+      for (String delimiterRegex : delimitersRegex) {
+        propertyName = propertyName.replaceAll( delimiterRegex, "");
+      }
+      if (propertyName.length()>0) {
+        propertyName = propertyName.substring( 0, 1 ).toLowerCase() + propertyName.substring( 1 );
+      }
+
+      item.setText( nameColumn, propertyName );
+    }
+
+    for (int typeColumn : typeColumns) {
+      GraphPropertyType type = GraphPropertyType.getTypeFromKettle( valueMeta );
+      item.setText(typeColumn, type.name());
+    }
+
+    if (primaryColumn>0) {
+      item.setText( primaryColumn, "N" );
+    }
+
     return true;
   }
 
