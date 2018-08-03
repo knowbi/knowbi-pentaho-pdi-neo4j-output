@@ -33,7 +33,8 @@ import java.util.List;
   i18nPackageName = "bi.know.kettle.neo4j.steps.output",
   name = "Neo4JOutput.Step.Name",
   description = "Neo4JOutput.Step.Description",
-  categoryDescription = "Neo4JOutput.Step.Category"
+  categoryDescription = "Neo4JOutput.Step.Category",
+  documentationUrl = "https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki/Neo4j-Output#description"
 )
 public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
 

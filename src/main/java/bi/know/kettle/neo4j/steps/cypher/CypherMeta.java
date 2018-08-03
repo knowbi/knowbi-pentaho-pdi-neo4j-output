@@ -33,7 +33,8 @@ import java.util.List;
   name = "Neo4j Cypher",
   description = "Reads from or writes to Neo4j using Cypher with parameter data from input fields",
   image = "neo4j_cypher.svg",
-  categoryDescription = "Neo4j"
+  categoryDescription = "Neo4j",
+  documentationUrl = "https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki/Neo4j-Cypher#description"
 )
 public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
 
