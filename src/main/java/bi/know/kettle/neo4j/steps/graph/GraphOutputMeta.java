@@ -28,7 +28,8 @@ import java.util.List;
   name = "Neo4j Graph Output",
   description = "Write to a Neo4j graph using an input field mapping",
   image = "neo4j_logo.svg",
-  categoryDescription = "Neo4j"
+  categoryDescription = "Neo4j",
+  documentationUrl = "https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki/Neo4j-Graph-Output#description"
 )
 public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
 
