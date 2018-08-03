@@ -4,7 +4,7 @@
 
   <groupId>bi.know.kettle.neo4j.output</groupId>
   <artifactId>Neo4JOutput</artifactId>
-  <version>3.4.0-SNAPSHOT</version>
+  <version>3.5.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>Neo4JOutput</name>
@@ -90,7 +90,7 @@
 
 		<repository>
 			<id>pentaho-releases</id>
-			<url>http://repository.pentaho.org/artifactory/repo/</url>
+			<url>http://nexus.pentaho.org/content/groups/omni</url>
 		</repository>
 
 	</repositories>
