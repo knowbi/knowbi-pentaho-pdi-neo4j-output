@@ -27,14 +27,22 @@ import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
+import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
+import org.pentaho.di.trans.TransPreviewFactory;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
+import org.pentaho.di.trans.steps.csvinput.CsvInputMeta;
+import org.pentaho.di.ui.core.dialog.EnterNumberDialog;
+import org.pentaho.di.ui.core.dialog.EnterTextDialog;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
+import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
+import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
+import org.pentaho.di.ui.trans.dialog.TransPreviewProgressDialog;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 import java.util.ArrayList;
@@ -258,26 +266,29 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlCypher.right = new FormAttachment( middle, -margin );
     fdlCypher.top = new FormAttachment( lastControl, margin );
     wlCypher.setLayoutData( fdlCypher );
-    wCypher = new TextVar( transMeta, shell, SWT.MULTI | SWT.LEFT | SWT.BORDER );
+    wCypher = new TextVar( transMeta, shell, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
+    wCypher.getTextWidget().setFont( GUIResource.getInstance().getFontFixed() );
     props.setLook( wCypher );
     wCypher.addModifyListener( lsMod );
     FormData fdCypher = new FormData();
     fdCypher.left = new FormAttachment( 0, 0 );
     fdCypher.right = new FormAttachment( 100, 0 );
     fdCypher.top = new FormAttachment( wlCypher, margin );
-    fdCypher.bottom = new FormAttachment( wlCypher, 300 + margin );
+    fdCypher.bottom = new FormAttachment( wlCypher, 350 + margin );
     wCypher.setLayoutData( fdCypher );
     lastControl = wCypher;
     
     // Some buttons
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
+    wPreview = new Button( shell, SWT.PUSH );
+    wPreview.setText( BaseMessages.getString( PKG, "System.Button.Preview" ) );
     wCancel = new Button( shell, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
 
     // Position the buttons at the bottom of the dialog.
     //
-    setButtonPositions( new Button[] { wOK, wCancel }, margin, null );
+    setButtonPositions( new Button[] { wOK, wPreview, wCancel }, margin, null );
 
     String[] fieldNames;
     try {
@@ -365,11 +376,10 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
 
     // Add listeners
-    lsCancel = e -> cancel();
-    lsOK = e -> ok();
-
-    wCancel.addListener( SWT.Selection, lsCancel );
-    wOK.addListener( SWT.Selection, lsOK );
+    //
+    wCancel.addListener( SWT.Selection, e->cancel() );
+    wOK.addListener( SWT.Selection, e->ok() );
+    wPreview.addListener( SWT.Selection, e-> preview() );
 
     lsDef = new SelectionAdapter() {
       public void widgetDefaultSelected( SelectionEvent e ) {
@@ -494,33 +504,35 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     if ( StringUtils.isEmpty( wStepname.getText() ) ) {
       return;
     }
-
     stepname = wStepname.getText(); // return value
-    input.setConnectionName( wConnection.getText() );
-    input.setBatchSize( wBatchSize.getText() );
-    input.setCypher( wCypher.getText() );
+    getInfo(input);
+    dispose();
+  }
 
-    input.setCypherFromField( wCypherFromField.getSelection() );
-    input.setCypherField( wCypherField.getText() );
+  private void getInfo(CypherMeta meta) {
+    meta.setConnectionName( wConnection.getText() );
+    meta.setBatchSize( wBatchSize.getText() );
+    meta.setCypher( wCypher.getText() );
 
-    input.setUsingUnwind( wUnwind.getSelection() );
-    input.setUnwindMapName( wUnwindMap.getText() );
+    meta.setCypherFromField( wCypherFromField.getSelection() );
+    meta.setCypherField( wCypherField.getText() );
+
+    meta.setUsingUnwind( wUnwind.getSelection() );
+    meta.setUnwindMapName( wUnwindMap.getText() );
 
     List<ParameterMapping> mappings = new ArrayList<>();
     for ( int i = 0; i < wParameters.nrNonEmpty(); i++ ) {
       TableItem item = wParameters.getNonEmpty( i );
       mappings.add( new ParameterMapping( item.getText( 1 ), item.getText( 2 ), item.getText( 3 ) ) );
     }
-    input.setParameterMappings( mappings );
+    meta.setParameterMappings( mappings );
 
     List<ReturnValue> returnValues = new ArrayList<>();
     for ( int i = 0; i < wReturns.nrNonEmpty(); i++ ) {
       TableItem item = wReturns.getNonEmpty( i );
       returnValues.add( new ReturnValue( item.getText( 1 ), item.getText( 2 ) ) );
     }
-    input.setReturnValues( returnValues );
-
-    dispose();
+    meta.setReturnValues( returnValues );
   }
 
   protected void newConnection() {
@@ -532,5 +544,34 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
   protected void editConnection() {
     NeoConnectionUtils.editConnection( shell, transMeta, NeoConnectionUtils.getConnectionFactory( metaStore ), wConnection.getText() );
+  }
+
+  private synchronized void preview() {
+    CypherMeta oneMeta = new CypherMeta();
+    this.getInfo(oneMeta);
+    TransMeta previewMeta = TransPreviewFactory.generatePreviewTransformation(this.transMeta, oneMeta, this.wStepname.getText());
+    this.transMeta.getVariable("Internal.Transformation.Filename.Directory");
+    previewMeta.getVariable("Internal.Transformation.Filename.Directory");
+    EnterNumberDialog
+      numberDialog = new EnterNumberDialog(this.shell, this.props.getDefaultPreviewSize(),
+      BaseMessages.getString(PKG, "CypherDialog.PreviewSize.DialogTitle"),
+      BaseMessages.getString(PKG, "CypherDialog.PreviewSize.DialogMessage")
+    );
+    int previewSize = numberDialog.open();
+    if (previewSize > 0) {
+      TransPreviewProgressDialog progressDialog = new TransPreviewProgressDialog(this.shell, previewMeta, new String[]{this.wStepname.getText()}, new int[]{previewSize});
+      progressDialog.open();
+      Trans trans = progressDialog.getTrans();
+      String loggingText = progressDialog.getLoggingText();
+      if (!progressDialog.isCancelled() && trans.getResult() != null && trans.getResult().getNrErrors() > 0L) {
+        EnterTextDialog
+          etd = new EnterTextDialog(this.shell, BaseMessages.getString(PKG, "System.Dialog.PreviewError.Title", new String[0]), BaseMessages.getString(PKG, "System.Dialog.PreviewError.Message", new String[0]), loggingText, true);
+        etd.setReadOnly();
+        etd.open();
+      }
+
+      PreviewRowsDialog prd = new PreviewRowsDialog(this.shell, this.transMeta, 0, this.wStepname.getText(), progressDialog.getPreviewRowsMeta(this.wStepname.getText()), progressDialog.getPreviewRows(this.wStepname.getText()), loggingText);
+      prd.open();
+    }
   }
 }
