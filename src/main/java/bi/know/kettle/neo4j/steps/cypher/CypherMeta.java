@@ -43,6 +43,10 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   private String batchSize;
   private boolean cypherFromField;
   private String cypherField;
+
+  private boolean usingUnwind;
+  private String unwindMapName;
+
   private List<ParameterMapping> parameterMappings;
   private List<ReturnValue> returnValues;
 
@@ -71,6 +75,12 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   @Override public void getFields( RowMetaInterface rowMeta, String name, RowMetaInterface[] info, StepMeta nextStep, VariableSpace space,
                                    Repository repository, IMetaStore metaStore ) throws KettleStepException {
 
+    if (usingUnwind) {
+      // Unwind only outputs results, not input
+      //
+      rowMeta.clear();
+    }
+
     // Check return values in the metadata...
     for ( ReturnValue returnValue : returnValues ) {
       try {
@@ -94,6 +104,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     xml.append( XMLHandler.addTagValue( "batch_size", batchSize ) );
     xml.append( XMLHandler.addTagValue( "cypher_from_field", cypherFromField ) );
     xml.append( XMLHandler.addTagValue( "cypher_field", cypherField ) );
+    xml.append( XMLHandler.addTagValue( "unwind", usingUnwind ) );
+    xml.append( XMLHandler.addTagValue( "unwind_map", unwindMapName) );
 
     xml.append( XMLHandler.openTag( "mappings" ) );
     for ( ParameterMapping parameterMapping : parameterMappings ) {
@@ -124,6 +136,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     batchSize = XMLHandler.getTagValue( stepnode, "batch_size" );
     cypherFromField = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, "cypher_from_field" ) );
     cypherField = XMLHandler.getTagValue( stepnode, "cypher_field" );
+    usingUnwind = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, "unwind" ) );
+    unwindMapName = XMLHandler.getTagValue( stepnode, "unwind_map" );
 
     // Parse parameter mappings
     //
@@ -160,6 +174,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     rep.saveStepAttribute( id_transformation, id_step, "batch_size", batchSize );
     rep.saveStepAttribute( id_transformation, id_step, "cypher_from_field", cypherFromField );
     rep.saveStepAttribute( id_transformation, id_step, "cypher_field", cypherField );
+    rep.saveStepAttribute( id_transformation, id_step, "unwind", usingUnwind );
+    rep.saveStepAttribute( id_transformation, id_step, "unwind_map", unwindMapName );
 
     for ( int i = 0; i < parameterMappings.size(); i++ ) {
       ParameterMapping parameterMapping = parameterMappings.get( i );
@@ -180,6 +196,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     batchSize = rep.getStepAttributeString( id_step, "batch_size" );
     cypherFromField = rep.getStepAttributeBoolean( id_step, "cypher_from_field" );
     cypherField = rep.getStepAttributeString( id_step, "cypher_field" );
+    usingUnwind = rep.getStepAttributeBoolean( id_step, "unwind" );
+    unwindMapName = rep.getStepAttributeString( id_step, "unwind_map" );
 
     parameterMappings = new ArrayList<>();
     int nrMappings = rep.countNrStepAttributes( id_step, "parameter" );
@@ -202,59 +220,147 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
 
   }
 
+  /**
+   * Gets connectionName
+   *
+   * @return value of connectionName
+   */
   public String getConnectionName() {
     return connectionName;
   }
 
+  /**
+   * @param connectionName The connectionName to set
+   */
   public void setConnectionName( String connectionName ) {
     this.connectionName = connectionName;
   }
 
+  /**
+   * Gets cypher
+   *
+   * @return value of cypher
+   */
   public String getCypher() {
     return cypher;
   }
 
+  /**
+   * @param cypher The cypher to set
+   */
   public void setCypher( String cypher ) {
     this.cypher = cypher;
   }
 
-  public List<ParameterMapping> getParameterMappings() {
-    return parameterMappings;
-  }
-
-  public void setParameterMappings( List<ParameterMapping> parameterMappings ) {
-    this.parameterMappings = parameterMappings;
-  }
-
+  /**
+   * Gets batchSize
+   *
+   * @return value of batchSize
+   */
   public String getBatchSize() {
     return batchSize;
   }
 
+  /**
+   * @param batchSize The batchSize to set
+   */
   public void setBatchSize( String batchSize ) {
     this.batchSize = batchSize;
   }
 
-  public List<ReturnValue> getReturnValues() {
-    return returnValues;
-  }
-
-  public void setReturnValues( List<ReturnValue> returnValues ) {
-    this.returnValues = returnValues;
-  }
-
+  /**
+   * Gets cypherFromField
+   *
+   * @return value of cypherFromField
+   */
   public boolean isCypherFromField() {
     return cypherFromField;
   }
 
+  /**
+   * @param cypherFromField The cypherFromField to set
+   */
   public void setCypherFromField( boolean cypherFromField ) {
     this.cypherFromField = cypherFromField;
   }
 
+  /**
+   * Gets cypherField
+   *
+   * @return value of cypherField
+   */
   public String getCypherField() {
     return cypherField;
   }
 
+  /**
+   * @param cypherField The cypherField to set
+   */
   public void setCypherField( String cypherField ) {
     this.cypherField = cypherField;
+  }
+
+  /**
+   * Gets usingUnwind
+   *
+   * @return value of usingUnwind
+   */
+  public boolean isUsingUnwind() {
+    return usingUnwind;
+  }
+
+  /**
+   * @param usingUnwind The usingUnwind to set
+   */
+  public void setUsingUnwind( boolean usingUnwind ) {
+    this.usingUnwind = usingUnwind;
+  }
+
+  /**
+   * Gets unwindMapName
+   *
+   * @return value of unwindMapName
+   */
+  public String getUnwindMapName() {
+    return unwindMapName;
+  }
+
+  /**
+   * @param unwindMapName The unwindMapName to set
+   */
+  public void setUnwindMapName( String unwindMapName ) {
+    this.unwindMapName = unwindMapName;
+  }
+
+  /**
+   * Gets parameterMappings
+   *
+   * @return value of parameterMappings
+   */
+  public List<ParameterMapping> getParameterMappings() {
+    return parameterMappings;
+  }
+
+  /**
+   * @param parameterMappings The parameterMappings to set
+   */
+  public void setParameterMappings( List<ParameterMapping> parameterMappings ) {
+    this.parameterMappings = parameterMappings;
+  }
+
+  /**
+   * Gets returnValues
+   *
+   * @return value of returnValues
+   */
+  public List<ReturnValue> getReturnValues() {
+    return returnValues;
+  }
+
+  /**
+   * @param returnValues The returnValues to set
+   */
+  public void setReturnValues( List<ReturnValue> returnValues ) {
+    this.returnValues = returnValues;
   }
 }
