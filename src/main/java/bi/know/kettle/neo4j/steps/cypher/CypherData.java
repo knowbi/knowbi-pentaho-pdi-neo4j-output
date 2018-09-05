@@ -9,6 +9,10 @@ import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.metastore.api.IMetaStore;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class CypherData extends BaseStepData implements StepDataInterface {
 
   public RowMetaInterface outputRowMeta;
@@ -24,4 +28,7 @@ public class CypherData extends BaseStepData implements StepDataInterface {
   public boolean hasInput;
   public int cypherFieldIndex;
   public IMetaStore metaStore;
+
+  public String unwindMapName;
+  public List<Map<String, Object>> unwindList;
 }

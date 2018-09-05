@@ -4,7 +4,6 @@ package bi.know.kettle.neo4j.steps.cypher;
 import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
-import bsh.StringUtil;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
@@ -27,6 +26,7 @@ import org.pentaho.metastore.api.exceptions.MetaStoreException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,6 +115,16 @@ public class Cypher extends BaseStep implements StepInterface {
       //
       row = getRow();
       if ( row == null ) {
+
+        // See if there's anything left in the UNWIND list...
+        //
+        if (meta.isUsingUnwind()) {
+          if ( data.unwindList.size() > 0 ) {
+            StatementResult result = writeUnwindList();
+            writeResultRows( result, new Object[] {}, meta.isUsingUnwind() );
+          }
+        }
+
         // Signal next step(s) we're done processing
         //
         setOutputDone();
@@ -152,6 +162,9 @@ public class Cypher extends BaseStep implements StepInterface {
         }
       }
       data.cypher = environmentSubstitute( meta.getCypher() );
+
+      data.unwindList = new ArrayList<>();
+      data.unwindMapName = environmentSubstitute( meta.getUnwindMapName() );
     }
 
     if ( meta.isCypherFromField() ) {
@@ -173,93 +186,41 @@ public class Cypher extends BaseStep implements StepInterface {
       parameters.put( mapping.getParameter(), neoValue );
     }
 
-    // Execute the cypher with all the parameters...
-    //
     StatementResult result;
-    if ( data.batchSize <= 1 ) {
-      result = data.session.run( data.cypher, parameters );
-    } else {
-      if ( data.outputCount == 0 ) {
-        data.transaction = data.session.beginTransaction();
-      }
-      result = data.transaction.run( data.cypher, parameters );
+
+    if (meta.isUsingUnwind()) {
+      data.unwindList.add(parameters);
       data.outputCount++;
-      incrementLinesOutput();
 
       if ( data.outputCount >= data.batchSize ) {
-        data.transaction.success();
-        data.transaction.close();
-        data.outputCount = 0;
+        result = writeUnwindList();
+      } else {
+        // We don't have any result rows, we only get them when the UNWIND statement runs
+        result = null;
       }
-    }
-    int rowsWritten = 0;
+    } else {
 
-    while ( result.hasNext() ) {
-      Record record = result.next();
-
-      // Create output row
-      Object[] outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
-
-      // add result values...
+      // Execute the cypher with all the parameters...
       //
-      int index = data.hasInput ? getInputRowMeta().size() : 0;
-      for ( ReturnValue returnValue : meta.getReturnValues() ) {
-        Value recordValue = record.get( returnValue.getName() );
-        ValueMetaInterface targetValueMeta = data.outputRowMeta.getValueMeta( index );
-        Object value = null;
-        if ( recordValue != null ) {
-          try {
-            switch ( targetValueMeta.getType() ) {
-              case ValueMetaInterface.TYPE_STRING:
-                value = recordValue.toString();
-                break;
-              case ValueMetaInterface.TYPE_INTEGER:
-                value = recordValue.asLong();
-                break;
-              case ValueMetaInterface.TYPE_NUMBER:
-                value = recordValue.asDouble();
-                break;
-              case ValueMetaInterface.TYPE_BOOLEAN:
-                value = recordValue.asBoolean();
-                break;
-              case ValueMetaInterface.TYPE_BIGNUMBER:
-                value = new BigDecimal( recordValue.asString() );
-                break;
-              case ValueMetaInterface.TYPE_DATE:
-                LocalDate localDate = recordValue.asLocalDate();
-                value = java.sql.Date.valueOf( localDate );
-                break;
-              case ValueMetaInterface.TYPE_TIMESTAMP:
-                LocalDateTime localDateTime = recordValue.asLocalDateTime();
-                value = java.sql.Timestamp.valueOf( localDateTime );
-                break;
-              default:
-                throw new KettleException( "Unable to convert Neo4j data to type " + targetValueMeta.toStringMeta() );
-            }
-          } catch ( Exception e ) {
-            throw new KettleException(
-              "Unable to convert Neo4j record value '" + returnValue.getName() + "' to type : " + targetValueMeta.getTypeDesc(), e );
-          }
+      if ( data.batchSize <= 1 ) {
+        result = data.session.run( data.cypher, parameters );
+      } else {
+        if ( data.outputCount == 0 ) {
+          data.transaction = data.session.beginTransaction();
         }
-        outputRow[ index++ ] = value;
+        result = data.transaction.run( data.cypher, parameters );
+        data.outputCount++;
+        incrementLinesOutput();
+
+        if ( data.outputCount >= data.batchSize ) {
+          data.transaction.success();
+          data.transaction.close();
+          data.outputCount = 0;
+        }
       }
-
-      // Pass the rows to the next steps
-      //
-      putRow( data.outputRowMeta, outputRow );
-      rowsWritten++;
     }
 
-    if ( data.hasInput && rowsWritten == 0 ) {
-      // At least pass input row
-
-      // Create output row
-      Object[] outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
-
-      // Pass the rows to the next steps
-      //
-      putRow( data.outputRowMeta, outputRow );
-    }
+    writeResultRows(result, row, meta.isUsingUnwind());
 
     // Only keep executing if we have input rows...
     //
@@ -268,6 +229,93 @@ public class Cypher extends BaseStep implements StepInterface {
     } else {
       setOutputDone();
       return false;
+    }
+  }
+
+  private StatementResult writeUnwindList() {
+    HashMap<String, Object> unwindMap = new HashMap<>();
+    unwindMap.put(data.unwindMapName, data.unwindList);
+    StatementResult result = data.session.run( data.cypher, unwindMap );
+    data.unwindList.clear();
+    data.outputCount = 0;
+    return result;
+  }
+
+  private void writeResultRows( StatementResult result, Object[] row, boolean unwind ) throws KettleException {
+    int rowsWritten = 0;
+
+    if (result!=null) {
+      while ( result.hasNext() ) {
+        Record record = result.next();
+
+        // Create output row
+        Object[] outputRow;
+        if (unwind) {
+          outputRow = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
+        } else {
+          outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
+        }
+
+        // add result values...
+        //
+        int index = data.hasInput && !unwind ? getInputRowMeta().size() : 0;
+        for ( ReturnValue returnValue : meta.getReturnValues() ) {
+          Value recordValue = record.get( returnValue.getName() );
+          ValueMetaInterface targetValueMeta = data.outputRowMeta.getValueMeta( index );
+          Object value = null;
+          if ( recordValue != null ) {
+            try {
+              switch ( targetValueMeta.getType() ) {
+                case ValueMetaInterface.TYPE_STRING:
+                  value = recordValue.toString();
+                  break;
+                case ValueMetaInterface.TYPE_INTEGER:
+                  value = recordValue.asLong();
+                  break;
+                case ValueMetaInterface.TYPE_NUMBER:
+                  value = recordValue.asDouble();
+                  break;
+                case ValueMetaInterface.TYPE_BOOLEAN:
+                  value = recordValue.asBoolean();
+                  break;
+                case ValueMetaInterface.TYPE_BIGNUMBER:
+                  value = new BigDecimal( recordValue.asString() );
+                  break;
+                case ValueMetaInterface.TYPE_DATE:
+                  LocalDate localDate = recordValue.asLocalDate();
+                  value = java.sql.Date.valueOf( localDate );
+                  break;
+                case ValueMetaInterface.TYPE_TIMESTAMP:
+                  LocalDateTime localDateTime = recordValue.asLocalDateTime();
+                  value = java.sql.Timestamp.valueOf( localDateTime );
+                  break;
+                default:
+                  throw new KettleException( "Unable to convert Neo4j data to type " + targetValueMeta.toStringMeta() );
+              }
+            } catch ( Exception e ) {
+              throw new KettleException(
+                "Unable to convert Neo4j record value '" + returnValue.getName() + "' to type : " + targetValueMeta.getTypeDesc(), e );
+            }
+          }
+          outputRow[ index++ ] = value;
+        }
+
+        // Pass the rows to the next steps
+        //
+        putRow( data.outputRowMeta, outputRow );
+        rowsWritten++;
+      }
+
+      if ( data.hasInput && rowsWritten == 0 ) {
+        // At least pass input row
+
+        // Create output row
+        Object[] outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
+
+        // Pass the rows to the next steps
+        //
+        putRow( data.outputRowMeta, outputRow );
+      }
     }
   }
 

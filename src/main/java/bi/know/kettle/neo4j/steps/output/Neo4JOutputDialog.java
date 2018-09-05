@@ -784,7 +784,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
   private static final char[] delimitersLiteral = new char[] { ' ', '\t', ',', ';', '_', '-' };
   private static final String[] delimitersRegex = new String[] { "\\s", "\\t", ",", ";", "_", "-" };
 
-  private boolean getPropertyNameTypePrimary( TableItem item, ValueMetaInterface valueMeta, int[] nameColumns, int[] typeColumns, int primaryColumn ) {
+  public static boolean getPropertyNameTypePrimary( TableItem item, ValueMetaInterface valueMeta, int[] nameColumns, int[] typeColumns, int primaryColumn ) {
 
     for (int nameColumn : nameColumns) {
       // Initcap the names in there, remove spaces and weird characters, lowercase first character

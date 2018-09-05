@@ -3,6 +3,7 @@ package bi.know.kettle.neo4j.steps.cypher;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
+import bi.know.kettle.neo4j.steps.output.Neo4JOutputDialog;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -23,6 +24,7 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleStepException;
+import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
@@ -50,8 +52,10 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
   private TextVar wBatchSize;
 
   private Button wCypherFromField;
-
   private CCombo wCypherField;
+  private Button wUnwind;
+  private Label wlUnwindMap;
+  private TextVar wUnwindMap;
 
   private TextVar wCypher;
 
@@ -204,25 +208,67 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wCypherField.setLayoutData( fdCypherField );
     lastControl = wCypherField;
 
+    Label wlUnwind = new Label( shell, SWT.RIGHT );
+    wlUnwind.setText( "Use UNWIND to collect parameter values? " );
+    wlUnwind.setToolTipText( "Collect the specified parameters field data and expose it into a single variable to support UNWIND statements");
+    props.setLook( wlUnwind );
+    FormData fdlUnwind = new FormData();
+    fdlUnwind.left = new FormAttachment( 0, 0 );
+    fdlUnwind.right = new FormAttachment( middle, -margin );
+    fdlUnwind.top = new FormAttachment( lastControl, 2 * margin );
+    wlUnwind.setLayoutData( fdlUnwind );
+    wUnwind = new Button( shell, SWT.CHECK | SWT.BORDER );
+    props.setLook( wUnwind );
+    FormData fdUnwind = new FormData();
+    fdUnwind.left = new FormAttachment( middle, 0 );
+    fdUnwind.right = new FormAttachment( 100, 0 );
+    fdUnwind.top = new FormAttachment( wlUnwind, 0, SWT.CENTER );
+    wUnwind.setLayoutData( fdUnwind );
+    lastControl = wUnwind;
+
+    wUnwind.addSelectionListener( new SelectionAdapter() {
+      @Override public void widgetSelected( SelectionEvent selectionEvent ) {
+        enableFields();
+      }
+    } );
+
+    wlUnwindMap = new Label( shell, SWT.RIGHT );
+    wlUnwindMap.setText( "Name of UNWIND values map" );
+    props.setLook( wlUnwindMap );
+    FormData fdlUnwindMap = new FormData();
+    fdlUnwindMap.left = new FormAttachment( 0, 0 );
+    fdlUnwindMap.right = new FormAttachment( middle, -margin );
+    fdlUnwindMap.top = new FormAttachment( lastControl, 2 * margin );
+    wlUnwindMap.setLayoutData( fdlUnwindMap );
+    wUnwindMap = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wUnwindMap );
+    wUnwindMap.addModifyListener( lsMod );
+    FormData fdUnwindMap = new FormData();
+    fdUnwindMap.left = new FormAttachment( middle, 0 );
+    fdUnwindMap.right = new FormAttachment( 100, 0 );
+    fdUnwindMap.top = new FormAttachment( wlUnwindMap, 0, SWT.CENTER );
+    wUnwindMap.setLayoutData( fdUnwindMap );
+    lastControl = wUnwindMap;
+
     Label wlCypher = new Label( shell, SWT.LEFT );
     wlCypher.setText( "Cypher:" );
     props.setLook( wlCypher );
-    FormData fdlServers = new FormData();
-    fdlServers.left = new FormAttachment( 0, 0 );
-    fdlServers.right = new FormAttachment( middle, -margin );
-    fdlServers.top = new FormAttachment( lastControl, margin );
-    wlCypher.setLayoutData( fdlServers );
+    FormData fdlCypher = new FormData();
+    fdlCypher.left = new FormAttachment( 0, 0 );
+    fdlCypher.right = new FormAttachment( middle, -margin );
+    fdlCypher.top = new FormAttachment( lastControl, margin );
+    wlCypher.setLayoutData( fdlCypher );
     wCypher = new TextVar( transMeta, shell, SWT.MULTI | SWT.LEFT | SWT.BORDER );
     props.setLook( wCypher );
     wCypher.addModifyListener( lsMod );
-    FormData fdServers = new FormData();
-    fdServers.left = new FormAttachment( 0, 0 );
-    fdServers.right = new FormAttachment( 100, 0 );
-    fdServers.top = new FormAttachment( wlCypher, margin );
-    fdServers.bottom = new FormAttachment( wlCypher, 300 + margin );
-    wCypher.setLayoutData( fdServers );
+    FormData fdCypher = new FormData();
+    fdCypher.left = new FormAttachment( 0, 0 );
+    fdCypher.right = new FormAttachment( 100, 0 );
+    fdCypher.top = new FormAttachment( wlCypher, margin );
+    fdCypher.bottom = new FormAttachment( wlCypher, 300 + margin );
+    wCypher.setLayoutData( fdCypher );
     lastControl = wCypher;
-
+    
     // Some buttons
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
@@ -258,13 +304,33 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlParameters.right = new FormAttachment( middle, -margin );
     fdlParameters.top = new FormAttachment( lastControl, margin );
     wlParameters.setLayoutData( fdlParameters );
+
+    Button wbGetParameters = new Button(shell, SWT.PUSH);
+    wbGetParameters.setText( "Get parameters" );
+
+    FormData fdbGetParameters = new FormData();
+    fdbGetParameters.right = new FormAttachment( 100, 0 );
+    fdbGetParameters.top = new FormAttachment( wlParameters, margin );
+    wbGetParameters.setLayoutData( fdbGetParameters );
+    wbGetParameters.addListener( SWT.Selection, (e) -> {
+      try {
+        RowMetaInterface r = transMeta.getPrevStepFields( stepMeta );
+
+        BaseStepDialog.getFieldsFromPrevious( r, wParameters, 2, new int[] { 2 }, new int[] {}, -1, -1,
+          ( item, valueMeta ) -> Neo4JOutputDialog.getPropertyNameTypePrimary( item, valueMeta, new int[] { 1 }, new int[] { 3 }, -1 )
+        );
+      } catch(Exception ex) {
+        new ErrorDialog(shell, "Error", "Error getting step input fields", ex);
+      }
+    }  );
+
     wParameters =
       new TableView( transMeta, shell, SWT.FULL_SELECTION | SWT.MULTI, parameterColumns, input.getParameterMappings().size(), lsMod, props );
     props.setLook( wParameters );
     wParameters.addModifyListener( lsMod );
     FormData fdParameters = new FormData();
     fdParameters.left = new FormAttachment( 0, 0 );
-    fdParameters.right = new FormAttachment( 100, 0 );
+    fdParameters.right = new FormAttachment( wbGetParameters, -margin );
     fdParameters.top = new FormAttachment( wlParameters, margin );
     fdParameters.bottom = new FormAttachment( wlParameters, 200 + margin );
     wParameters.setLayoutData( fdParameters );
@@ -316,6 +382,8 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wBatchSize.addSelectionListener( lsDef );
     wCypherFromField.addSelectionListener( lsDef );
     wCypherField.addSelectionListener( lsDef );
+    wUnwind.addSelectionListener( lsDef );
+    wUnwindMap.addSelectionListener( lsDef );
 
     wNewConnection.addSelectionListener( new SelectionAdapter() {
       @Override public void widgetSelected( SelectionEvent selectionEvent ) {
@@ -356,6 +424,11 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
     wCypher.setEnabled( !fromField );
     wCypherField.setEnabled( fromField );
+
+    boolean usingUnwind = wUnwind.getSelection();
+
+    wlUnwindMap.setEnabled( usingUnwind );
+    wUnwindMap.setEnabled( usingUnwind );
   }
 
   private void cancel() {
@@ -376,6 +449,9 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     } catch ( KettleStepException e ) {
       log.logError( "Error getting fields from previous steps", e );
     }
+
+    wUnwind.setSelection( input.isUsingUnwind() );
+    wUnwindMap.setText( Const.NVL( input.getUnwindMapName(), "" ) );
 
     // List of connections...
     //
@@ -426,6 +502,9 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
     input.setCypherFromField( wCypherFromField.getSelection() );
     input.setCypherField( wCypherField.getText() );
+
+    input.setUsingUnwind( wUnwind.getSelection() );
+    input.setUnwindMapName( wUnwindMap.getText() );
 
     List<ParameterMapping> mappings = new ArrayList<>();
     for ( int i = 0; i < wParameters.nrNonEmpty(); i++ ) {
