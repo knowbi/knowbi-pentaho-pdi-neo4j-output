@@ -31,6 +31,7 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
+import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
@@ -258,14 +259,15 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlCypher.right = new FormAttachment( middle, -margin );
     fdlCypher.top = new FormAttachment( lastControl, margin );
     wlCypher.setLayoutData( fdlCypher );
-    wCypher = new TextVar( transMeta, shell, SWT.MULTI | SWT.LEFT | SWT.BORDER );
+    wCypher = new TextVar( transMeta, shell, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
+    wCypher.getTextWidget().setFont( GUIResource.getInstance().getFontFixed() );
     props.setLook( wCypher );
     wCypher.addModifyListener( lsMod );
     FormData fdCypher = new FormData();
     fdCypher.left = new FormAttachment( 0, 0 );
     fdCypher.right = new FormAttachment( 100, 0 );
     fdCypher.top = new FormAttachment( wlCypher, margin );
-    fdCypher.bottom = new FormAttachment( wlCypher, 300 + margin );
+    fdCypher.bottom = new FormAttachment( wlCypher, 350 + margin );
     wCypher.setLayoutData( fdCypher );
     lastControl = wCypher;
     
