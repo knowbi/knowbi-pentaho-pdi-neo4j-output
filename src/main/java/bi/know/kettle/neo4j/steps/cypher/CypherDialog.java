@@ -1,5 +1,6 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
+import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
@@ -22,6 +23,15 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.Record;
+import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.v1.Value;
+import org.neo4j.driver.v1.types.Type;
+import org.neo4j.driver.v1.types.TypeSystem;
+import org.neo4j.driver.v1.util.Pair;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -44,10 +54,13 @@ import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.dialog.TransPreviewProgressDialog;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
+import org.pentaho.metastore.api.IMetaStore;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CypherDialog extends BaseStepDialog implements StepDialogInterface {
 
@@ -217,7 +230,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     lastControl = wCypherField;
 
     Label wlUnwind = new Label( shell, SWT.RIGHT );
-    wlUnwind.setText( "Use UNWIND to collect parameter values? " );
+    wlUnwind.setText( "Collect parameter values map?" );
     wlUnwind.setToolTipText( "Collect the specified parameters field data and expose it into a single variable to support UNWIND statements");
     props.setLook( wlUnwind );
     FormData fdlUnwind = new FormData();
@@ -241,7 +254,8 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     } );
 
     wlUnwindMap = new Label( shell, SWT.RIGHT );
-    wlUnwindMap.setText( "Name of UNWIND values map" );
+    wlUnwindMap.setText( "Name of values map list" );
+    wlUnwindMap.setToolTipText( "You can use this parameter in your Cypher usually in UNWIND statements" );
     props.setLook( wlUnwindMap );
     FormData fdlUnwindMap = new FormData();
     fdlUnwindMap.left = new FormAttachment( 0, 0 );
@@ -318,7 +332,6 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
     Button wbGetParameters = new Button(shell, SWT.PUSH);
     wbGetParameters.setText( "Get parameters" );
-
     FormData fdbGetParameters = new FormData();
     fdbGetParameters.right = new FormAttachment( 100, 0 );
     fdbGetParameters.top = new FormAttachment( wlParameters, margin );
@@ -347,6 +360,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wParameters.setLayoutData( fdParameters );
     lastControl = wParameters;
 
+    
     // Table: return field name and type TODO Support more than String
     //
     ColumnInfo[] returnColumns =
@@ -363,12 +377,21 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlReturns.right = new FormAttachment( middle, -margin );
     fdlReturns.top = new FormAttachment( lastControl, margin );
     wlReturns.setLayoutData( fdlReturns );
+
+    Button wbGetReturnFields = new Button(shell, SWT.PUSH);
+    wbGetReturnFields.setText( "Get Output Fields" );
+    FormData fdbGetReturnFields = new FormData();
+    fdbGetReturnFields.right = new FormAttachment( 100, 0 );
+    fdbGetReturnFields.top = new FormAttachment( wlReturns, margin );
+    wbGetReturnFields.setLayoutData( fdbGetReturnFields );
+    wbGetReturnFields.addListener( SWT.Selection, (e) -> getReturnValues() );
+
     wReturns = new TableView( transMeta, shell, SWT.FULL_SELECTION | SWT.MULTI, returnColumns, input.getReturnValues().size(), lsMod, props );
     props.setLook( wReturns );
     wReturns.addModifyListener( lsMod );
     FormData fdReturns = new FormData();
     fdReturns.left = new FormAttachment( 0, 0 );
-    fdReturns.right = new FormAttachment( 100, 0 );
+    fdReturns.right = new FormAttachment( wbGetReturnFields, 0 );
     fdReturns.top = new FormAttachment( wlReturns, margin );
     fdReturns.bottom = new FormAttachment( wOK, -2 * margin );
     wReturns.setLayoutData( fdReturns );
@@ -564,14 +587,82 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
       Trans trans = progressDialog.getTrans();
       String loggingText = progressDialog.getLoggingText();
       if (!progressDialog.isCancelled() && trans.getResult() != null && trans.getResult().getNrErrors() > 0L) {
-        EnterTextDialog
-          etd = new EnterTextDialog(this.shell, BaseMessages.getString(PKG, "System.Dialog.PreviewError.Title", new String[0]), BaseMessages.getString(PKG, "System.Dialog.PreviewError.Message", new String[0]), loggingText, true);
+        EnterTextDialog etd = new EnterTextDialog(this.shell,
+          BaseMessages.getString(PKG, "System.Dialog.PreviewError.Title", new String[0]),
+          BaseMessages.getString(PKG, "System.Dialog.PreviewError.Message", new String[0]), loggingText, true);
         etd.setReadOnly();
         etd.open();
       }
 
       PreviewRowsDialog prd = new PreviewRowsDialog(this.shell, this.transMeta, 0, this.wStepname.getText(), progressDialog.getPreviewRowsMeta(this.wStepname.getText()), progressDialog.getPreviewRows(this.wStepname.getText()), loggingText);
       prd.open();
+    }
+  }
+
+  private void getReturnValues() {
+
+    IMetaStore metaStore = Spoon.getInstance().getMetaStore();
+    Driver driver = null;
+    Session session = null;
+    Transaction transaction = null;
+
+    CypherMeta meta = new CypherMeta();
+    getInfo( meta );
+
+    try {
+      NeoConnection neoConnection = NeoConnectionUtils.getConnectionFactory( metaStore ).loadElement( meta.getConnectionName() );
+      neoConnection.initializeVariablesFrom( transMeta );
+      driver = neoConnection.getDriver( log );
+      session = driver.session();
+      transaction = session.beginTransaction();
+      Map<String, Object> parameters = new HashMap<>();
+      for (ParameterMapping mapping : meta.getParameterMappings()) {
+        parameters.put(transMeta.environmentSubstitute(mapping.getParameter()), "");
+      }
+      String cypher = transMeta.environmentSubstitute( wCypher.getText() );
+      StatementResult result = transaction.run( cypher, parameters );
+
+      // Evaluate the result
+      //
+      if (result.hasNext()) {
+        Record record = result.next();
+        List<Pair<String, Value>> fields = record.fields();
+        for (Pair<String, Value> fieldPair : fields) {
+          String returnField = fieldPair.key();
+          Value returnValue = fieldPair.value();
+          Type valueType = returnValue.type();
+
+          GraphPropertyType type = null;
+          for (GraphPropertyType gpType : GraphPropertyType.values()) {
+            if (valueType.name().equalsIgnoreCase( gpType.name() )) {
+              type = gpType;
+            }
+          }
+          if (type==null) {
+            type = GraphPropertyType.String;
+          }
+
+          TableItem item = new TableItem(wReturns.table, SWT.NONE);
+          item.setText( 1, returnField );
+          item.setText( 2, type.name() );
+        }
+      }
+      wReturns.removeEmptyRows();
+      wReturns.setRowNums();
+      wReturns.optWidth( true );
+    } catch(Exception e) {
+      new ErrorDialog( shell, "Error", "Error getting return values from Cypher statement", e );
+    } finally {
+      if (transaction!=null) {
+        transaction.failure();
+        transaction.close();
+      }
+      if (session!=null) {
+        session.close();
+      }
+      if (driver!=null) {
+        driver.close();
+      }
     }
   }
 }

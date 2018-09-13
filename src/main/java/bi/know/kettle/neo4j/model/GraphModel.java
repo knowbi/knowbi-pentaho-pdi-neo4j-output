@@ -1,11 +1,22 @@
 package bi.know.kettle.neo4j.model;
 
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import org.apache.commons.lang.StringUtils;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.pentaho.di.core.exception.KettleException;
+import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 @MetaStoreElementType(
@@ -33,6 +44,174 @@ public class GraphModel implements Cloneable {
     this.description = description;
     this.nodes = nodes;
     this.relationships = relationships;
+  }
+
+  /**
+   * Create a graph model from a JSON string
+   * @param jsonModelString the model in JSON string format
+   */
+  public GraphModel(String jsonModelString) throws KettleException {
+    this();
+
+    try {
+      JSONParser parser = new JSONParser();
+      JSONObject jsonModel = (JSONObject) parser.parse( jsonModelString );
+
+      setName( (String) jsonModel.get("name") );
+      setDescription( (String) jsonModel.get("description") );
+
+      // Parse all the nodes...
+      //
+      JSONArray jsonNodes = (JSONArray) jsonModel.get("nodes");
+      for (int i=0;i<jsonNodes.size();i++) {
+        JSONObject jsonNode = (JSONObject) jsonNodes.get( i );
+        GraphNode graphNode = new GraphNode();
+        graphNode.setName( (String) jsonNode.get("name") );
+        graphNode.setDescription( (String) jsonNode.get("description") );
+
+        // Parse node labels
+        //
+        JSONArray jsonLabels = (JSONArray) jsonNode.get( "labels" );
+        Iterator<String> labelIterator = jsonLabels.iterator();
+        while(labelIterator.hasNext()) {
+          graphNode.getLabels().add(labelIterator.next());
+        }
+
+        // Parse node properties
+        //
+        JSONArray jsonProperties = (JSONArray) jsonNode.get("properties");
+        Iterator<JSONObject> jsonPropertiesIterator = jsonProperties.iterator();
+        while(jsonPropertiesIterator.hasNext()) {
+          JSONObject jsonProperty = jsonPropertiesIterator.next();
+          graphNode.getProperties().add(parseGraphPropertyJson(jsonProperty));
+        }
+
+        nodes.add(graphNode);
+      }
+
+      // Parse the relationships...
+      //
+      JSONArray jsonRelationships = (JSONArray) jsonModel.get("relationships");
+      for (int i=0;i<jsonRelationships.size();i++) {
+        JSONObject jsonRelationship = (JSONObject) jsonRelationships.get( i );
+        GraphRelationship graphRelationship = new GraphRelationship();
+        graphRelationship.setName( (String) jsonRelationship.get( "name" ) );
+        graphRelationship.setDescription( (String) jsonRelationship.get( "description" ) );
+        graphRelationship.setLabel( (String) jsonRelationship.get( "label" ) );
+        graphRelationship.setNodeSource( (String) jsonRelationship.get( "source" ) );
+        graphRelationship.setNodeTarget( (String) jsonRelationship.get( "target" ) );
+
+        // Parse relationship properties
+        //
+        JSONArray jsonProperties = (JSONArray) jsonRelationship.get("properties");
+        Iterator<JSONObject> jsonPropertiesIterator = jsonProperties.iterator();
+        while(jsonPropertiesIterator.hasNext()) {
+          JSONObject jsonProperty = jsonPropertiesIterator.next();
+          graphRelationship.getProperties().add(parseGraphPropertyJson(jsonProperty));
+        }
+
+        relationships.add(graphRelationship);
+      }
+    } catch ( Exception e ) {
+      throw new KettleException( "Error serializing to JSON", e );
+    }
+  }
+
+  private GraphProperty parseGraphPropertyJson( JSONObject jsonProperty ) {
+    GraphProperty graphProperty = new GraphProperty(  );
+    graphProperty.setName( (String) jsonProperty.get("name") );
+    graphProperty.setDescription( (String) jsonProperty.get("description") );
+    graphProperty.setPrimary( (boolean) jsonProperty.get("primary") );
+    graphProperty.setType( GraphPropertyType.parseCode( (String) jsonProperty.get("type") ) );
+    return graphProperty;
+  }
+
+  public String getJSONString() throws KettleException {
+
+    try {
+      JSONObject jsonModel = new JSONObject();
+      jsonModel.put( "name", name );
+      if ( StringUtils.isNotEmpty(description)) {
+        jsonModel.put( "description", description );
+      }
+
+      // Add all the node information to the JSON model
+      //
+      JSONArray jsonNodes = new JSONArray();
+      for ( GraphNode graphNode : nodes ) {
+        JSONObject jsonNode = new JSONObject();
+        jsonNode.put( "name", graphNode.getName() );
+        if ( StringUtils.isNotEmpty(graphNode.getDescription())) {
+          jsonNode.put( "description", graphNode.getDescription() );
+        }
+
+        // Add the labels
+        //
+        JSONArray jsonLabels = new JSONArray();
+        for ( String label : graphNode.getLabels() ) {
+          jsonLabels.add( label );
+        }
+        jsonNode.put( "labels", jsonLabels );
+
+        // Add the properties...
+        //
+        JSONArray jsonProperties = new JSONArray();
+        for ( GraphProperty graphProperty : graphNode.getProperties() ) {
+          jsonProperties.add( getJsonProperty( graphProperty ) );
+        }
+        jsonNode.put( "properties", jsonProperties );
+        jsonNodes.add(jsonNode);
+      }
+      jsonModel.put( "nodes", jsonNodes );
+
+      // Add the relationships to the JSON model
+      //
+      JSONArray jsonRelationships = new JSONArray();
+      for ( GraphRelationship graphRelationship : relationships ) {
+        JSONObject jsonRelationship = new JSONObject();
+        jsonRelationship.put( "name", graphRelationship.getName() );
+        if (StringUtils.isNotEmpty( graphRelationship.getDescription() )) {
+          jsonRelationship.put( "description", graphRelationship.getDescription() );
+        }
+        jsonRelationship.put( "label", graphRelationship.getLabel() );
+        jsonRelationship.put( "source", graphRelationship.getNodeSource() );
+        jsonRelationship.put( "target", graphRelationship.getNodeTarget() );
+
+        // Save the properties as well
+        //
+        JSONArray jsonProperties = new JSONArray();
+        for ( GraphProperty graphProperty : graphRelationship.getProperties() ) {
+          jsonProperties.add( getJsonProperty( graphProperty ) );
+        }
+        jsonRelationship.put( "properties", jsonProperties );
+
+        jsonRelationships.add( jsonRelationship );
+      }
+      jsonModel.put( "relationships", jsonRelationships );
+
+      String jsonString = jsonModel.toJSONString();
+
+      // Pretty print JSON
+      //
+      Gson gson = new GsonBuilder().setPrettyPrinting().create();
+      JsonParser jp = new JsonParser();
+      JsonElement je = jp.parse(jsonString);
+
+      return gson.toJson(je);
+    } catch(Exception e) {
+      throw new KettleException( "Error encoding model in JSON", e );
+    }
+  }
+
+  private JSONObject getJsonProperty( GraphProperty graphProperty ) {
+    JSONObject jsonProperty = new JSONObject();
+    jsonProperty.put( "name", graphProperty.getName() );
+    if (StringUtils.isNotEmpty( graphProperty.getDescription() )) {
+      jsonProperty.put( "description", graphProperty.getDescription() );
+    }
+    jsonProperty.put( "type", GraphPropertyType.getCode( graphProperty.getType() ) );
+    jsonProperty.put( "primary", graphProperty.isPrimary() );
+    return jsonProperty;
   }
 
   @Override public boolean equals( Object object ) {
