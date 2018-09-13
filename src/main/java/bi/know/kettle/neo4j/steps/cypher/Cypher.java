@@ -93,8 +93,9 @@ public class Cypher extends BaseStep implements StepInterface {
     if ( data.session != null ) {
       data.session.close();
     }
-    data.driver.close();
-
+    if (data.driver !=null) {
+      data.driver.close();
+    }
     super.dispose( smi, sdi );
   }
 
@@ -267,7 +268,7 @@ public class Cypher extends BaseStep implements StepInterface {
             try {
               switch ( targetValueMeta.getType() ) {
                 case ValueMetaInterface.TYPE_STRING:
-                  value = recordValue.toString();
+                  value = recordValue.asString();
                   break;
                 case ValueMetaInterface.TYPE_INTEGER:
                   value = recordValue.asLong();

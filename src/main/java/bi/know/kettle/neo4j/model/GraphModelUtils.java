@@ -29,12 +29,14 @@ public class GraphModelUtils {
     while ( !ok ) {
       GraphModelDialog dialog = new GraphModelDialog( shell, graphModel, inputRowMeta );
       if ( dialog.open() ) {
+
         // write to metastore...
+        //
         try {
           if ( factory.loadElement( graphModel.getName() ) != null ) {
             MessageBox box = new MessageBox( shell, SWT.YES | SWT.NO | SWT.ICON_ERROR );
-            box.setText( BaseMessages.getString( PKG, "GraphModelUtils.Error.ConnectionExists.Title" ) );
-            box.setMessage( BaseMessages.getString( PKG, "GraphModelUtils.Error.ConnectionExists.Message" ) );
+            box.setText( BaseMessages.getString( PKG, "GraphModelUtils.Error.ModelExists.Title" ) );
+            box.setMessage( BaseMessages.getString( PKG, "GraphModelUtils.Error.ModelExists.Message" ) );
             int answer = box.open();
             if ( ( answer & SWT.YES ) != 0 ) {
               factory.saveElement( graphModel );
@@ -46,8 +48,8 @@ public class GraphModelUtils {
           }
         } catch ( Exception exception ) {
           new ErrorDialog( shell,
-            BaseMessages.getString( PKG, "GraphModelUtils.Error.ErrorSavingConnection.Title" ),
-            BaseMessages.getString( PKG, "GraphModelUtils.Error.ErrorSavingConnection.Message" ),
+            BaseMessages.getString( PKG, "GraphModelUtils.Error.ErrorSavingModel.Title" ),
+            BaseMessages.getString( PKG, "GraphModelUtils.Error.ErrorSavingModel.Message" ),
             exception );
           return null;
         }

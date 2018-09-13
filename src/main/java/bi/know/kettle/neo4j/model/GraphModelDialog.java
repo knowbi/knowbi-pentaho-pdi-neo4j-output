@@ -25,12 +25,15 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.dialog.EnterListDialog;
+import org.pentaho.di.ui.core.dialog.EnterTextDialog;
+import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.gui.WindowProperty;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
@@ -50,8 +53,8 @@ public class GraphModelDialog extends Dialog {
   private PropsUI props;
 
   private boolean ok;
-  int margin;
-  int middle;
+  private int margin;
+  private int middle;
 
   // Model fields
   private Text wModelDescription;
@@ -102,6 +105,7 @@ public class GraphModelDialog extends Dialog {
     // We will change graphModel
     //
     this.graphModel = graphModel.clone();
+
   }
 
   /**
@@ -359,8 +363,28 @@ public class GraphModelDialog extends Dialog {
     FormData fdModelDescription = new FormData();
     fdModelDescription.left = new FormAttachment( middle, margin );
     fdModelDescription.right = new FormAttachment( 100, 0 );
-    fdModelDescription.top = new FormAttachment( wlModelDescription, 0, SWT.CENTER );
+    fdModelDescription.top = new FormAttachment( lastControl, 0, SWT.CENTER );
     wModelDescription.setLayoutData( fdModelDescription );
+    lastControl = wModelDescription;
+
+    Button wImportGraph = new Button( wModelComp, SWT.PUSH );
+    wImportGraph.setText( "Import graph from JSON" );
+    props.setLook( wImportGraph );
+    FormData fdImportGraph = new FormData();
+    fdImportGraph.left = new FormAttachment( middle, 0 );
+    fdImportGraph.top = new FormAttachment( lastControl, 50 );
+    wImportGraph.setLayoutData( fdImportGraph );
+    wImportGraph.addListener( SWT.Selection, ( e ) -> importGraphFromFile() );
+    lastControl = wImportGraph;
+
+    Button wExportGraph = new Button( wModelComp, SWT.PUSH );
+    wExportGraph.setText( "Export graph to JSON" );
+    props.setLook( wExportGraph );
+    FormData fdExportGraph = new FormData();
+    fdExportGraph.left = new FormAttachment( middle, 0 );
+    fdExportGraph.top = new FormAttachment( lastControl, margin );
+    wExportGraph.setLayoutData( fdExportGraph );
+    wExportGraph.addListener( SWT.Selection, ( e ) -> exportGraphToFile() );
 
     FormData fdModelComp = new FormData();
     fdModelComp.left = new FormAttachment( 0, 0 );
@@ -381,6 +405,7 @@ public class GraphModelDialog extends Dialog {
 
     wModelTab.setControl( wModelSComp );
   }
+
 
   private void addNodesTab() {
 
@@ -1065,5 +1090,45 @@ public class GraphModelDialog extends Dialog {
       wImportNode.setEnabled( inputRowMeta != null );
     }
   }
+
+  private void importGraphFromFile() {
+    try {
+      EnterTextDialog dialog = new EnterTextDialog( shell, "Model JSON", "This is the JSON of the graph model", graphModel.getJSONString(), true );
+      String jsonModelString = dialog.open();
+      if (jsonModelString==null) {
+        return;
+      }
+
+      GraphModel importedGraphMode = new GraphModel(jsonModelString);
+
+      // The graph model is loaded, replace the one in memory
+      //
+      graphModel = importedGraphMode;
+
+      // Refresh the dialog.
+      //
+      getData();
+
+    } catch ( Exception e ) {
+      new ErrorDialog( shell, "ERROR", "Error importing JSON", e );
+    }
+  }
+
+  private void exportGraphToFile() {
+    try {
+      String prettyJsonString = getModelJson();
+
+      EnterTextDialog dialog = new EnterTextDialog( shell, "Model JSON", "This is the JSON of the graph model", prettyJsonString, true );
+      dialog.open();
+    } catch ( Exception e ) {
+      new ErrorDialog( shell, "ERROR", "Error serializing to JSON", e );
+    }
+  }
+
+  private String getModelJson() throws KettleException {
+    return graphModel.getJSONString();
+  }
+
+
 
 }
