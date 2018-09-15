@@ -7,18 +7,23 @@ import org.eclipse.swt.custom.CTabItem;
 import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.custom.TableEditor;
 import org.eclipse.swt.events.ModifyListener;
+import org.eclipse.swt.events.PaintEvent;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.GC;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Canvas;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Shell;
@@ -32,6 +37,7 @@ import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.dialog.EnterListDialog;
+import org.pentaho.di.ui.core.dialog.EnterSelectionDialog;
 import org.pentaho.di.ui.core.dialog.EnterTextDialog;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.gui.GUIResource;
@@ -41,6 +47,7 @@ import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 
 public class GraphModelDialog extends Dialog {
@@ -86,6 +93,8 @@ public class GraphModelDialog extends Dialog {
   private Button wImportNode;
 
   private RowMetaInterface inputRowMeta;
+  private Point mouseDownPoint;
+  private Canvas wCanvas;
 
   public GraphModelDialog( Shell parent, GraphModel graphModel ) {
     this( parent, graphModel, null );
@@ -102,10 +111,11 @@ public class GraphModelDialog extends Dialog {
     //
     this.originalGraphModel = graphModel;
 
-    // We will change graphModel
+    // We will change graphModel, copy it first
     //
-    this.graphModel = graphModel.clone();
+    this.graphModel = new GraphModel(graphModel);
 
+    mouseDownPoint = new Point(-1, -1);
   }
 
   /**
@@ -226,7 +236,7 @@ public class GraphModelDialog extends Dialog {
     // Refresh the Labels
     //
     monitorLabels = false;
-    System.out.println( "Adding " + activeNode.getLabels().size() + " labels to the labels view" );
+    // System.out.println( "Adding " + activeNode.getLabels().size() + " labels to the labels view" );
     wNodeLabels.clearAll();
     for ( int i = 0; i < activeNode.getLabels().size(); i++ ) {
       TableItem item = new TableItem( wNodeLabels.table, SWT.NONE );
@@ -240,7 +250,7 @@ public class GraphModelDialog extends Dialog {
     // Refresh the Properties
     //
     monitorNodeProperties = false;
-    System.out.println( "Adding " + activeNode.getProperties().size() + " properties to the node view" );
+    // System.out.println( "Adding " + activeNode.getProperties().size() + " properties to the node view" );
     wNodeProperties.clearAll();
     for ( int i = 0; i < activeNode.getProperties().size(); i++ ) {
       GraphProperty property = activeNode.getProperties().get( i );
@@ -273,7 +283,7 @@ public class GraphModelDialog extends Dialog {
     // Refresh the Properties
     //
     monitorRelProperties = false;
-    System.out.println( "Adding " + activeRelationship.getProperties().size() + " properties to the relationship view" );
+    // System.out.println( "Adding " + activeRelationship.getProperties().size() + " properties to the relationship view" );
     wRelProperties.clearAll();
     for ( int i = 0; i < activeRelationship.getProperties().size(); i++ ) {
       GraphProperty property = activeRelationship.getProperties().get( i );
@@ -435,40 +445,29 @@ public class GraphModelDialog extends Dialog {
     //
     Button wNewNode = new Button( wNodesComp, SWT.PUSH );
     wNewNode.setText( "New node" );
-    wNewNode.addSelectionListener( new SelectionAdapter() {
-      @Override public void widgetSelected( SelectionEvent selectionEvent ) {
-        newNode();
-      }
-    } );
+    wNewNode.addListener( SWT.Selection, (e)-> newNode() );
 
     Button wDeleteNode = new Button( wNodesComp, SWT.PUSH );
     wDeleteNode.setText( "Delete node" );
-    wDeleteNode.addSelectionListener( new SelectionAdapter() {
-      @Override public void widgetSelected( SelectionEvent selectionEvent ) {
-        deleteNode();
-      }
-    } );
+    wDeleteNode.addListener( SWT.Selection, (e)-> deleteNode() );
 
     Button wCopyNode = new Button( wNodesComp, SWT.PUSH );
     wCopyNode.setText( "Copy node" );
-    wCopyNode.addSelectionListener( new SelectionAdapter() {
-      @Override public void widgetSelected( SelectionEvent selectionEvent ) {
-        copyNode();
-      }
-    } );
+    wCopyNode.addListener( SWT.Selection, (e)-> copyNode() );
 
     wImportNode = new Button( wNodesComp, SWT.PUSH );
     wImportNode.setText( "Import properties" );
-    wImportNode.addSelectionListener( new SelectionAdapter() {
-      @Override public void widgetSelected( SelectionEvent selectionEvent ) {
-        importNodeProperties();
-      }
-    } );
+    wImportNode.addListener( SWT.Selection, (e)-> importNodeProperties());
+
+    Button wNewRelationshipNode = new Button( wNodesComp, SWT.PUSH );
+    wNewRelationshipNode.setText( "New relationship" );
+    wNewRelationshipNode.addListener( SWT.Selection, (e)-> newRelationshipFromNode() );
+
     if ( inputRowMeta == null ) {
       wImportNode.setEnabled( false );
     }
 
-    BaseStepDialog.positionBottomButtons( wNodesComp, new Button[] { wNewNode, wDeleteNode, wCopyNode, wImportNode }, margin, null );
+    BaseStepDialog.positionBottomButtons( wNodesComp, new Button[] { wNewNode, wDeleteNode, wCopyNode, wImportNode, wNewRelationshipNode }, margin, null );
 
 
     Label wlNodesList = new Label( wNodesComp, SWT.LEFT );
@@ -488,6 +487,7 @@ public class GraphModelDialog extends Dialog {
     fdNodesList.bottom = new FormAttachment( wNewNode, -margin * 2 );
     wNodesList.setLayoutData( fdNodesList );
     wNodesList.addListener( SWT.Selection, event -> {
+      getNodeLabelsFromView();
       setActiveNode( wNodesList.getSelection()[ 0 ] );
       refreshNodeFields();
     } );
@@ -502,10 +502,11 @@ public class GraphModelDialog extends Dialog {
     wNodeName = new Text( wNodesComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     wNodeName.addListener( SWT.Modify, event -> {
       if ( activeNode != null ) {
-        activeNode.setName( wNodeName.getText() );
-        if ( wNodesList.getSelectionIndex() >= 0 ) {
-          wNodesList.setItem( wNodesList.getSelectionIndex(), wNodeName.getText() );
-        }
+        String nodeName = wNodeName.getText();
+        activeNode.setName( nodeName );
+        String[] nodeNames = graphModel.getNodeNames();
+        wNodesList.setItems( nodeNames );
+        wNodesList.setSelection(Const.indexOfString( nodeName, nodeNames ));
       }
     } );
     props.setLook( wNodeName );
@@ -541,14 +542,13 @@ public class GraphModelDialog extends Dialog {
       new ColumnInfo( "Labels", ColumnInfo.COLUMN_TYPE_TEXT, false ),
     };
     ModifyListener labelModifyListener = modifyEvent -> getNodeLabelsFromView();
-    wNodeLabels =
-      new TableView( new Variables(), wNodesComp, SWT.FULL_SELECTION | SWT.MULTI | SWT.BORDER, labelColumns, 1, labelModifyListener, props );
+    wNodeLabels = new TableView( new Variables(), wNodesComp, SWT.FULL_SELECTION | SWT.MULTI | SWT.BORDER, labelColumns, 1, labelModifyListener, props );
     props.setLook( wNodeLabels );
     FormData fdNodeLabels = new FormData();
     fdNodeLabels.left = new FormAttachment( middle, margin );
     fdNodeLabels.right = new FormAttachment( 100, 0 );
     fdNodeLabels.top = new FormAttachment( wNodeDescription, margin );
-    fdNodeLabels.bottom = new FormAttachment( wNodeDescription, 150 + margin );
+    fdNodeLabels.bottom = new FormAttachment( wNodeDescription, 250 + margin );
     wNodeLabels.setLayoutData( fdNodeLabels );
 
     // Properties
@@ -600,13 +600,70 @@ public class GraphModelDialog extends Dialog {
   }
 
   /**
+   * Use the selected node as the source of the relationship
+   */
+  private void newRelationshipFromNode() {
+    // You need to have a selected node
+    //
+    if (activeNode==null) {
+      return;
+    }
+
+    // You need more than 1 node
+    //
+    if (graphModel.getNodes().size()<2) {
+      return;
+    }
+
+    String[] nodeNames = new String[graphModel.getNodes().size()-1];
+    int index = 0;
+    // Ignore the active node in the list
+    for (GraphNode graphNode : graphModel.getNodes()) {
+      if (!graphNode.equals( activeNode )) {
+        nodeNames[index++] = graphNode.getName();
+      }
+    }
+    Arrays.sort(nodeNames);
+
+    EnterSelectionDialog dialog = new EnterSelectionDialog( shell, nodeNames, "Select 2nd node", "Select the second node for the new relationship" );
+    dialog.setMulti( false );
+    String targetNodeName = dialog.open();
+    if (targetNodeName==null) {
+      return;
+    }
+
+    // Save current relationship view
+    //
+    getRelationshipPropertiesFromView();
+
+    // New relationship
+    //
+    String relBaseName = activeNode.getName()+" - "+targetNodeName;
+
+    String relName = relBaseName;
+    int relNr = 2;
+    while (graphModel.findRelationship( relName )!=null) {
+      relName = relBaseName+" "+relNr++;
+    }
+    GraphRelationship rel = new GraphRelationship( relName, "", "", new ArrayList<>(), activeNode.getName(), targetNodeName );
+
+    graphModel.getRelationships().add(rel);
+
+    setActiveRelationship( relName );
+    refreshRelationshipsList();
+    wRelationshipsList.setSelection(Const.indexOfString( relName, graphModel.getRelationshipNames() ));
+    refreshRelationshipsFields();
+
+  }
+
+  /**
    * Someone changed something in the labels, update the active node
    */
   private void getNodeLabelsFromView() {
 
     if ( activeNode != null ) {
       if ( monitorLabels ) {
-        System.out.println( "Labels changed! " + new Date().getTime() + " found " + wNodeLabels.nrNonEmpty() + " labels" );
+        // System.out.println( "Labels changed! " + new Date().getTime() + " found " + wNodeLabels.nrNonEmpty() + " labels" );
 
         java.util.List<String> labels = new ArrayList<>();
         for ( int i = 0; i < wNodeLabels.nrNonEmpty(); i++ ) {
@@ -617,13 +674,15 @@ public class GraphModelDialog extends Dialog {
         if ( editor != null && editor.getEditor() != null && ( editor.getEditor() instanceof Text ) ) {
           Text text = (Text) editor.getEditor();
           if ( !text.isDisposed() ) {
-            labels.add( text.getText() );
-            System.out.println( "editor content : " + text.getText() );
+            if (!labels.contains(text.getText())) {
+              labels.add( text.getText() );
+            }
+            // System.out.println( "editor content : " + text.getText() );
           }
         }
 
         activeNode.setLabels( labels );
-        System.out.println( "Set " + activeNode.getLabels().size() + " labels on active node" );
+        // System.out.println( "Set " + activeNode.getLabels().size() + " labels on active node" );
       }
     }
   }
@@ -635,7 +694,7 @@ public class GraphModelDialog extends Dialog {
 
     if ( activeNode != null ) {
       if ( monitorNodeProperties ) {
-        System.out.println( "Labels changed! " + new Date().getTime() + " found " + wNodeProperties.nrNonEmpty() + " properties" );
+        // System.out.println( "Labels changed! " + new Date().getTime() + " found " + wNodeProperties.nrNonEmpty() + " properties" );
 
         java.util.List<GraphProperty> properties = new ArrayList<>();
         for ( int i = 0; i < wNodeProperties.nrNonEmpty(); i++ ) {
@@ -648,7 +707,7 @@ public class GraphModelDialog extends Dialog {
         }
 
         activeNode.setProperties( properties );
-        System.out.println( "Set " + activeNode.getProperties().size() + " properties on active node" );
+        // System.out.println( "Set " + activeNode.getProperties().size() + " properties on active node" );
       }
     }
   }
@@ -702,7 +761,7 @@ public class GraphModelDialog extends Dialog {
     if ( activeNode == null ) {
       return;
     }
-    GraphNode graphNode = activeNode.clone();
+    GraphNode graphNode = new GraphNode(activeNode);
     graphNode.setName( activeNode.getName() + " (copy)" );
     graphModel.getNodes().add( graphNode );
     activeNode = graphNode;
@@ -725,7 +784,9 @@ public class GraphModelDialog extends Dialog {
         selectionIndex = wNodesList.getItemCount() - 1;
       }
       wNodesList.setSelection( selectionIndex );
-      setActiveNode( wNodesList.getSelection()[ 0 ] );
+      if (wNodesList.getSelection().length>0) {
+        setActiveNode( wNodesList.getSelection()[ 0 ] );
+      }
       refreshNodeFields();
     }
   }
@@ -827,10 +888,11 @@ public class GraphModelDialog extends Dialog {
     wRelName.setLayoutData( fdRelName );
     wRelName.addListener( SWT.Modify, event -> {
       if ( activeRelationship != null ) {
-        activeRelationship.setName( wRelName.getText() );
-        if ( wRelationshipsList.getSelectionIndex() >= 0 ) {
-          wRelationshipsList.setItem( wRelationshipsList.getSelectionIndex(), wRelName.getText() );
-        }
+        String relationshipName = wRelName.getText();
+        activeRelationship.setName( relationshipName );
+        String[] relationshipNames = graphModel.getRelationshipNames();
+        wRelationshipsList.setItems( relationshipNames );
+        wRelationshipsList.setSelection( Const.indexOfString(relationshipName, relationshipNames) );
       }
     } );
 
@@ -970,7 +1032,7 @@ public class GraphModelDialog extends Dialog {
 
     if ( activeRelationship != null ) {
       if ( monitorRelProperties ) {
-        System.out.println( "Relationship properties changed! " + new Date().getTime() + " found " + wRelProperties.nrNonEmpty() + " properties" );
+        // System.out.println( "Relationship properties changed! " + new Date().getTime() + " found " + wRelProperties.nrNonEmpty() + " properties" );
 
         java.util.List<GraphProperty> properties = new ArrayList<>();
         for ( int i = 0; i < wRelProperties.nrNonEmpty(); i++ ) {
@@ -983,7 +1045,7 @@ public class GraphModelDialog extends Dialog {
         }
 
         activeRelationship.setProperties( properties );
-        System.out.println( "Set " + activeRelationship.getProperties().size() + " properties on active relationship" );
+        // System.out.println( "Set " + activeRelationship.getProperties().size() + " properties on active relationship" );
       }
     }
   }
@@ -992,7 +1054,7 @@ public class GraphModelDialog extends Dialog {
     if ( activeRelationship == null ) {
       return;
     }
-    GraphRelationship graphRelationship = activeRelationship.clone();
+    GraphRelationship graphRelationship = new GraphRelationship( activeRelationship );
     graphRelationship.setName( activeRelationship.getName() + " (copy)" );
     graphModel.getRelationships().add( graphRelationship );
     activeRelationship = graphRelationship;
@@ -1015,7 +1077,9 @@ public class GraphModelDialog extends Dialog {
         selectionIndex = wRelationshipsList.getItemCount() - 1;
       }
       wRelationshipsList.setSelection( selectionIndex );
-      setActiveRelationship( wRelationshipsList.getSelection()[ 0 ] );
+      if (wRelationshipsList.getSelection().length>0) {
+        setActiveRelationship( wRelationshipsList.getSelection()[ 0 ] );
+      }
       refreshRelationshipsFields();
     }
   }
@@ -1045,19 +1109,21 @@ public class GraphModelDialog extends Dialog {
     formLayout.marginHeight = 3;
     wGraphComp.setLayout( formLayout );
 
-    // Model properties
-    //  - Name
-    //  - Description
+    // This is the canvas on which we draw the graph
     //
-    Label wlTodo = new Label( wGraphComp, SWT.RIGHT );
-    wlTodo.setText( "TODO" );
-    props.setLook( wlTodo );
-    FormData fdlTodo = new FormData();
-    fdlTodo.left = new FormAttachment( 0, 0 );
-    fdlTodo.right = new FormAttachment( middle, 0 );
-    fdlTodo.top = new FormAttachment( 0, 0 );
-    wlTodo.setLayoutData( fdlTodo );
-
+    wCanvas = new Canvas( wGraphComp, SWT.NONE);
+    props.setLook( wCanvas );
+    FormData fdCanvas = new FormData();
+    fdCanvas.left = new FormAttachment( 0, 0 );
+    fdCanvas.right = new FormAttachment( 100, 0 );
+    fdCanvas.top = new FormAttachment( 0, 0 );
+    fdCanvas.bottom = new FormAttachment( 100, 0 );
+    wCanvas.setLayoutData( fdCanvas );
+    wCanvas.addPaintListener( this::paintCanvas );
+    wCanvas.addListener( SWT.MouseDown, this::graphMouseDown );
+    wCanvas.addListener( SWT.MouseUp, this::graphMouseUp );
+    wCanvas.addListener( SWT.MouseMove, this::moveGraphObject );
+    wCanvas.addListener( SWT.MouseDoubleClick, this::editGraphObject);
 
     FormData fdGraphComp = new FormData();
     fdGraphComp.left = new FormAttachment( 0, 0 );
@@ -1077,6 +1143,165 @@ public class GraphModelDialog extends Dialog {
     wGraphSComp.setMinHeight( bounds.height );
 
     wGraphTab.setControl( wGraphSComp );
+  }
+
+  private void graphMouseUp( Event e ) {
+    mouseDownPoint.x = -1;
+    mouseDownPoint.y = -1;
+    // System.out.println("Up: ("+e.x+", "+e.y+")");
+  }
+
+  private void graphMouseDown( Event e ) {
+    mouseDownPoint.x = e.x;
+    mouseDownPoint.y = e.y;
+    // System.out.println("Down: ("+e.x+", "+e.y+")");
+  }
+
+  private void moveGraphObject( Event e ) {
+    if (mouseDownPoint.x>0 && mouseDownPoint.y>0) {
+      // System.out.println("Move: ("+e.x+", "+e.y+")");
+      // Mouse drag
+      //
+      AreaOwner areaOwner = AreaOwner.findArea( areaOwners, mouseDownPoint.x, mouseDownPoint.y );
+      if (areaOwner!=null) {
+        int offsetX = mouseDownPoint.x - areaOwner.getX();
+        int offsetY = mouseDownPoint.y - areaOwner.getY();
+        // System.out.println("Offset: (+"+offsetX+", "+offsetY+")");
+
+        switch ( areaOwner.getAreaType() ) {
+          case NODE:
+            GraphNode graphNode = (GraphNode) areaOwner.getSubject();
+            GraphPresentation p = new GraphPresentation( e.x - offsetX, e.y - offsetY );
+            graphNode.setPresentation( p );
+            // System.out.println("Node move: (+"+p.getX()+", "+p.getY()+")  --> "+graphNode.getName());
+            mouseDownPoint.x = e.x;
+            mouseDownPoint.y = e.y;
+            wCanvas.redraw();
+            break;
+          default:
+            break;
+        }
+      }
+    }
+  }
+
+  private void editGraphObject( Event e ) {
+
+    mouseDownPoint.x = -1;
+    mouseDownPoint.y = -1;
+
+    AreaOwner areaOwner = AreaOwner.findArea( areaOwners, e.x, e.y );
+    if (areaOwner==null) {
+      return;
+    }
+
+    switch(areaOwner.getAreaType()) {
+      case NODE:
+        // Select the nodes tab
+        //
+        wTabs.setSelection( 1 );
+
+        // Which node?
+        //
+        GraphNode graphNode = (GraphNode) areaOwner.getSubject();
+
+        // Select the right node name
+        //
+        int nodeIndex = Const.indexOfString( graphNode.getName(), wNodesList.getItems() );
+        if ( nodeIndex >= 0 ) {
+          getNodeLabelsFromView();
+          setActiveNode( graphNode.getName() );
+          wNodesList.setSelection( nodeIndex );
+          refreshNodeFields();
+        }
+        break;
+      case RELATIONSHIP_LABEL:
+        // Select the relationships tab
+        //
+        wTabs.setSelection( 2 );
+
+        // Which relationship?
+        //
+        GraphRelationship rel = (GraphRelationship) areaOwner.getSubject();
+
+        // select the relationship...
+        //
+        int relIndex = Const.indexOfString( rel.getName(), wRelationshipsList.getItems() );
+        if ( relIndex >= 0 ) {
+          setActiveRelationship( rel.getName() );
+          wRelationshipsList.setSelection( relIndex );
+          refreshRelationshipsFields();
+        }
+        break;
+      default:
+        break;
+    }
+  }
+
+  private java.util.List<AreaOwner> areaOwners;
+
+  private synchronized void paintCanvas( PaintEvent e ) {
+
+    areaOwners = new ArrayList<>();
+    GC gc = e.gc;
+
+    gc.setForeground( GUIResource.getInstance().getColorLightGray() );
+    gc.fillRectangle( 0, 0, e.width, e.height );
+
+    int margin = 10;
+
+    // Draw the relationships
+    //
+    for (GraphRelationship relationship : graphModel.getRelationships()) {
+      GraphNode sourceNode = graphModel.findNode( relationship.getNodeSource() );
+      GraphNode targetNode = graphModel.findNode( relationship.getNodeTarget() );
+      if (sourceNode!=null && targetNode!=null) {
+        gc.setFont( GUIResource.getInstance().getFontLarge() );
+        Point sourceExtent = gc.textExtent( sourceNode.getName() );
+        Point targetExtent = gc.textExtent( targetNode.getName() );
+
+        int fromX = sourceNode.getPresentation().getX()+margin+sourceExtent.x/2;
+        int fromY = sourceNode.getPresentation().getY()+margin+sourceExtent.y/2;
+
+        int toX = targetNode.getPresentation().getX()+margin+targetExtent.x/2;
+        int toY = targetNode.getPresentation().getY()+margin+targetExtent.y/2;
+
+        gc.setForeground( GUIResource.getInstance().getColorLightBlue());
+        gc.drawLine( fromX, fromY, toX, toY );
+
+        gc.setFont( GUIResource.getInstance().getFontMedium() );
+        Point relExtent = gc.textExtent( relationship.getName() );
+
+        int middleX = fromX + (toX-fromX)/2 - relExtent.x/2;
+        int middleY = fromY + (toY-fromY)/2 - relExtent.y/2;
+
+        gc.setForeground( GUIResource.getInstance().getColorBlack());
+        gc.drawText( relationship.getName(), middleX, middleY);
+        areaOwners.add(new AreaOwner( middleX, middleY, relExtent.x, relExtent.y, AreaType.RELATIONSHIP_LABEL, relationship ));
+      }
+    }
+
+    // Draw all the nodes
+    //
+    gc.setFont( GUIResource.getInstance().getFontLarge() );
+    for (GraphNode graphNode : graphModel.getNodes()) {
+      GraphPresentation presentation = graphNode.getPresentation();
+      Point textExtent = gc.textExtent( graphNode.getName() );
+      int x = presentation.getX();
+      int y = presentation.getY();
+      int width = textExtent.x+2*margin;
+      int height = textExtent.y+2*margin;
+
+      gc.setForeground( GUIResource.getInstance().getColorBackground() );
+      gc.fillRoundRectangle( x, y, width, height, margin, margin );
+
+      gc.setForeground( GUIResource.getInstance().getColorBlue() );
+      gc.drawRoundRectangle( x, y, width, height, height/3, height/3);
+      areaOwners.add(new AreaOwner( x, y, width, height, AreaType.NODE, graphNode ));
+
+      gc.setForeground( GUIResource.getInstance().getColorBlack() );
+      gc.drawText( graphNode.getName(), x+margin, y+margin );
+    }
   }
 
 
@@ -1099,11 +1324,9 @@ public class GraphModelDialog extends Dialog {
         return;
       }
 
-      GraphModel importedGraphMode = new GraphModel(jsonModelString);
-
       // The graph model is loaded, replace the one in memory
       //
-      graphModel = importedGraphMode;
+      graphModel = new GraphModel(jsonModelString);
 
       // Refresh the dialog.
       //

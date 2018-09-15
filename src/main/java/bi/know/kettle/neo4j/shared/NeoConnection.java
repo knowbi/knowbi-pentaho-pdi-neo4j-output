@@ -16,7 +16,7 @@ import org.pentaho.metastore.persist.MetaStoreElementType;
 import java.net.URLEncoder;
 
 @MetaStoreElementType( name = "Neo4j Connection", description = "A shared connection to a Neo4j server" )
-public class NeoConnection extends Variables implements Cloneable {
+public class NeoConnection extends Variables {
   private String name;
 
   @MetaStoreAttribute
@@ -48,6 +48,18 @@ public class NeoConnection extends Variables implements Cloneable {
     usingEncryption = true;
   }
 
+  public NeoConnection(VariableSpace parent, NeoConnection source) {
+    this(parent);
+    this.name = source.name;
+    this.server = source.server;
+    this.boltPort = source.boltPort;
+    this.routing = source.routing;
+    this.routingPolicy = source.routingPolicy;
+    this.username = source.username;
+    this.password = source.password;
+    this.usingEncryption = source.usingEncryption;
+  }
+
   @Override
   public String toString() {
     return name == null ? super.toString() : name;
@@ -71,11 +83,6 @@ public class NeoConnection extends Variables implements Cloneable {
     NeoConnection connection = (NeoConnection) object;
 
     return name != null && name.equalsIgnoreCase( connection.name );
-  }
-
-  @Override
-  protected Object clone() throws CloneNotSupportedException {
-    return super.clone();
   }
 
   public String getName() {

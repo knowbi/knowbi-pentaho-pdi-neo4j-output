@@ -10,7 +10,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
 
@@ -22,7 +21,7 @@ import java.util.List;
 @MetaStoreElementType(
   name = "Neo4j Graph Model",
   description = "Description of the nodes, relationships, indexes... of a Neo4j graph" )
-public class GraphModel implements Cloneable {
+public class GraphModel {
   private String name;
 
   @MetaStoreAttribute
@@ -63,54 +62,65 @@ public class GraphModel implements Cloneable {
       // Parse all the nodes...
       //
       JSONArray jsonNodes = (JSONArray) jsonModel.get("nodes");
-      for (int i=0;i<jsonNodes.size();i++) {
-        JSONObject jsonNode = (JSONObject) jsonNodes.get( i );
-        GraphNode graphNode = new GraphNode();
-        graphNode.setName( (String) jsonNode.get("name") );
-        graphNode.setDescription( (String) jsonNode.get("description") );
+      if (jsonNodes!=null) {
+        for ( Object jsonNode1 : jsonNodes ) {
+          JSONObject jsonNode = (JSONObject) jsonNode1;
+          GraphNode graphNode = new GraphNode();
+          graphNode.setName( (String) jsonNode.get( "name" ) );
+          graphNode.setDescription( (String) jsonNode.get( "description" ) );
 
-        // Parse node labels
-        //
-        JSONArray jsonLabels = (JSONArray) jsonNode.get( "labels" );
-        Iterator<String> labelIterator = jsonLabels.iterator();
-        while(labelIterator.hasNext()) {
-          graphNode.getLabels().add(labelIterator.next());
+          // Parse node labels
+          //
+          JSONArray jsonLabels = (JSONArray) jsonNode.get( "labels" );
+          if ( jsonLabels != null ) {
+            for ( String jsonLabel : (Iterable<String>) jsonLabels ) {
+              graphNode.getLabels().add( jsonLabel );
+            }
+          }
+
+          // Parse node properties
+          //
+          JSONArray jsonProperties = (JSONArray) jsonNode.get( "properties" );
+          if ( jsonProperties != null ) {
+            for ( JSONObject jsonProperty : (Iterable<JSONObject>) jsonProperties ) {
+              graphNode.getProperties().add( parseGraphPropertyJson( jsonProperty ) );
+            }
+          }
+
+          JSONObject jsonPresentation = (JSONObject) jsonNode.get( "presentation" );
+          if ( jsonPresentation != null ) {
+            long x = (Long)jsonPresentation.get("x");
+            long y = (Long)jsonPresentation.get("y");
+            graphNode.setPresentation( new GraphPresentation( (int)x, (int)y ) );
+          }
+
+          nodes.add( graphNode );
         }
-
-        // Parse node properties
-        //
-        JSONArray jsonProperties = (JSONArray) jsonNode.get("properties");
-        Iterator<JSONObject> jsonPropertiesIterator = jsonProperties.iterator();
-        while(jsonPropertiesIterator.hasNext()) {
-          JSONObject jsonProperty = jsonPropertiesIterator.next();
-          graphNode.getProperties().add(parseGraphPropertyJson(jsonProperty));
-        }
-
-        nodes.add(graphNode);
       }
 
       // Parse the relationships...
       //
       JSONArray jsonRelationships = (JSONArray) jsonModel.get("relationships");
-      for (int i=0;i<jsonRelationships.size();i++) {
-        JSONObject jsonRelationship = (JSONObject) jsonRelationships.get( i );
-        GraphRelationship graphRelationship = new GraphRelationship();
-        graphRelationship.setName( (String) jsonRelationship.get( "name" ) );
-        graphRelationship.setDescription( (String) jsonRelationship.get( "description" ) );
-        graphRelationship.setLabel( (String) jsonRelationship.get( "label" ) );
-        graphRelationship.setNodeSource( (String) jsonRelationship.get( "source" ) );
-        graphRelationship.setNodeTarget( (String) jsonRelationship.get( "target" ) );
+      if (jsonRelationships!=null) {
+        for ( Object jsonRelationship1 : jsonRelationships ) {
+          JSONObject jsonRelationship = (JSONObject) jsonRelationship1;
+          GraphRelationship graphRelationship = new GraphRelationship();
+          graphRelationship.setName( (String) jsonRelationship.get( "name" ) );
+          graphRelationship.setDescription( (String) jsonRelationship.get( "description" ) );
+          graphRelationship.setLabel( (String) jsonRelationship.get( "label" ) );
+          graphRelationship.setNodeSource( (String) jsonRelationship.get( "source" ) );
+          graphRelationship.setNodeTarget( (String) jsonRelationship.get( "target" ) );
 
-        // Parse relationship properties
-        //
-        JSONArray jsonProperties = (JSONArray) jsonRelationship.get("properties");
-        Iterator<JSONObject> jsonPropertiesIterator = jsonProperties.iterator();
-        while(jsonPropertiesIterator.hasNext()) {
-          JSONObject jsonProperty = jsonPropertiesIterator.next();
-          graphRelationship.getProperties().add(parseGraphPropertyJson(jsonProperty));
+          // Parse relationship properties
+          //
+          JSONArray jsonProperties = (JSONArray) jsonRelationship.get( "properties" );
+          if (jsonProperties!=null) {
+            for ( JSONObject jsonProperty : (Iterable<JSONObject>) jsonProperties ) {
+              graphRelationship.getProperties().add( parseGraphPropertyJson( jsonProperty ) );
+            }
+          }
+          relationships.add( graphRelationship );
         }
-
-        relationships.add(graphRelationship);
       }
     } catch ( Exception e ) {
       throw new KettleException( "Error serializing to JSON", e );
@@ -160,6 +170,17 @@ public class GraphModel implements Cloneable {
           jsonProperties.add( getJsonProperty( graphProperty ) );
         }
         jsonNode.put( "properties", jsonProperties );
+
+        // The presentation...
+        //
+        GraphPresentation presentation = graphNode.getPresentation();
+        JSONObject jsonPresentation = new JSONObject();
+        jsonPresentation.put("x", presentation.getX());
+        jsonPresentation.put("y", presentation.getY());
+        jsonNode.put("presentation", jsonPresentation);
+
+        // Add the json encoded node object to the list
+        //
         jsonNodes.add(jsonNode);
       }
       jsonModel.put( "nodes", jsonNodes );
@@ -227,16 +248,11 @@ public class GraphModel implements Cloneable {
     return ( (GraphModel) object ).getName().equalsIgnoreCase( name );
   }
 
-  @Override protected GraphModel clone() {
-
-    GraphModel clone = new GraphModel();
-    clone.replace( this );
-    return clone;
+  public GraphModel(GraphModel source) {
+    this();
+    replace(source);
   }
 
-  /**
-   * replace model data
-   */
   public void replace( GraphModel source ) {
     setName( source.getName() );
     setDescription( source.getDescription() );
@@ -245,16 +261,17 @@ public class GraphModel implements Cloneable {
     //
     nodes = new ArrayList<>();
     for ( GraphNode node : source.getNodes() ) {
-      nodes.add( node.clone() );
+      nodes.add( new GraphNode(node) );
     }
 
     // replace relationships
     //
     relationships = new ArrayList<>();
     for ( GraphRelationship relationship : source.getRelationships() ) {
-      relationships.add( relationship.clone() );
+      relationships.add( new GraphRelationship(relationship) );
     }
   }
+
 
   /**
    * Find a node with the given name, matches case insensitive
