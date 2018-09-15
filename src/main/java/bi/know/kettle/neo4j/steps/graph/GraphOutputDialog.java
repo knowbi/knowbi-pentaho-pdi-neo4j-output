@@ -2,11 +2,14 @@ package bi.know.kettle.neo4j.steps.graph;
 
 import bi.know.kettle.neo4j.model.GraphModel;
 import bi.know.kettle.neo4j.model.GraphModelUtils;
+import bi.know.kettle.neo4j.model.GraphNode;
+import bi.know.kettle.neo4j.model.GraphProperty;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
+import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
@@ -18,11 +21,13 @@ import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.SourceToTargetMapping;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -30,6 +35,7 @@ import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
+import org.pentaho.di.ui.core.dialog.EnterMappingDialog;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
@@ -38,6 +44,7 @@ import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 
+import javax.xml.transform.Source;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -226,12 +233,14 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     //
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
+    Button wMapping = new Button( shell, SWT.PUSH );
+    wMapping.setText( "Map fields");
     wCancel = new Button( shell, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
 
     // Position the buttons at the bottom of the dialog.
     //
-    setButtonPositions( new Button[] { wOK, wCancel }, margin, null );
+    setButtonPositions( new Button[] { wOK, wMapping, wCancel }, margin, null );
 
     String[] fieldNames;
     try {
@@ -259,8 +268,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     fdlFieldMappings.right = new FormAttachment( middle, -margin );
     fdlFieldMappings.top = new FormAttachment( lastControl, margin );
     wlFieldMappings.setLayoutData( fdlFieldMappings );
-    wFieldMappings =
-      new TableView( transMeta, shell, SWT.FULL_SELECTION | SWT.MULTI, parameterColumns, input.getFieldModelMappings().size(), lsMod, props );
+    wFieldMappings = new TableView( transMeta, shell, SWT.FULL_SELECTION | SWT.MULTI, parameterColumns, input.getFieldModelMappings().size(), lsMod, props );
     props.setLook( wFieldMappings );
     wFieldMappings.addModifyListener( lsMod );
     FormData fdFieldMappings = new FormData();
@@ -277,6 +285,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
 
     wCancel.addListener( SWT.Selection, lsCancel );
     wOK.addListener( SWT.Selection, lsOK );
+    wMapping.addListener( SWT.Selection, (e)-> enterMapping() );
 
     lsDef = new SelectionAdapter() {
       public void widgetDefaultSelected( SelectionEvent e ) {
@@ -313,6 +322,71 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
       }
     }
     return stepname;
+
+  }
+
+  private void enterMapping() {
+    // Map input field names to Node/Property values
+    //
+    try {
+      MetaStoreFactory<GraphModel> modelFactory = GraphModelUtils.getModelFactory( metaStore );
+
+      if (activeModel==null) {
+        if (StringUtils.isEmpty( wModel.getText() )) {
+          return;
+        }
+        activeModel = modelFactory.loadElement( wModel.getText() );
+      }
+
+      // Input fields
+      //
+      RowMetaInterface inputRowMeta = transMeta.getPrevStepFields( stepMeta );
+      String[] inputFields = inputRowMeta.getFieldNames();
+
+      // Node properties
+      //
+      String separator = " . ";
+      List<String> nodeProperties = new ArrayList<>();
+      for ( GraphNode node : activeModel.getNodes()) {
+        for ( GraphProperty property : node.getProperties() ) {
+          String combo = node.getName() + " . " + property.getName();
+          nodeProperties.add(combo);
+        }
+      }
+      String[] targetProperties = nodeProperties.toArray( new String[ 0 ] );
+
+      // Preserve mappings...
+      //
+      List<SourceToTargetMapping> mappings = new ArrayList<>(  );
+      for (int i=0;i<wFieldMappings.nrNonEmpty();i++) {
+        TableItem item = wFieldMappings.getNonEmpty( i );
+        int sourceIndex = Const.indexOfString(item.getText(1), inputFields);
+        int targetIndex = Const.indexOfString(item.getText(3)+separator+item.getText(4), targetProperties);
+        mappings.add(new SourceToTargetMapping( sourceIndex, targetIndex ));
+      }
+
+      EnterMappingDialog dialog = new EnterMappingDialog( shell, inputFields, targetProperties, mappings );
+      mappings = dialog.open();
+      if (mappings!=null) {
+        wFieldMappings.clearAll();
+        for (SourceToTargetMapping mapping : mappings) {
+          String field = mapping.getSourceString(inputFields);
+          String target = mapping.getTargetString( targetProperties );
+          int index = target.indexOf( separator );
+          String node = target.substring( 0,  index );
+          String property = target.substring( index+separator.length() );
+
+          wFieldMappings.add( field, "Node", node, property );
+        }
+        wFieldMappings.removeEmptyRows();
+        wFieldMappings.setRowNums();
+        wFieldMappings.optWidth( true );
+      }
+
+
+    } catch(Exception e) {
+      new ErrorDialog(shell, "Error", "Error mapping input fields to node properties", e);
+    }
 
   }
 
@@ -363,10 +437,11 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
       //
       if ( StringUtils.isNotEmpty( wModel.getText() ) ) {
         activeModel = modelFactory.loadElement( wModel.getText() );
-
-        // Set combo boxes in the mappings...
-        //
-        wFieldMappings.getColumns()[ 2 ].setComboValues( activeModel.getNodeNames() );
+        if (activeModel!=null) {
+          // Set combo boxes in the mappings...
+          //
+          wFieldMappings.getColumns()[ 2 ].setComboValues( activeModel.getNodeNames() );
+        }
       } else {
         activeModel = null;
       }

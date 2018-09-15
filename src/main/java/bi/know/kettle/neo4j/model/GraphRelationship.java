@@ -5,7 +5,7 @@ import org.pentaho.metastore.persist.MetaStoreAttribute;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GraphRelationship implements Cloneable {
+public class GraphRelationship {
 
   @MetaStoreAttribute
   private String name;
@@ -55,15 +55,8 @@ public class GraphRelationship implements Cloneable {
     return name == null ? super.toString() : name;
   }
 
-  @Override
-  protected GraphRelationship clone() {
-    GraphRelationship relationship = new GraphRelationship();
-    relationship.replace( this );
-    return relationship;
-  }
-
-  private void replace( GraphRelationship graphRelationship ) {
-
+  public GraphRelationship( GraphRelationship graphRelationship ) {
+    this();
     List<GraphProperty> properties = new ArrayList<>();
     for ( GraphProperty property : graphRelationship.getProperties() ) {
       properties.add( new GraphProperty( property.getName(), property.getDescription(), property.getType(), property.isPrimary() ) );
