@@ -246,7 +246,7 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
     relationship = XMLHandler.getTagValue( stepnode, STRING_RELATIONSHIP );
 
     Node relPropsNode = XMLHandler.getSubNode( stepnode, STRING_RELPROPS );
-    List<Node> relPropNodes = XMLHandler.getNodes( toPropsNode, STRING_RELPROP );
+    List<Node> relPropNodes = XMLHandler.getNodes( relPropsNode, STRING_RELPROP );
 
     relProps = new String[ relPropNodes.size() ];
     relPropNames = new String[ relPropNodes.size() ];
