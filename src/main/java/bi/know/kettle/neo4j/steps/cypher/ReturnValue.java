@@ -1,7 +1,13 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
+import org.pentaho.di.core.injection.Injection;
+
 public class ReturnValue {
+
+  @Injection( name = "RETURN_NAME", group = "RETURNS" )
   private String name;
+
+  @Injection( name = "RETURN_TYPE", group = "RETURNS" )
   private String type;
 
   public ReturnValue() {

@@ -2,6 +2,7 @@ package bi.know.kettle.neo4j.steps.graph;
 
 import bi.know.kettle.neo4j.model.GraphModel;
 import bi.know.kettle.neo4j.shared.NeoConnection;
+import javafx.scene.control.TextInputControl;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Transaction;
@@ -9,6 +10,8 @@ import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.metastore.api.IMetaStore;
+
+import java.util.Map;
 
 public class GraphOutputData extends BaseStepData implements StepDataInterface {
 
@@ -25,4 +28,5 @@ public class GraphOutputData extends BaseStepData implements StepDataInterface {
   public GraphModel graphModel;
   public int nodeCount;
   public IMetaStore metaStore;
+  public Map<String, CypherParameters> cypherMap;
 }

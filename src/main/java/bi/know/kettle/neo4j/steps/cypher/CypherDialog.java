@@ -1,6 +1,5 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
-import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
@@ -8,15 +7,18 @@ import bi.know.kettle.neo4j.steps.output.Neo4JOutputDialog;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
+import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
 import org.eclipse.swt.events.ShellEvent;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
+import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
@@ -30,7 +32,6 @@ import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.types.Type;
-import org.neo4j.driver.v1.types.TypeSystem;
 import org.neo4j.driver.v1.util.Pair;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleStepException;
@@ -42,7 +43,6 @@ import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.TransPreviewFactory;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
-import org.pentaho.di.trans.steps.csvinput.CsvInputMeta;
 import org.pentaho.di.ui.core.dialog.EnterNumberDialog;
 import org.pentaho.di.ui.core.dialog.EnterTextDialog;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
@@ -103,22 +103,43 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     props.setLook( shell );
     setShellImage( shell, input );
 
+    FormLayout shellLayout = new FormLayout();
+    shell.setLayout( shellLayout );
+    shell.setText( "Cypher" );
+
     ModifyListener lsMod = e -> input.setChanged();
     changed = input.hasChanged();
+
+    ScrolledComposite wScrolledComposite = new ScrolledComposite( shell, SWT.V_SCROLL| SWT.H_SCROLL );
+    FormLayout scFormLayout = new FormLayout();
+    wScrolledComposite.setLayout( scFormLayout );
+    FormData fdSComposite = new FormData();
+    fdSComposite.left = new FormAttachment( 0, 0 );
+    fdSComposite.right = new FormAttachment( 100, 0 );
+    fdSComposite.top = new FormAttachment( 0, 0 );
+    fdSComposite.bottom = new FormAttachment( 100, 0 );
+    wScrolledComposite.setLayoutData( fdSComposite );
+
+    Composite wComposite = new Composite( wScrolledComposite, SWT.NONE );
+    props.setLook( wComposite );
+    FormData fdComposite = new FormData();
+    fdComposite.left = new FormAttachment( 0, 0 );
+    fdComposite.right =  new FormAttachment( 100, 0 );
+    fdComposite.top =  new FormAttachment( 0, 0 );
+    fdComposite.bottom =  new FormAttachment( 100, 0 );
+    wComposite.setLayoutData( fdComposite );
 
     FormLayout formLayout = new FormLayout();
     formLayout.marginWidth = Const.FORM_MARGIN;
     formLayout.marginHeight = Const.FORM_MARGIN;
-
-    shell.setLayout( formLayout );
-    shell.setText( "Cypher" );
+    wComposite.setLayout( formLayout );
 
     int middle = props.getMiddlePct();
     int margin = Const.MARGIN;
 
     // Step name line
     //
-    Label wlStepname = new Label( shell, SWT.RIGHT );
+    Label wlStepname = new Label( wComposite, SWT.RIGHT );
     wlStepname.setText( "Step name" );
     props.setLook( wlStepname );
     fdlStepname = new FormData();
@@ -126,7 +147,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlStepname.right = new FormAttachment( middle, -margin );
     fdlStepname.top = new FormAttachment( 0, margin );
     wlStepname.setLayoutData( fdlStepname );
-    wStepname = new Text( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wStepname = new Text( wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wStepname );
     wStepname.addModifyListener( lsMod );
     fdStepname = new FormData();
@@ -137,7 +158,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     Control lastControl = wStepname;
 
 
-    Label wlConnection = new Label( shell, SWT.RIGHT );
+    Label wlConnection = new Label( wComposite, SWT.RIGHT );
     wlConnection.setText( "Neo4j Connection" );
     props.setLook( wlConnection );
     FormData fdlConnection = new FormData();
@@ -146,21 +167,21 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlConnection.top = new FormAttachment( lastControl, 2 * margin );
     wlConnection.setLayoutData( fdlConnection );
 
-    Button wEditConnection = new Button( shell, SWT.PUSH | SWT.BORDER );
+    Button wEditConnection = new Button( wComposite, SWT.PUSH | SWT.BORDER );
     wEditConnection.setText( BaseMessages.getString( PKG, "System.Button.Edit" ) );
     FormData fdEditConnection = new FormData();
     fdEditConnection.top = new FormAttachment( wlConnection, 0, SWT.CENTER );
     fdEditConnection.right = new FormAttachment( 100, 0 );
     wEditConnection.setLayoutData( fdEditConnection );
 
-    Button wNewConnection = new Button( shell, SWT.PUSH | SWT.BORDER );
+    Button wNewConnection = new Button( wComposite, SWT.PUSH | SWT.BORDER );
     wNewConnection.setText( BaseMessages.getString( PKG, "System.Button.New" ) );
     FormData fdNewConnection = new FormData();
     fdNewConnection.top = new FormAttachment( wlConnection, 0, SWT.CENTER );
     fdNewConnection.right = new FormAttachment( wEditConnection, -margin );
     wNewConnection.setLayoutData( fdNewConnection );
 
-    wConnection = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wConnection = new CCombo( wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wConnection );
     wConnection.addModifyListener( lsMod );
     FormData fdConnection = new FormData();
@@ -170,7 +191,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wConnection.setLayoutData( fdConnection );
     lastControl = wConnection;
 
-    Label wlBatchSize = new Label( shell, SWT.RIGHT );
+    Label wlBatchSize = new Label( wComposite, SWT.RIGHT );
     wlBatchSize.setText( "Batch size (rows)" );
     props.setLook( wlBatchSize );
     FormData fdlBatchSize = new FormData();
@@ -178,7 +199,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlBatchSize.right = new FormAttachment( middle, -margin );
     fdlBatchSize.top = new FormAttachment( lastControl, 2 * margin );
     wlBatchSize.setLayoutData( fdlBatchSize );
-    wBatchSize = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wBatchSize = new TextVar( transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wBatchSize );
     wBatchSize.addModifyListener( lsMod );
     FormData fdBatchSize = new FormData();
@@ -188,7 +209,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wBatchSize.setLayoutData( fdBatchSize );
     lastControl = wBatchSize;
 
-    Label wlCypherFromField = new Label( shell, SWT.RIGHT );
+    Label wlCypherFromField = new Label( wComposite, SWT.RIGHT );
     wlCypherFromField.setText( "Get Cypher from input field? " );
     props.setLook( wlCypherFromField );
     FormData fdlCypherFromField = new FormData();
@@ -196,7 +217,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlCypherFromField.right = new FormAttachment( middle, -margin );
     fdlCypherFromField.top = new FormAttachment( lastControl, 2 * margin );
     wlCypherFromField.setLayoutData( fdlCypherFromField );
-    wCypherFromField = new Button( shell, SWT.CHECK | SWT.BORDER );
+    wCypherFromField = new Button( wComposite, SWT.CHECK | SWT.BORDER );
     props.setLook( wCypherFromField );
     FormData fdCypherFromField = new FormData();
     fdCypherFromField.left = new FormAttachment( middle, 0 );
@@ -211,7 +232,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
       }
     } );
 
-    Label wlCypherField = new Label( shell, SWT.RIGHT );
+    Label wlCypherField = new Label( wComposite, SWT.RIGHT );
     wlCypherField.setText( "Cypher input field" );
     props.setLook( wlCypherField );
     FormData fdlCypherField = new FormData();
@@ -219,7 +240,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlCypherField.right = new FormAttachment( middle, -margin );
     fdlCypherField.top = new FormAttachment( lastControl, 2 * margin );
     wlCypherField.setLayoutData( fdlCypherField );
-    wCypherField = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wCypherField = new CCombo( wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wCypherField );
     wCypherField.addModifyListener( lsMod );
     FormData fdCypherField = new FormData();
@@ -229,7 +250,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wCypherField.setLayoutData( fdCypherField );
     lastControl = wCypherField;
 
-    Label wlUnwind = new Label( shell, SWT.RIGHT );
+    Label wlUnwind = new Label( wComposite, SWT.RIGHT );
     wlUnwind.setText( "Collect parameter values map?" );
     wlUnwind.setToolTipText( "Collect the specified parameters field data and expose it into a single variable to support UNWIND statements");
     props.setLook( wlUnwind );
@@ -238,7 +259,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlUnwind.right = new FormAttachment( middle, -margin );
     fdlUnwind.top = new FormAttachment( lastControl, 2 * margin );
     wlUnwind.setLayoutData( fdlUnwind );
-    wUnwind = new Button( shell, SWT.CHECK | SWT.BORDER );
+    wUnwind = new Button( wComposite, SWT.CHECK | SWT.BORDER );
     props.setLook( wUnwind );
     FormData fdUnwind = new FormData();
     fdUnwind.left = new FormAttachment( middle, 0 );
@@ -253,7 +274,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
       }
     } );
 
-    wlUnwindMap = new Label( shell, SWT.RIGHT );
+    wlUnwindMap = new Label( wComposite, SWT.RIGHT );
     wlUnwindMap.setText( "Name of values map list" );
     wlUnwindMap.setToolTipText( "You can use this parameter in your Cypher usually in UNWIND statements" );
     props.setLook( wlUnwindMap );
@@ -262,7 +283,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlUnwindMap.right = new FormAttachment( middle, -margin );
     fdlUnwindMap.top = new FormAttachment( lastControl, 2 * margin );
     wlUnwindMap.setLayoutData( fdlUnwindMap );
-    wUnwindMap = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wUnwindMap = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wUnwindMap );
     wUnwindMap.addModifyListener( lsMod );
     FormData fdUnwindMap = new FormData();
@@ -272,7 +293,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wUnwindMap.setLayoutData( fdUnwindMap );
     lastControl = wUnwindMap;
 
-    Label wlCypher = new Label( shell, SWT.LEFT );
+    Label wlCypher = new Label( wComposite, SWT.LEFT );
     wlCypher.setText( "Cypher:" );
     props.setLook( wlCypher );
     FormData fdlCypher = new FormData();
@@ -280,7 +301,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlCypher.right = new FormAttachment( middle, -margin );
     fdlCypher.top = new FormAttachment( lastControl, margin );
     wlCypher.setLayoutData( fdlCypher );
-    wCypher = new TextVar( transMeta, shell, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
+    wCypher = new TextVar( transMeta, wComposite, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
     wCypher.getTextWidget().setFont( GUIResource.getInstance().getFontFixed() );
     props.setLook( wCypher );
     wCypher.addModifyListener( lsMod );
@@ -288,16 +309,16 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdCypher.left = new FormAttachment( 0, 0 );
     fdCypher.right = new FormAttachment( 100, 0 );
     fdCypher.top = new FormAttachment( wlCypher, margin );
-    fdCypher.bottom = new FormAttachment( wlCypher, 350 + margin );
+    fdCypher.bottom = new FormAttachment( 60, 0 );
     wCypher.setLayoutData( fdCypher );
     lastControl = wCypher;
     
     // Some buttons
-    wOK = new Button( shell, SWT.PUSH );
+    wOK = new Button( wComposite, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
-    wPreview = new Button( shell, SWT.PUSH );
+    wPreview = new Button( wComposite, SWT.PUSH );
     wPreview.setText( BaseMessages.getString( PKG, "System.Button.Preview" ) );
-    wCancel = new Button( shell, SWT.PUSH );
+    wCancel = new Button( wComposite, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
 
     // Position the buttons at the bottom of the dialog.
@@ -321,7 +342,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
         new ColumnInfo( "Neo4j Type", ColumnInfo.COLUMN_TYPE_CCOMBO, GraphPropertyType.getNames(), false ),
       };
 
-    Label wlParameters = new Label( shell, SWT.LEFT );
+    Label wlParameters = new Label( wComposite, SWT.LEFT );
     wlParameters.setText( "Parameters" );
     props.setLook( wlParameters );
     FormData fdlParameters = new FormData();
@@ -330,7 +351,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlParameters.top = new FormAttachment( lastControl, margin );
     wlParameters.setLayoutData( fdlParameters );
 
-    Button wbGetParameters = new Button(shell, SWT.PUSH);
+    Button wbGetParameters = new Button(wComposite, SWT.PUSH);
     wbGetParameters.setText( "Get parameters" );
     FormData fdbGetParameters = new FormData();
     fdbGetParameters.right = new FormAttachment( 100, 0 );
@@ -348,15 +369,15 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
       }
     }  );
 
-    wParameters =
-      new TableView( transMeta, shell, SWT.FULL_SELECTION | SWT.MULTI, parameterColumns, input.getParameterMappings().size(), lsMod, props );
+    wParameters = new TableView( transMeta, wComposite, SWT.FULL_SELECTION | SWT.MULTI, parameterColumns,
+      input.getParameterMappings().size(), lsMod, props );
     props.setLook( wParameters );
     wParameters.addModifyListener( lsMod );
     FormData fdParameters = new FormData();
     fdParameters.left = new FormAttachment( 0, 0 );
     fdParameters.right = new FormAttachment( wbGetParameters, -margin );
     fdParameters.top = new FormAttachment( wlParameters, margin );
-    fdParameters.bottom = new FormAttachment( wlParameters, 200 + margin );
+    fdParameters.bottom = new FormAttachment( wlParameters, 300 + margin );
     wParameters.setLayoutData( fdParameters );
     lastControl = wParameters;
 
@@ -369,7 +390,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
         new ColumnInfo( "Return type", ColumnInfo.COLUMN_TYPE_CCOMBO, ValueMetaFactory.getAllValueMetaNames(), false ),
       };
 
-    Label wlReturns = new Label( shell, SWT.LEFT );
+    Label wlReturns = new Label( wComposite, SWT.LEFT );
     wlReturns.setText( "Returns" );
     props.setLook( wlReturns );
     FormData fdlReturns = new FormData();
@@ -378,7 +399,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlReturns.top = new FormAttachment( lastControl, margin );
     wlReturns.setLayoutData( fdlReturns );
 
-    Button wbGetReturnFields = new Button(shell, SWT.PUSH);
+    Button wbGetReturnFields = new Button(wComposite, SWT.PUSH);
     wbGetReturnFields.setText( "Get Output Fields" );
     FormData fdbGetReturnFields = new FormData();
     fdbGetReturnFields.right = new FormAttachment( 100, 0 );
@@ -386,7 +407,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wbGetReturnFields.setLayoutData( fdbGetReturnFields );
     wbGetReturnFields.addListener( SWT.Selection, (e) -> getReturnValues() );
 
-    wReturns = new TableView( transMeta, shell, SWT.FULL_SELECTION | SWT.MULTI, returnColumns, input.getReturnValues().size(), lsMod, props );
+    wReturns = new TableView( transMeta, wComposite, SWT.FULL_SELECTION | SWT.MULTI, returnColumns, input.getReturnValues().size(), lsMod, props );
     props.setLook( wReturns );
     wReturns.addModifyListener( lsMod );
     FormData fdReturns = new FormData();
@@ -397,6 +418,15 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wReturns.setLayoutData( fdReturns );
     // lastControl = wReturns;
 
+    wComposite.pack();
+    Rectangle bounds = wComposite.getBounds();
+
+    wScrolledComposite.setContent( wComposite );
+
+    wScrolledComposite.setExpandHorizontal( true );
+    wScrolledComposite.setExpandVertical( true );
+    wScrolledComposite.setMinWidth( bounds.width );
+    wScrolledComposite.setMinHeight( bounds.height );
 
     // Add listeners
     //

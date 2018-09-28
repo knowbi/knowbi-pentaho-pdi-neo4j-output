@@ -5,6 +5,9 @@ import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleXMLException;
+import org.pentaho.di.core.injection.Injection;
+import org.pentaho.di.core.injection.InjectionDeep;
+import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.xml.XMLHandler;
@@ -31,12 +34,18 @@ import java.util.List;
   categoryDescription = "Neo4j",
   documentationUrl = "https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki/Neo4j-Graph-Output#description"
 )
+@InjectionSupported( localizationPrefix = "GraphOutput.Injection.", groups = { "MAPPINGS", } )
 public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
 
+  @Injection( name = "CONNECTION" )
   private String connectionName;
+  @Injection( name = "MODEL" )
   private String model;
+  @Injection( name = "BATCH_SIZE" )
   private String batchSize;
+  @Injection( name = "CREATE_INDEXES" )
   private boolean creatingIndexes;
+  @InjectionDeep
   private List<FieldModelMapping> fieldModelMappings;
 
 

@@ -1,9 +1,16 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
+import org.pentaho.di.core.injection.Injection;
+
 public class ParameterMapping {
 
+  @Injection( name = "PARAMETER_NAME", group = "PARAMETERS" )
   private String parameter;
+
+  @Injection( name = "PARAMETER_FIELD", group = "PARAMETERS" )
   private String field;
+
+  @Injection( name = "PARAMETER_NEO4J_TYPE", group = "PARAMETERS" )
   private String neoType;
 
   public ParameterMapping() {

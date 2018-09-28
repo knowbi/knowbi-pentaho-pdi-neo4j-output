@@ -1,25 +1,31 @@
 package bi.know.kettle.neo4j.steps.graph;
 
+import org.pentaho.di.core.injection.Injection;
+
 public class FieldModelMapping {
 
   /**
    * The Kettle input field where the data is coming from
    */
+  @Injection( name = "MAPPING_SOURCE_FIELD", group = "MAPPINGS" )
   private String field;
 
   /**
    * Write to a node or a relationship
    */
+  @Injection( name = "MAPPING_TARGET_TYPE", group = "MAPPINGS" )
   private ModelTargetType targetType;
 
   /**
    * Name of the node or relationship to write to
    */
+  @Injection( name = "MAPPING_TARGET_NAME", group = "MAPPINGS" )
   private String targetName;
 
   /**
    * Name of the property to write to
    */
+  @Injection( name = "MAPPING_TARGET_PROPERTY", group = "MAPPINGS" )
   private String targetProperty;
 
 

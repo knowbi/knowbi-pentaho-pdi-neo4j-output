@@ -6,6 +6,7 @@ import bi.know.kettle.neo4j.model.GraphModel;
 import bi.know.kettle.neo4j.model.GraphModelUtils;
 import bi.know.kettle.neo4j.model.GraphNode;
 import bi.know.kettle.neo4j.model.GraphProperty;
+import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.model.GraphRelationship;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -110,6 +111,8 @@ public class GraphOutput extends BaseStep implements StepInterface {
     }
     data.driver.close();
 
+    data.cypherMap.clear();
+
     super.dispose( smi, sdi );
   }
 
@@ -156,6 +159,8 @@ public class GraphOutput extends BaseStep implements StepInterface {
       if ( meta.isCreatingIndexes() ) {
         createNodePropertyIndexes( meta, data );
       }
+
+      data.cypherMap = new HashMap<>();
     }
 
     // Calculate cypher statement, parameters, ... based on field-model-mappings
@@ -252,12 +257,14 @@ public class GraphOutput extends BaseStep implements StepInterface {
     public GraphProperty property;
     public ValueMetaInterface sourceValueMeta;
     public Object sourceValueData;
+    public int sourceFieldIndex;
 
-    public NodeAndPropertyData( GraphNode node, GraphProperty property, ValueMetaInterface sourceValueMeta, Object sourceValueData ) {
+    public NodeAndPropertyData( GraphNode node, GraphProperty property, ValueMetaInterface sourceValueMeta, Object sourceValueData, int sourceFieldIndex ) {
       this.node = node;
       this.property = property;
       this.sourceValueMeta = sourceValueMeta;
       this.sourceValueData = sourceValueData;
+      this.sourceFieldIndex = sourceFieldIndex;
     }
   }
 
@@ -275,11 +282,30 @@ public class GraphOutput extends BaseStep implements StepInterface {
   protected String getCypher( GraphModel graphModel, List<FieldModelMapping> fieldModelMappings, int nodeCount, Object[] row,
                               RowMetaInterface rowMeta, int[] fieldIndexes, Map<String, Object> parameters ) throws KettleException {
 
+
+    // We need to cache the Cypher and parameter mappings for performance
+    // Basically this is determined by the bitmap of used fields being null or not null
+    //
+    StringBuffer pattern = new StringBuffer();
+    for (int index : data.fieldIndexes) {
+      boolean isNull = rowMeta.isNull( row, index );
+      pattern.append(isNull?'0':'1');
+    }
+    CypherParameters cypherParameters = data.cypherMap.get(pattern.toString());
+    if (cypherParameters!=null) {
+      setParameters(rowMeta, row, parameters, cypherParameters);
+
+      // That's it, return the cypher we previously calculated
+      //
+      return cypherParameters.getCypher();
+    }
+
+    cypherParameters = new CypherParameters();
+
     // The strategy is to determine all the nodes involved and the properties to set.
     // TODO: Later we'll add relationship properties
     // Then we can determine the relationships between the nodes
     //
-
     List<GraphNode> nodes = new ArrayList<>();
     List<NodeAndPropertyData> nodeProperties = new ArrayList<>();
     for ( int f = 0; f < fieldModelMappings.size(); f++ ) {
@@ -306,7 +332,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
       if ( !nodes.contains( node ) ) {
         nodes.add( node );
       }
-      nodeProperties.add( new NodeAndPropertyData( node, graphProperty, valueMeta, valueData ) );
+      nodeProperties.add( new NodeAndPropertyData( node, graphProperty, valueMeta, valueData, index ) );
     }
 
     // Evaluate wether or not the node property is primary and null
@@ -375,7 +401,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
     //
     if ( nodes.size() == 1 ) {
       GraphNode node = nodes.get( 0 );
-      addNodeCypher( cypher, node, handled, ignored, parameterIndex, nodeIndex, nodeIndexMap, nodeProperties, parameters );
+      addNodeCypher( cypher, node, handled, ignored, parameterIndex, nodeIndex, nodeIndexMap, nodeProperties, parameters, cypherParameters );
     } else {
       for ( GraphRelationship relationship : relationships ) {
         relationshipIndex++;
@@ -386,7 +412,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
         GraphNode nodeTarget = graphModel.findNode( relationship.getNodeTarget() );
 
         for ( GraphNode node : new GraphNode[] { nodeSource, nodeTarget } ) {
-          addNodeCypher( cypher, node, handled, ignored, parameterIndex, nodeIndex, nodeIndexMap, nodeProperties, parameters );
+          addNodeCypher( cypher, node, handled, ignored, parameterIndex, nodeIndex, nodeIndexMap, nodeProperties, parameters, cypherParameters );
         }
 
         // Now add the merge on the relationship...
@@ -401,14 +427,35 @@ public class GraphOutput extends BaseStep implements StepInterface {
       }
       cypher.append( ";" + Const.CR );
     }
+
+    cypherParameters.setCypher( cypher.toString() );
+    data.cypherMap.put(pattern.toString(), cypherParameters);
+
     return cypher.toString();
+  }
+
+  private void setParameters( RowMetaInterface rowMeta, Object[] row, Map<String, Object> parameters, CypherParameters cypherParameters ) throws KettleValueException {
+    for (TargetParameter targetParameter : cypherParameters.getTargetParameters()) {
+      int fieldIndex = targetParameter.getInputFieldIndex();
+      ValueMetaInterface valueMeta = rowMeta.getValueMeta( fieldIndex );
+      Object valueData = row[fieldIndex];
+      String parameterName = targetParameter.getParameterName();
+      GraphPropertyType parameterType = targetParameter.getParameterType();
+
+      // Convert to the neo type
+      //
+      Object neoObject = parameterType.convertFromKettle( valueMeta, valueData );
+
+      parameters.put(parameterName, neoObject);
+    }
   }
 
   private void addNodeCypher( StringBuilder cypher, GraphNode node,
                               List<GraphNode> handled, List<GraphNode> ignored,
                               AtomicInteger parameterIndex, AtomicInteger nodeIndex,
                               Map<GraphNode, Integer> nodeIndexMap,
-                              List<NodeAndPropertyData> nodeProperties, Map<String, Object> parameters ) throws KettleValueException {
+                              List<NodeAndPropertyData> nodeProperties, Map<String, Object> parameters,
+                              CypherParameters cypherParameters) throws KettleValueException {
     if ( !ignored.contains( node ) && !handled.contains( node ) ) {
 
       // Don't update twice.
@@ -488,8 +535,9 @@ public class GraphOutput extends BaseStep implements StepInterface {
           //
           if ( !isNull ) {
             parameters.put( parameterName, napd.property.getType().convertFromKettle( napd.sourceValueMeta, napd.sourceValueData ) );
+            TargetParameter targetParameter = new TargetParameter( napd.sourceValueMeta.getName(), napd.sourceFieldIndex, parameterName, napd.property.getType() );
+            cypherParameters.getTargetParameters().add( targetParameter );
           }
-
         }
       }
       cypher.append( "}) " + Const.CR );

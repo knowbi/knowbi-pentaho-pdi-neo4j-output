@@ -36,7 +36,7 @@ public class AreaOwner {
     while(li.hasPrevious()) {
       AreaOwner areaOwner = li.previous();
       if (areaOwner.contains(x, y)) {
-        System.out.println("Match: "+areaOwner.getAreaType()+" on ("+x+", "+y+")");
+        // System.out.println("Match: "+areaOwner.getAreaType()+" on ("+x+", "+y+")");
         return areaOwner;
       }
     }
