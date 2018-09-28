@@ -8,6 +8,8 @@ import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleXMLException;
+import org.pentaho.di.core.injection.Injection;
+import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.xml.XMLHandler;
@@ -36,6 +38,8 @@ import java.util.List;
   categoryDescription = "Neo4JOutput.Step.Category",
   documentationUrl = "https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki/Neo4j-Output#description"
 )
+@InjectionSupported( localizationPrefix = "Neo4JOutput.Injection.",
+  groups = { "FROM_NODE_PROPS", "FROM_LABELS", "TO_NODE_PROPS", "TO_LABELS", "REL_PROPS" } )
 public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
 
   private static final String STRING_CONNECTION = "connection";
@@ -57,30 +61,49 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
   private static final String STRING_CREATE_INDEXES = "create_indexes";
   private static final String STRING_USE_CREATE = "use_create";
 
+  @Injection( name = "CONNECTION" )
   private String connection;
-  private String key;
-  private String relationship;
-
-  private String[] fromNodeProps;
-  private String[] fromNodePropNames;
-  private String[] fromNodePropTypes;
-  private boolean[] fromNodePropPrimary;
-
-  private String[] toNodeProps;
-  private String[] toNodePropNames;
-  private String[] toNodePropTypes;
-  private boolean[] toNodePropPrimary;
-
-  private String[] fromNodeLabels;
-  private String[] toNodeLabels;
-  private String[] relProps;
-  private String[] relPropNames;
-  private String[] relPropTypes;
-
+  @Injection( name = "BATCH_SIZE" )
   private String batchSize;
+  @Injection( name = "CREATE_INDEXES" )
   private boolean creatingIndexes;
+  @Injection( name = "USE_CREATE" )
   private boolean usingCreate;
 
+  @Injection( name = "FROM_NODE_PROPERTY_FIELD", group = "FROM_NODE_PROPS" )
+  private String[] fromNodeProps;
+  @Injection( name = "FROM_NODE_PROPERTY_NAME", group = "FROM_NODE_PROPS" )
+  private String[] fromNodePropNames;
+  @Injection( name = "FROM_NODE_PROPERTY_TYPE", group = "FROM_NODE_PROPS" )
+  private String[] fromNodePropTypes;
+  @Injection( name = "FROM_NODE_PROPERTY_PRIMARY", group = "FROM_NODE_PROPS" )
+  private boolean[] fromNodePropPrimary;
+
+  @Injection( name = "TO_NODE_PROPERTY_FIELD", group = "TO_NODE_PROPS" )
+  private String[] toNodeProps;
+  @Injection( name = "TO_NODE_PROPERTY_NAME", group = "TO_NODE_PROPS" )
+  private String[] toNodePropNames;
+  @Injection( name = "TO_NODE_PROPERTY_TYPE", group = "TO_NODE_PROPS" )
+  private String[] toNodePropTypes;
+  @Injection( name = "TO_NODE_PROPERTY_PRIMARY", group = "TO_NODE_PROPS" )
+  private boolean[] toNodePropPrimary;
+
+  @Injection( name = "FROM_LABEL", group = "FROM_LABELS" )
+  private String[] fromNodeLabels;
+  @Injection( name = "TO_LABEL", group = "TO_LABELS" )
+  private String[] toNodeLabels;
+
+  @Injection( name = "REL_PROPERTY_FIELD", group = "REL_PROPS" )
+  private String[] relProps;
+  @Injection( name = "REL_PROPERTY_NAME", group = "REL_PROPS" )
+  private String[] relPropNames;
+  @Injection( name = "REL_PROPERTY_TYPE", group = "REL_PROPS" )
+  private String[] relPropTypes;
+
+  // Unused fields from previous version
+  //
+  private String key;
+  private String relationship;
 
   public StepInterface getStep( StepMeta stepMeta, StepDataInterface stepDataInterface, int cnr, TransMeta transMeta, Trans disp ) {
     return new Neo4JOutput( stepMeta, stepDataInterface, cnr, transMeta, disp );
