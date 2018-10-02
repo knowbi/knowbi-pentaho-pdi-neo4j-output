@@ -4,7 +4,7 @@
 
   <groupId>bi.know.kettle.neo4j.output</groupId>
   <artifactId>Neo4JOutput</artifactId>
-  <version>3.12.0-SNAPSHOT</version>
+  <version>3.13.0-SNAPSHOT</version>
   <packaging>jar</packaging>
 
   <name>Neo4JOutput</name>
@@ -69,6 +69,15 @@
         <includes>
           <include>**/*.properties</include>
           <include>**/*.svg</include>
+          <include>**/*.xul</include>
+        </includes>
+      </resource>
+      <resource>
+        <directory>src/main/resources</directory>
+        <includes>
+          <include>**/*.properties</include>
+          <include>**/*.svg</include>
+          <include>**/*.xul</include>
         </includes>
       </resource>
     </resources>

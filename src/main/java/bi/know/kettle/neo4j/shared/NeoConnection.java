@@ -26,6 +26,9 @@ public class NeoConnection extends Variables {
   private String boltPort;
 
   @MetaStoreAttribute
+  private String browserPort;
+
+  @MetaStoreAttribute
   private boolean routing;
 
   @MetaStoreAttribute
@@ -41,6 +44,8 @@ public class NeoConnection extends Variables {
   private boolean usingEncryption;
 
   public NeoConnection() {
+    boltPort = "7687";
+    browserPort = "7474";
   }
 
   public NeoConnection( VariableSpace parent ) {
@@ -53,6 +58,7 @@ public class NeoConnection extends Variables {
     this.name = source.name;
     this.server = source.server;
     this.boltPort = source.boltPort;
+    this.browserPort = source.browserPort;
     this.routing = source.routing;
     this.routingPolicy = source.routingPolicy;
     this.username = source.username;
@@ -83,70 +89,6 @@ public class NeoConnection extends Variables {
     NeoConnection connection = (NeoConnection) object;
 
     return name != null && name.equalsIgnoreCase( connection.name );
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public void setName( String name ) {
-    this.name = name;
-  }
-
-  public String getServer() {
-    return server;
-  }
-
-  public void setServer( String server ) {
-    this.server = server;
-  }
-
-  public String getBoltPort() {
-    return boltPort;
-  }
-
-  public void setBoltPort( String boltPort ) {
-    this.boltPort = boltPort;
-  }
-
-  public String getUsername() {
-    return username;
-  }
-
-  public void setUsername( String username ) {
-    this.username = username;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword( String password ) {
-    this.password = password;
-  }
-
-  public boolean isRouting() {
-    return routing;
-  }
-
-  public void setRouting( boolean routing ) {
-    this.routing = routing;
-  }
-
-  public String getRoutingPolicy() {
-    return routingPolicy;
-  }
-
-  public void setRoutingPolicy( String routingPolicy ) {
-    this.routingPolicy = routingPolicy;
-  }
-
-  public boolean isUsingEncryption() {
-    return usingEncryption;
-  }
-
-  public void setUsingEncryption( boolean usingEncryption ) {
-    this.usingEncryption = usingEncryption;
   }
 
   /**
@@ -211,5 +153,149 @@ public class NeoConnection extends Variables {
     } else {
       return GraphDatabase.driver( url, AuthTokens.basic( realUsername, realPassword ), Config.build().withoutEncryption().toConfig() );
     }
+  }
+
+  /**
+   * Gets name
+   *
+   * @return value of name
+   */
+  public String getName() {
+    return name;
+  }
+
+  /**
+   * @param name The name to set
+   */
+  public void setName( String name ) {
+    this.name = name;
+  }
+
+  /**
+   * Gets server
+   *
+   * @return value of server
+   */
+  public String getServer() {
+    return server;
+  }
+
+  /**
+   * @param server The server to set
+   */
+  public void setServer( String server ) {
+    this.server = server;
+  }
+
+  /**
+   * Gets boltPort
+   *
+   * @return value of boltPort
+   */
+  public String getBoltPort() {
+    return boltPort;
+  }
+
+  /**
+   * @param boltPort The boltPort to set
+   */
+  public void setBoltPort( String boltPort ) {
+    this.boltPort = boltPort;
+  }
+
+  /**
+   * Gets browserPort
+   *
+   * @return value of browserPort
+   */
+  public String getBrowserPort() {
+    return browserPort;
+  }
+
+  /**
+   * @param browserPort The browserPort to set
+   */
+  public void setBrowserPort( String browserPort ) {
+    this.browserPort = browserPort;
+  }
+
+  /**
+   * Gets routing
+   *
+   * @return value of routing
+   */
+  public boolean isRouting() {
+    return routing;
+  }
+
+  /**
+   * @param routing The routing to set
+   */
+  public void setRouting( boolean routing ) {
+    this.routing = routing;
+  }
+
+  /**
+   * Gets routingPolicy
+   *
+   * @return value of routingPolicy
+   */
+  public String getRoutingPolicy() {
+    return routingPolicy;
+  }
+
+  /**
+   * @param routingPolicy The routingPolicy to set
+   */
+  public void setRoutingPolicy( String routingPolicy ) {
+    this.routingPolicy = routingPolicy;
+  }
+
+  /**
+   * Gets username
+   *
+   * @return value of username
+   */
+  public String getUsername() {
+    return username;
+  }
+
+  /**
+   * @param username The username to set
+   */
+  public void setUsername( String username ) {
+    this.username = username;
+  }
+
+  /**
+   * Gets password
+   *
+   * @return value of password
+   */
+  public String getPassword() {
+    return password;
+  }
+
+  /**
+   * @param password The password to set
+   */
+  public void setPassword( String password ) {
+    this.password = password;
+  }
+
+  /**
+   * Gets usingEncryption
+   *
+   * @return value of usingEncryption
+   */
+  public boolean isUsingEncryption() {
+    return usingEncryption;
+  }
+
+  /**
+   * @param usingEncryption The usingEncryption to set
+   */
+  public void setUsingEncryption( boolean usingEncryption ) {
+    this.usingEncryption = usingEncryption;
   }
 }

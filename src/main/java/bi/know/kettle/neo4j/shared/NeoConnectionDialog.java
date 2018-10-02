@@ -46,6 +46,7 @@ public class NeoConnectionDialog extends Dialog {
   private Text wName;
   private TextVar wServer;
   private TextVar wBoltPort;
+  private TextVar wBrowserPort;
   private TextVar wPolicy;
   private TextVar wUsername;
   private TextVar wPassword;
@@ -113,6 +114,7 @@ public class NeoConnectionDialog extends Dialog {
     wPassword.addSelectionListener( selAdapter );
     wServer.addSelectionListener( selAdapter );
     wBoltPort.addSelectionListener( selAdapter );
+    wBrowserPort.addSelectionListener( selAdapter );
     wPolicy.addSelectionListener( selAdapter );
 
     // Detect X or ALT-F4 or something that kills this window...
@@ -191,6 +193,24 @@ public class NeoConnectionDialog extends Dialog {
     fdBoltPort.right = new FormAttachment( 95, 0 );
     wBoltPort.setLayoutData( fdBoltPort );
     lastControl = wBoltPort;
+
+    //Browser port?
+    Label wlBrowserPort = new Label( shell, SWT.RIGHT );
+    props.setLook( wlBrowserPort );
+    wlBrowserPort.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.BrowserPort.Label" ) );
+    FormData fdlBrowserPort = new FormData();
+    fdlBrowserPort.top = new FormAttachment( lastControl, margin );
+    fdlBrowserPort.left = new FormAttachment( 0, 0 ); // First one in the left top corner
+    fdlBrowserPort.right = new FormAttachment( middle, -margin );
+    wlBrowserPort.setLayoutData( fdlBrowserPort );
+    wBrowserPort = new TextVar( neoConnection, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wBrowserPort );
+    FormData fdBrowserPort = new FormData();
+    fdBrowserPort.top = new FormAttachment( wlBrowserPort, 0, SWT.CENTER );
+    fdBrowserPort.left = new FormAttachment( middle, 0 ); // To the right of the label
+    fdBrowserPort.right = new FormAttachment( 95, 0 );
+    wBrowserPort.setLayoutData( fdBrowserPort );
+    lastControl = wBrowserPort;
 
     // Https
     Label wlRouting = new Label( shell, SWT.RIGHT );

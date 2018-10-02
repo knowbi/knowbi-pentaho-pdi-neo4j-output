@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<window xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:pen="http://www.pentaho.org/2008/xul"
+        id="neo4j-perspective" title="Neo4j" orient="vertical" height="600" width="800" onload="neo4jController.init()">
+
+  <tabbox flex="1" id="tabbox" pen:closable="true" pen:onclose="neo4jPerspective.onTabClose()">
+    <tabs id="tabs"/>
+    <tabpanels id="tabpanels"/>
+  </tabbox>
+
+</window>
