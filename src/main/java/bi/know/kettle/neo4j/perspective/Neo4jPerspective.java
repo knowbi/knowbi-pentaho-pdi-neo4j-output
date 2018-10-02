@@ -89,17 +89,9 @@ public class Neo4jPerspective extends AbstractXulEventHandler implements SpoonPe
 
   protected MetaStoreFactory<NeoConnection> connectionFactory;
 
-  private static Neo4jPerspective instance;
   private org.eclipse.swt.widgets.List wConnections;
 
-  public static Neo4jPerspective getInstance() throws XulException {
-    if ( instance == null ) {
-      instance = new Neo4jPerspective();
-    }
-    return instance;
-  }
-
-  private Neo4jPerspective() throws XulException {
+  Neo4jPerspective() throws XulException {
     KettleXulLoader loader = new KettleXulLoader();
     loader.registerClassLoader( getClass().getClassLoader() );
     container = loader.loadXul( "neo4j_perspective.xul", resourceBundle );
