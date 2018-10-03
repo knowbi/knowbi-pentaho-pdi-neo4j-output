@@ -37,7 +37,7 @@ public class Neo4jSpoonPlugin implements SpoonPluginInterface, SpoonLifecycleLis
   private Neo4jPerspective perspective;
 
   public Neo4jSpoonPlugin() throws XulException {
-    this.perspective = Neo4jPerspective.getInstance();
+    this.perspective = new Neo4jPerspective();
   }
 
   @Override

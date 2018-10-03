@@ -53,6 +53,7 @@ import org.pentaho.ui.xul.containers.XulVbox;
 import org.pentaho.ui.xul.dom.Document;
 import org.pentaho.ui.xul.impl.AbstractXulEventHandler;
 import org.pentaho.ui.xul.impl.XulEventHandler;
+import org.pentaho.ui.xul.swt.tags.SwtDeck;
 import org.pentaho.ui.xul.swt.tags.SwtTab;
 
 import java.beans.PropertyChangeEvent;
@@ -88,17 +89,9 @@ public class Neo4jPerspective extends AbstractXulEventHandler implements SpoonPe
 
   protected MetaStoreFactory<NeoConnection> connectionFactory;
 
-  private static Neo4jPerspective instance;
   private org.eclipse.swt.widgets.List wConnections;
 
-  public static Neo4jPerspective getInstance() throws XulException {
-    if ( instance == null ) {
-      instance = new Neo4jPerspective();
-    }
-    return instance;
-  }
-
-  private Neo4jPerspective() throws XulException {
+  Neo4jPerspective() throws XulException {
     KettleXulLoader loader = new KettleXulLoader();
     loader.registerClassLoader( getClass().getClassLoader() );
     container = loader.loadXul( "neo4j_perspective.xul", resourceBundle );
@@ -114,6 +107,16 @@ public class Neo4jPerspective extends AbstractXulEventHandler implements SpoonPe
       connectionFactory = new MetaStoreFactory<>( NeoConnection.class, Spoon.getInstance().getMetaStore(), Neo4jDefaults.NAMESPACE );
 
       addAdminTab();
+
+      /*
+       * To make compatible with webSpoon
+       * Create a temporary parent for the UI and then call layout().
+       * A different parent will be assigned to the UI in SpoonPerspectiveManager.PerspectiveManager.performInit().
+       */
+      SwtDeck deck = (SwtDeck) Spoon.getInstance().getXulDomContainer().getDocumentRoot().getElementById( "canvas-deck" );
+      box = deck.createVBoxCard();
+      getUI().setParent( (Composite) box.getManagedObject() );
+      getUI().layout();
 
     } catch ( Exception e ) {
       logger.logError( "Error initializing perspective", e );
