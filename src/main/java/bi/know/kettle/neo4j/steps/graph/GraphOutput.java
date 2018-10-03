@@ -520,7 +520,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
 
             matchCypher += nodeAlias + "." + napd.property.getName() + " = ";
             if ( isNull ) {
-              matchCypher += "NULL";
+              matchCypher += "NULL ";
             } else {
               matchCypher += "{" + parameterName + "} ";
             }
