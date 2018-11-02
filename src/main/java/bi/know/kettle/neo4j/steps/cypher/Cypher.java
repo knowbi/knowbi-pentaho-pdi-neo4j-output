@@ -8,6 +8,9 @@ import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Value;
+import org.neo4j.driver.v1.exceptions.ServiceUnavailableException;
+import org.neo4j.driver.v1.summary.Notification;
+import org.neo4j.driver.v1.summary.ResultSummary;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
@@ -74,7 +77,7 @@ public class Cypher extends BaseStep implements StepInterface {
     data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
 
     try {
-      data.driver = data.neoConnection.getDriver( log );
+      createDriverSession();
     } catch ( Exception e ) {
       log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
       return false;
@@ -89,14 +92,39 @@ public class Cypher extends BaseStep implements StepInterface {
     data = (CypherData) sdi;
 
     wrapUpTransaction();
+    closeSessionDriver();
 
+    super.dispose( smi, sdi );
+  }
+
+  private void closeSessionDriver() {
     if ( data.session != null ) {
       data.session.close();
     }
     if (data.driver !=null) {
       data.driver.close();
     }
-    super.dispose( smi, sdi );
+  }
+
+  private void createDriverSession() {
+    data.driver = data.neoConnection.getDriver( log );
+    data.session = data.driver.session();
+  }
+
+  private void reconnect() {
+    closeSessionDriver();
+
+    log.logBasic( "RECONNECTING to database" );
+
+    // Wait for 30 seconds before reconnecting.
+    // Let's give the server a breath of fresh air.
+    try {
+      Thread.sleep( 30000 );
+    } catch(InterruptedException e) {
+      // ignore sleep interrupted.
+    }
+
+    createDriverSession();
   }
 
   @Override public boolean processRow( StepMetaInterface smi, StepDataInterface sdi ) throws KettleException {
@@ -143,7 +171,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
       // Create a session
       //
-      data.session = data.driver.session();
+      createDriverSession();
 
       // Get parameter field indexes
       data.fieldIndexes = new int[ meta.getParameterMappings().size() ];
@@ -203,21 +231,14 @@ public class Cypher extends BaseStep implements StepInterface {
 
       // Execute the cypher with all the parameters...
       //
-      if ( data.batchSize <= 1 ) {
-        result = data.session.run( data.cypher, parameters );
-      } else {
-        if ( data.outputCount == 0 ) {
-          data.transaction = data.session.beginTransaction();
-        }
-        result = data.transaction.run( data.cypher, parameters );
-        data.outputCount++;
-        incrementLinesOutput();
-
-        if ( data.outputCount >= data.batchSize ) {
-          data.transaction.success();
-          data.transaction.close();
-          data.outputCount = 0;
-        }
+      try {
+        result = runCypherStatement( parameters );
+      } catch( ServiceUnavailableException e ){
+        // retry once after reconnecting.
+        // This can fix certain time-out issues
+        //
+        reconnect();
+        result = runCypherStatement( parameters );
       }
     }
 
@@ -233,10 +254,41 @@ public class Cypher extends BaseStep implements StepInterface {
     }
   }
 
+  private StatementResult runCypherStatement( Map<String, Object> parameters ) {
+    StatementResult result;
+    if ( data.batchSize <= 1 ) {
+      result = data.session.run( data.cypher, parameters );
+    } else {
+      if ( data.outputCount == 0 ) {
+        data.transaction = data.session.beginTransaction();
+      }
+      result = data.transaction.run( data.cypher, parameters );
+      data.outputCount++;
+      incrementLinesOutput();
+
+      if ( data.outputCount >= data.batchSize ) {
+        data.transaction.success();
+        data.transaction.close();
+        data.outputCount = 0;
+      }
+    }
+    return result;
+  }
+
   private StatementResult writeUnwindList() {
     HashMap<String, Object> unwindMap = new HashMap<>();
     unwindMap.put(data.unwindMapName, data.unwindList);
-    StatementResult result = data.session.run( data.cypher, unwindMap );
+    StatementResult result;
+    try {
+      result = data.session.run( data.cypher, unwindMap );
+    } catch(ServiceUnavailableException e) {
+      // retry once after reconnecting.
+      // This can fix certain time-out issues
+      //
+      reconnect();
+      result = data.session.run( data.cypher, unwindMap );
+    }
+    setLinesOutput( getLinesOutput()+data.unwindList.size() );
     data.unwindList.clear();
     data.outputCount = 0;
     return result;
@@ -307,6 +359,16 @@ public class Cypher extends BaseStep implements StepInterface {
         rowsWritten++;
       }
 
+      // Now that all result rows are consumed we can evaluate the result summary.
+      //
+      if (processSummary( result )) {
+        setErrors( 1L );
+        stopAll();
+        setOutputDone();
+        throw new KettleException( "Error found in executing cypher statement" );
+      }
+
+
       if ( data.hasInput && rowsWritten == 0 ) {
         // At least pass input row
 
@@ -318,6 +380,17 @@ public class Cypher extends BaseStep implements StepInterface {
         putRow( data.outputRowMeta, outputRow );
       }
     }
+  }
+
+  private boolean processSummary( StatementResult result ) {
+    boolean error = false;
+    ResultSummary summary = result.summary();
+    for ( Notification notification : summary.notifications() ) {
+      log.logError( notification.title()+" ("+notification.severity()+")" );
+      log.logError(notification.code()+" : "+notification.description()+", position "+notification.position());
+      error=true;
+    }
+    return error;
   }
 
   @Override public void batchComplete() {
