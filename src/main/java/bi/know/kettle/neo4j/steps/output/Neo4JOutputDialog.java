@@ -94,6 +94,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
       fieldNames = prevFields.getFieldNames();
     } catch ( KettleStepException kse ) {
       logError( BaseMessages.getString( PKG, "TripleOutput.Log.ErrorGettingFieldNames" ) );
+      fieldNames = new String[] {};
     }
 
     FormLayout formLayout = new FormLayout();
