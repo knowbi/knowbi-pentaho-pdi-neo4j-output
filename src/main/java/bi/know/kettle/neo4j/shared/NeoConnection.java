@@ -148,11 +148,16 @@ public class NeoConnection extends Variables {
     String url = getUrl();
     String realUsername = environmentSubstitute( username );
     String realPassword = environmentSubstitute( password );
+    Config config;
     if ( usingEncryption ) {
-      return GraphDatabase.driver( url, AuthTokens.basic( realUsername, realPassword ) );
+      config = Config.build().withEncryption().toConfig();
     } else {
-      return GraphDatabase.driver( url, AuthTokens.basic( realUsername, realPassword ), Config.build().withoutEncryption().toConfig() );
+      config = Config.build().withoutEncryption().toConfig();
     }
+    // System.out.println("config.connectionTimeoutMillis() : "+config.connectionTimeoutMillis());
+    // System.out.println("config.idleTimeBeforeConnectionTest() : "+config.idleTimeBeforeConnectionTest());
+    // System.out.println("config.maxConnectionLifetimeMillis() : "+config.maxConnectionLifetimeMillis());
+    return GraphDatabase.driver( url, AuthTokens.basic( realUsername, realPassword ), config );
   }
 
   /**

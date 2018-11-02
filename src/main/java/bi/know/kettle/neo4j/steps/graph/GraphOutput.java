@@ -11,6 +11,8 @@ import bi.know.kettle.neo4j.model.GraphRelationship;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.driver.v1.summary.Notification;
+import org.neo4j.driver.v1.summary.ResultSummary;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
@@ -172,7 +174,14 @@ public class GraphOutput extends BaseStep implements StepInterface {
       logDebug( "Merge statement : " + cypher );
     }
 
-    executeStatement( data, cypher, parameters );
+    boolean errors = executeStatement( data, cypher, parameters );
+    if (errors) {
+      // Stop processing on error
+      //
+      setErrors( 1L );
+      setOutputDone();
+      return false;
+    }
 
     putRow( getInputRowMeta(), row );
     return true;
@@ -228,28 +237,50 @@ public class GraphOutput extends BaseStep implements StepInterface {
     }
   }
 
-  private void executeStatement( GraphOutputData data, String cypher, Map<String, Object> parameters ) {
+  private boolean executeStatement( GraphOutputData data, String cypher, Map<String, Object> parameters ) {
     StatementResult result;
+    boolean errors = false;
     if ( data.batchSize <= 1 ) {
       result = data.session.run( cypher, parameters );
+      errors = processSummary(result);
     } else {
       if ( data.outputCount == 0 ) {
         data.transaction = data.session.beginTransaction();
       }
       result = data.transaction.run( cypher, parameters );
+      errors = processSummary(result);
+
       data.outputCount++;
       incrementLinesOutput();
 
-      if ( data.outputCount >= data.batchSize ) {
+      if ( !errors && data.outputCount >= data.batchSize ) {
         data.transaction.success();
         data.transaction.close();
         data.outputCount = 0;
       }
     }
 
+    if (errors) {
+      setErrors( 1L );
+      stopAll();
+      setOutputDone();
+    }
+
     if ( log.isDebug() ) {
       logDebug( "Result : " + result.toString() );
     }
+    return errors;
+  }
+
+  private boolean processSummary( StatementResult result ) {
+    boolean errors = false;
+    ResultSummary summary = result.consume();
+    for ( Notification notification : summary.notifications() ) {
+      log.logError( notification.title()+" ("+notification.severity()+")" );
+      log.logError(notification.code()+" : "+notification.description()+", position "+notification.position());
+      errors=true;
+    }
+    return errors;
   }
 
   private class NodeAndPropertyData {
@@ -421,7 +452,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
           String sourceNodeName = "node" + nodeIndexMap.get( nodeSource );
           String targetNodeName = "node" + nodeIndexMap.get( nodeTarget );
 
-          cypher.append( "MERGE (" + sourceNodeName + ")-[rel" + relationshipIndex + ":" + relationship.getLabel() + "]->(" + targetNodeName + ") " );
+          cypher.append( "MERGE (" + sourceNodeName + ")-[rel" + relationshipIndex + ":" + relationship.getLabel() + "]-(" + targetNodeName + ") " );
           cypher.append( Const.CR );
         }
       }
@@ -520,7 +551,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
 
             matchCypher += nodeAlias + "." + napd.property.getName() + " = ";
             if ( isNull ) {
-              matchCypher += "NULL ";
+              matchCypher += "NULL";
             } else {
               matchCypher += "{" + parameterName + "} ";
             }

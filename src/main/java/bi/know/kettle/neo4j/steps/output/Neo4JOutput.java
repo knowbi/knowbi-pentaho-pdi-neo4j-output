@@ -5,6 +5,9 @@ import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
+import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.driver.v1.summary.Notification;
+import org.neo4j.driver.v1.summary.ResultSummary;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
@@ -197,7 +200,13 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
   public void dispose( StepMetaInterface smi, StepDataInterface sdi ) {
     data = (Neo4JOutputData) sdi;
 
-    wrapUpTransaction();
+    try {
+      wrapUpTransaction();
+    } catch ( KettleException e ) {
+      logError( "Error wrapping up transaction", e );
+      setErrors( 1L );
+      stopAll();
+    }
 
     if ( data.session != null ) {
       data.session.close();
@@ -249,7 +258,7 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     }
   }
 
-  private void createNodeEmptyUnwindList( Neo4JOutputData data, List<Map<String, Object>> unwindList, String labelsClause ) {
+  private void createNodeEmptyUnwindList( Neo4JOutputData data, List<Map<String, Object>> unwindList, String labelsClause ) throws KettleException {
     Map<String, Object> properties = Collections.singletonMap( "props", unwindList );
 
     // Build cypher statement...
@@ -263,7 +272,8 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
     // Run it always without transactions...
     //
-    data.session.writeTransaction( tx -> tx.run( cypher, properties ) );
+    StatementResult result = data.session.writeTransaction( tx -> tx.run( cypher, properties ) );
+    processSummary( result );
 
     // Clear the list
     //
@@ -361,7 +371,7 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     return labels;
   }
 
-  private void runStatement( Neo4JOutputData data, String stmt, Map<String, Object> parameters ) {
+  private void runStatement( Neo4JOutputData data, String stmt, Map<String, Object> parameters ) throws KettleException {
 
     // Execute the cypher with all the parameters...
     //
@@ -369,14 +379,15 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
       logDebug( "Statement: " + stmt );
       logDebug( "Parameters: " + parameters.keySet() );
     }
+    StatementResult result;
 
     if ( data.batchSize <= 1 ) {
-      data.session.run( stmt, parameters );
+      result = data.session.run( stmt, parameters );
     } else {
       if ( data.outputCount == 0 ) {
         data.transaction = data.session.beginTransaction();
       }
-      data.transaction.run( stmt, parameters );
+      result = data.transaction.run( stmt, parameters );
       data.outputCount++;
       incrementLinesOutput();
 
@@ -385,6 +396,23 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
         data.transaction.close();
         data.outputCount = 0;
       }
+    }
+
+    // Evaluate the result, see if there are errors
+    //
+    processSummary( result );
+  }
+
+  private void processSummary( StatementResult result ) throws KettleException {
+    boolean error = false;
+    ResultSummary summary = result.consume();
+    for ( Notification notification : summary.notifications() ) {
+      log.logError( notification.title()+" ("+notification.severity()+")" );
+      log.logError(notification.code()+" : "+notification.description()+", position "+notification.position());
+      error=true;
+    }
+    if (error) {
+      throw new KettleException( "Error found while executing cypher statement(s)" );
     }
   }
 
@@ -556,11 +584,11 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     }
   }
 
-  @Override public void batchComplete() {
+  @Override public void batchComplete() throws KettleException {
     wrapUpTransaction();
   }
 
-  private void wrapUpTransaction() {
+  private void wrapUpTransaction() throws KettleException {
     if ( data.fromUnwindList.size() > 0 ) {
       createNodeEmptyUnwindList( data, data.fromUnwindList, data.fromLabelsClause );
     }
