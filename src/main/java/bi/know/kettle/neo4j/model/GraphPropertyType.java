@@ -113,6 +113,8 @@ public enum GraphPropertyType {
         return GraphPropertyType.ByteArray;
       case ValueMetaInterface.TYPE_BIGNUMBER:
         return GraphPropertyType.String;
+      case ValueMetaInterface.TYPE_INTEGER:
+        return GraphPropertyType.Integer;
       default:
         return GraphPropertyType.String;
     }
