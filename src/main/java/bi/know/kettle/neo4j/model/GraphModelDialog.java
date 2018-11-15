@@ -1,5 +1,6 @@
 package bi.know.kettle.neo4j.model;
 
+import bi.know.kettle.neo4j.steps.output.Neo4JOutputDialog;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.custom.CTabFolder;
@@ -751,7 +752,8 @@ public class GraphModelDialog extends Dialog {
             break;
         }
 
-        activeNode.getProperties().add( new GraphProperty( field, "", propertyType, false ) );
+        String propertyName = Neo4JOutputDialog.standardizePropertyName( valueMeta );
+        activeNode.getProperties().add( new GraphProperty( propertyName, "", propertyType, false ) );
       }
       refreshNodeFields();
     }
