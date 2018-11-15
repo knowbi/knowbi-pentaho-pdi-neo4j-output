@@ -1,6 +1,7 @@
 package bi.know.kettle.neo4j.steps.graph;
 
 
+import bi.know.kettle.neo4j.core.GraphUsage;
 import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.model.GraphModel;
 import bi.know.kettle.neo4j.model.GraphModelUtils;
@@ -9,6 +10,7 @@ import bi.know.kettle.neo4j.model.GraphProperty;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.model.GraphRelationship;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
+import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.summary.Notification;
@@ -29,12 +31,15 @@ import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class GraphOutput extends BaseStep implements StepInterface {
+public class GraphOutput extends BaseNeoStep implements StepInterface {
 
   private GraphOutputMeta meta;
   private GraphOutputData data;
@@ -50,10 +55,6 @@ public class GraphOutput extends BaseStep implements StepInterface {
     meta = (GraphOutputMeta) smi;
     data = (GraphOutputData) sdi;
 
-    // To correct lazy programmers who built certain PDI steps...
-    //
-    data.metaStore = MetaStoreUtil.findMetaStore( this );
-
     // Load some extra metadata...
     //
     if ( StringUtils.isEmpty(meta.getConnectionName()) ) {
@@ -61,6 +62,10 @@ public class GraphOutput extends BaseStep implements StepInterface {
       return false;
     }
     try {
+      // To correct lazy programmers who built certain PDI steps...
+      //
+      data.metaStore = MetaStoreUtil.findMetaStore( this );
+
       data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
       data.neoConnection.initializeVariablesFrom( this );
 
@@ -111,9 +116,12 @@ public class GraphOutput extends BaseStep implements StepInterface {
     if ( data.session != null ) {
       data.session.close();
     }
-    data.driver.close();
-
-    data.cypherMap.clear();
+    if (data.driver!=null) {
+      data.driver.close();
+    }
+    if (data.cypherMap!=null) {
+      data.cypherMap.clear();
+    }
 
     super.dispose( smi, sdi );
   }
@@ -142,19 +150,19 @@ public class GraphOutput extends BaseStep implements StepInterface {
       data.outputRowMeta = getInputRowMeta().clone();
       meta.getFields( data.outputRowMeta, getStepname(), null, getStepMeta(), this, repository, data.metaStore );
 
-      // Create a session
-      //
-      data.session = data.driver.session();
-
       // Get parameter field indexes
       data.fieldIndexes = new int[ meta.getFieldModelMappings().size() ];
       for ( int i = 0; i < meta.getFieldModelMappings().size(); i++ ) {
         String field = meta.getFieldModelMappings().get( i ).getField();
         data.fieldIndexes[ i ] = getInputRowMeta().indexOfValue( field );
         if ( data.fieldIndexes[ i ] < 0 ) {
-          throw new KettleStepException( "Unable to find parameter field '" + field );
+          throw new KettleException( "Unable to find parameter field '" + field );
         }
       }
+
+      // Create a session
+      //
+      data.session = data.driver.session();
 
       // See if we need to create indexes...
       //
@@ -369,7 +377,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
     // Evaluate wether or not the node property is primary and null
     // In that case, we remove these nodes from the lists...
     //
-    List<GraphNode> ignored = new ArrayList<>();
+    Set<GraphNode> ignored = new HashSet<>();
     for ( NodeAndPropertyData nodeProperty : nodeProperties ) {
       if ( nodeProperty.property.isPrimary() ) {
         // Null value?
@@ -425,7 +433,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
 
     StringBuilder cypher = new StringBuilder();
 
-    List<GraphNode> handled = new ArrayList<>();
+    Set<GraphNode> handled = new HashSet<>();
     Map<GraphNode, Integer> nodeIndexMap = new HashMap<>();
 
     // No relationships case...
@@ -452,8 +460,10 @@ public class GraphOutput extends BaseStep implements StepInterface {
           String sourceNodeName = "node" + nodeIndexMap.get( nodeSource );
           String targetNodeName = "node" + nodeIndexMap.get( nodeTarget );
 
-          cypher.append( "MERGE (" + sourceNodeName + ")-[rel" + relationshipIndex + ":" + relationship.getLabel() + "]-(" + targetNodeName + ") " );
+          cypher.append( "MERGE(" + sourceNodeName + ")-[rel" + relationshipIndex + ":" + relationship.getLabel() + "]-(" + targetNodeName + ") " );
           cypher.append( Const.CR );
+
+          updateUsageMap( Arrays.asList(relationship.getLabel()), GraphUsage.RELATIONSHIP_UPDATE );
         }
       }
       cypher.append( ";" + Const.CR );
@@ -482,7 +492,7 @@ public class GraphOutput extends BaseStep implements StepInterface {
   }
 
   private void addNodeCypher( StringBuilder cypher, GraphNode node,
-                              List<GraphNode> handled, List<GraphNode> ignored,
+                              Set<GraphNode> handled, Set<GraphNode> ignored,
                               AtomicInteger parameterIndex, AtomicInteger nodeIndex,
                               Map<GraphNode, Integer> nodeIndexMap,
                               List<NodeAndPropertyData> nodeProperties, Map<String, Object> parameters,
@@ -507,6 +517,8 @@ public class GraphOutput extends BaseStep implements StepInterface {
       String nodeAlias = "node" + nodeIndex;
 
       cypher.append( "MERGE (" + nodeAlias + nodeLabels + " { " );
+
+      updateUsageMap( node.getLabels(), GraphUsage. NODE_UPDATE );
 
       if ( log.isDebug() ) {
         logBasic( " - node merge : " + node.getName() );
@@ -593,6 +605,31 @@ public class GraphOutput extends BaseStep implements StepInterface {
       // Force creation of a new transaction on the next batch of records
       //
       data.outputCount=0;
+    }
+  }
+
+  /**
+   * Update the usagemap.  Add all the labels to the node usage.
+   *  @param nodeLabels
+   * @param usage
+   */
+  protected void updateUsageMap( List<String> nodeLabels, GraphUsage usage ) throws KettleValueException {
+    Map<String, Set<String>> stepsMap = data.usageMap.get( usage.name() );
+    if (stepsMap==null) {
+      stepsMap = new HashMap<>();
+      data.usageMap.put(usage.name(), stepsMap );
+    }
+
+    Set<String> labelSet = stepsMap.get( getStepname() );
+    if (labelSet==null) {
+      labelSet = new HashSet<>(  );
+      stepsMap.put(getStepname(), labelSet);
+    }
+
+    for ( String label: nodeLabels) {
+      if ( StringUtils.isNotEmpty( label ) ) {
+        labelSet.add( label );
+      }
     }
   }
 }

@@ -50,10 +50,6 @@ public class Cypher extends BaseStep implements StepInterface {
     meta = (CypherMeta) smi;
     data = (CypherData) sdi;
 
-    // To correct lazy programmers who built certain PDI steps...
-    //
-    data.metaStore = MetaStoreUtil.findMetaStore( this );
-
     // Is the step getting input?
     //
     List<StepMeta> steps = getTransMeta().findPreviousSteps( getStepMeta() );
@@ -66,6 +62,19 @@ public class Cypher extends BaseStep implements StepInterface {
       return false;
     }
     try {
+      // To correct lazy programmers who built certain PDI steps...
+      //
+      if (getTrans().getMetaStore()==null) {
+        System.err.println( ">>>>>> Metastore not set on transformation" );
+      }
+      if (getTrans().getTransMeta().getMetaStore()==null) {
+        System.err.println( ">>>>>> Metastore not set on transformation metadata" );
+      }
+      if (getMetaStore()==null) {
+        System.err.println( ">>>>>> Metastore not set on step" );
+      }
+
+      data.metaStore = MetaStoreUtil.findMetaStore( this );
       data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
       data.neoConnection.initializeVariablesFrom( this );
 
