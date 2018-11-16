@@ -9,6 +9,7 @@ import bi.know.kettle.neo4j.model.GraphNode;
 import bi.know.kettle.neo4j.model.GraphProperty;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.model.GraphRelationship;
+import bi.know.kettle.neo4j.shared.DriverSingleton;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringUtils;
@@ -88,7 +89,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     data.nodeCount = countDistinctNodes( meta.getFieldModelMappings() );
 
     try {
-      data.driver = data.neoConnection.getDriver( log );
+      data.driver = DriverSingleton.getDriver( log, data.neoConnection );
     } catch ( Exception e ) {
       log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
       return false;
@@ -115,9 +116,6 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
     if ( data.session != null ) {
       data.session.close();
-    }
-    if (data.driver!=null) {
-      data.driver.close();
     }
     if (data.cypherMap!=null) {
       data.cypherMap.clear();

@@ -3,6 +3,7 @@ package bi.know.kettle.neo4j.steps.output;
 import bi.know.kettle.neo4j.core.GraphUsage;
 import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
+import bi.know.kettle.neo4j.shared.DriverSingleton;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringEscapeUtils;
@@ -196,7 +197,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
 
     try {
-      data.driver = data.neoConnection.getDriver( log );
+      data.driver = DriverSingleton.getDriver( log, data.neoConnection );
     } catch ( Exception e ) {
       log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
       return false;
@@ -218,9 +219,6 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
     if ( data.session != null ) {
       data.session.close();
-    }
-    if ( data.driver != null ) {
-      data.driver.close();
     }
 
     super.dispose( smi, sdi );
