@@ -1,8 +1,11 @@
 package bi.know.kettle.neo4j.steps.output;
 
+import bi.know.kettle.neo4j.core.GraphUsage;
 import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
+import bi.know.kettle.neo4j.shared.DriverSingleton;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
+import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.StatementResult;
@@ -17,7 +20,6 @@ import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.BaseStep;
 import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
@@ -28,12 +30,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class Neo4JOutput extends BaseStep implements StepInterface {
+public class Neo4JOutput extends BaseNeoStep implements StepInterface {
   private static Class<?> PKG = Neo4JOutput.class; // for i18n purposes, needed by Translator2!!
   private Neo4JOutputMeta meta;
   private Neo4JOutputData data;
@@ -46,7 +50,7 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
   /**
    * TODO:
-   * 1. option to do CREATE/MERGE (merge default?)
+   * 1. option to do NODE CREATE/NODE UPDATE (merge default?)
    * 2. optional commit size
    * 3. option to return node id?
    */
@@ -125,10 +129,13 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
           createNode( getInputRowMeta(), row, data, data.fromNodeLabelIndexes, data.fromNodePropIndexes, meta.getFromNodePropNames(),
             data.fromNodePropTypes, data.fromLabelsClause, data.fromUnwindList );
+          updateUsageMap( getInputRowMeta(), row, data.fromNodeLabelIndexes, GraphUsage.NODE_CREATE );
 
         } else {
           mergeNode( getInputRowMeta(), row, data, data.fromNodeLabelIndexes, data.fromNodePropIndexes, meta.getFromNodePropNames(),
             data.fromNodePropTypes, meta.getFromNodePropPrimary() );
+          updateUsageMap( getInputRowMeta(), row, data.fromNodeLabelIndexes, GraphUsage.NODE_UPDATE );
+
         }
       }
       if ( meta.getToNodeProps().length > 0 ) {
@@ -140,10 +147,12 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
           createNode( getInputRowMeta(), row, data, data.toNodeLabelIndexes, data.toNodePropIndexes, meta.getToNodePropNames(), data.toNodePropTypes,
             data.toLabelsClause, data.toUnwindList );
+          updateUsageMap( getInputRowMeta(), row, data.toNodeLabelIndexes, GraphUsage.NODE_CREATE );
 
         } else {
           mergeNode( getInputRowMeta(), row, data, data.toNodeLabelIndexes, data.toNodePropIndexes, meta.getToNodePropNames(), data.toNodePropTypes,
             meta.getToNodePropPrimary() );
+          updateUsageMap( getInputRowMeta(), row, data.toNodeLabelIndexes, GraphUsage.NODE_UPDATE );
         }
       }
     } catch ( Exception e ) {
@@ -153,6 +162,7 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     try {
       if ( data.relationshipIndex >= 0 ) {
         createRelationship( getInputRowMeta(), row, meta, data );
+        updateUsageMap( getInputRowMeta(), row, new int[] { data.relationshipIndex }, GraphUsage.RELATIONSHIP_UPDATE );
       }
     } catch ( Exception e ) {
       logError( BaseMessages.getString( PKG, "Neo4JOutput.addRelationshipError" ) + e.getMessage(), e );
@@ -162,22 +172,21 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     return true;
   }
 
-
   public boolean init( StepMetaInterface smi, StepDataInterface sdi ) {
     meta = (Neo4JOutputMeta) smi;
     data = (Neo4JOutputData) sdi;
 
-    // To correct lazy programmers who built certain PDI steps...
-    //
-    data.metaStore = MetaStoreUtil.findMetaStore( this );
-
     // Connect to Neo4j using info in Neo4j JDBC connection metadata...
     //
-    if ( StringUtils.isEmpty(meta.getConnection()) ) {
+    if ( StringUtils.isEmpty( meta.getConnection() ) ) {
       log.logError( "You need to specify a Neo4j connection to use in this step" );
       return false;
     }
+
     try {
+      // To correct lazy programmers who built certain PDI steps...
+      //
+      data.metaStore = MetaStoreUtil.findMetaStore( this );
       data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnection() );
       data.neoConnection.initializeVariablesFrom( this );
     } catch ( MetaStoreException e ) {
@@ -188,7 +197,7 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
 
     try {
-      data.driver = data.neoConnection.getDriver( log );
+      data.driver = DriverSingleton.getDriver( log, data.neoConnection );
     } catch ( Exception e ) {
       log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
       return false;
@@ -211,7 +220,6 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     if ( data.session != null ) {
       data.session.close();
     }
-    data.driver.close();
 
     super.dispose( smi, sdi );
   }
@@ -263,7 +271,7 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
 
     // Build cypher statement...
     //
-    String cypher = "UNWIND $props as properties CREATE(" + labelsClause + ") SET n = properties";
+    String cypher = "UNWIND $props AS properties CREATE(" + labelsClause + ") SET n = properties";
 
     if ( log.isDebug() ) {
       logDebug( "Running Cypher: " + cypher );
@@ -407,11 +415,11 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     boolean error = false;
     ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {
-      log.logError( notification.title()+" ("+notification.severity()+")" );
-      log.logError(notification.code()+" : "+notification.description()+", position "+notification.position());
-      error=true;
+      log.logError( notification.title() + " (" + notification.severity() + ")" );
+      log.logError( notification.code() + " : " + notification.description() + ", position " + notification.position() );
+      error = true;
     }
-    if (error) {
+    if ( error ) {
       throw new KettleException( "Error found while executing cypher statement(s)" );
     }
   }
@@ -589,10 +597,10 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
   }
 
   private void wrapUpTransaction() throws KettleException {
-    if ( data.fromUnwindList.size() > 0 ) {
+    if ( data.fromUnwindList != null && data.fromUnwindList.size() > 0 ) {
       createNodeEmptyUnwindList( data, data.fromUnwindList, data.fromLabelsClause );
     }
-    if ( data.toUnwindList.size() > 0 ) {
+    if ( data.toUnwindList != null && data.toUnwindList.size() > 0 ) {
       createNodeEmptyUnwindList( data, data.toUnwindList, data.toLabelsClause );
     }
 
@@ -604,7 +612,37 @@ public class Neo4JOutput extends BaseStep implements StepInterface {
     if ( data.outputCount > 0 ) {
       data.transaction.success();
       data.transaction.close();
-      data.outputCount=0;
+      data.outputCount = 0;
+    }
+  }
+
+  /**
+   * Update the usagemap.  Add all the labels to the node usage.
+   *
+   * @param inputRowMeta
+   * @param row
+   * @param labelIndexes
+   * @param usage
+   */
+  protected void updateUsageMap( RowMetaInterface inputRowMeta, Object[] row, int[] labelIndexes, GraphUsage usage ) throws KettleValueException {
+
+    Map<String, Set<String>> stepsMap = data.usageMap.get( usage.name() );
+    if ( stepsMap == null ) {
+      stepsMap = new HashMap<>();
+      data.usageMap.put( usage.name(), stepsMap );
+    }
+
+    Set<String> labelSet = stepsMap.get( getStepname() );
+    if ( labelSet == null ) {
+      labelSet = new HashSet<>();
+      stepsMap.put( getStepname(), labelSet );
+    }
+
+    for ( int labelIndex : labelIndexes ) {
+      String label = inputRowMeta.getString( row, labelIndex );
+      if ( StringUtils.isNotEmpty( label ) ) {
+        labelSet.add( label );
+      }
     }
   }
 }

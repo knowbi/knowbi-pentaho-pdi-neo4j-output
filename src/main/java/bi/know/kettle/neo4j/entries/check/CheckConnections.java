@@ -1,13 +1,18 @@
 package bi.know.kettle.neo4j.entries.check;
 
+import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.core.Neo4jDefaults;
+import bi.know.kettle.neo4j.shared.DriverSingleton;
 import bi.know.kettle.neo4j.shared.NeoConnection;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.Session;
 import org.pentaho.di.cluster.SlaveServer;
 import org.pentaho.di.core.Result;
 import org.pentaho.di.core.annotations.JobEntry;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleXMLException;
+import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.job.entry.JobEntryBase;
 import org.pentaho.di.job.entry.JobEntryInterface;
@@ -90,6 +95,11 @@ public class CheckConnections extends JobEntryBase implements JobEntryInterface 
 
   @Override public Result execute( Result result, int nr ) throws KettleException {
 
+    try {
+      metaStore = MetaStoreUtil.findMetaStore( this );
+    } catch(Exception e) {
+      throw new KettleException( "Error finding metastore", e );
+    }
     MetaStoreFactory<NeoConnection> connectionFactory = new MetaStoreFactory<>( NeoConnection.class, metaStore, Neo4jDefaults.NAMESPACE );
 
     // Replace variables & parameters
@@ -111,7 +121,11 @@ public class CheckConnections extends JobEntryBase implements JobEntryInterface 
           throw new KettleException( "Unable to find connection with name '"+connectionName+"'" );
         }
         connection.initializeVariablesFrom( this );
-        connection.test();
+
+        Driver driver = DriverSingleton.getDriver( log, connection);
+        Session session = driver.session();
+        session.close();
+
       } catch(Exception e) {
         // Something bad happened, log the error, flag error
         //

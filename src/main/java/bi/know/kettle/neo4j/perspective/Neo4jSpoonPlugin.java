@@ -50,6 +50,7 @@ public class Neo4jSpoonPlugin implements SpoonPluginInterface, SpoonLifecycleLis
     container.registerClassLoader( getClass().getClassLoader() );
     if ( category.equals( "spoon" ) ) {
       container.loadOverlay( "neo4j_spoon_overlays.xul", resourceBundle );
+      container.addEventHandler( Neo4jHelper.getInstance() );
     }
   }
 

@@ -4,6 +4,23 @@
          xmlns:HTML="http://www.w3.org/Profiles/XHTML-transitional" height="600" width="800" onload="modeler.init()"
          xmlns:pen="http://www.pentaho.org/2008/xul" >
 
+
+  <!--
+  Add an entry to the spoon menu bar
+-->
+  <menubar id="spoon-menubar">
+
+    <menu id="neo4j" label="Neo4j" accesskey="alt-4">
+      <menupopup id="neo4j-popup">
+        <menuitem id="neo4-create-connection" label="Create connection" command="neo4jHelper.createConnection()"/>
+        <menuitem id="neo4-edit-connection" label="Edit connection" command="neo4jHelper.editConnection()"/>
+        <menuitem id="neo4-delete-connection" label="Delete connection" command="neo4jHelper.deleteConnection()"/>
+        <menuitem id="neo4-show-metastore" label="Show Metastore Browser" command="neo4jHelper.showMetaStoreBrowser()"/>
+      </menupopup>
+    </menu>
+
+  </menubar>
+
   <menupopup id="view-perspectives-popup">
     <menuitem label="Neo4j" acceltext="CTRL-4" accesskey="ctrl-4"
               command="spoon.loadPerspective('021-git')" />

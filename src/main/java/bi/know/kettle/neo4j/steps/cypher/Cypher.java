@@ -3,6 +3,7 @@ package bi.know.kettle.neo4j.steps.cypher;
 
 import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
+import bi.know.kettle.neo4j.shared.DriverSingleton;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Record;
@@ -50,10 +51,6 @@ public class Cypher extends BaseStep implements StepInterface {
     meta = (CypherMeta) smi;
     data = (CypherData) sdi;
 
-    // To correct lazy programmers who built certain PDI steps...
-    //
-    data.metaStore = MetaStoreUtil.findMetaStore( this );
-
     // Is the step getting input?
     //
     List<StepMeta> steps = getTransMeta().findPreviousSteps( getStepMeta() );
@@ -66,6 +63,9 @@ public class Cypher extends BaseStep implements StepInterface {
       return false;
     }
     try {
+      // To correct lazy programmers who built certain PDI steps...
+      //
+      data.metaStore = MetaStoreUtil.findMetaStore( this );
       data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
       data.neoConnection.initializeVariablesFrom( this );
 
@@ -101,13 +101,10 @@ public class Cypher extends BaseStep implements StepInterface {
     if ( data.session != null ) {
       data.session.close();
     }
-    if (data.driver !=null) {
-      data.driver.close();
-    }
   }
 
   private void createDriverSession() {
-    data.driver = data.neoConnection.getDriver( log );
+    data.driver = DriverSingleton.getDriver( log, data.neoConnection );
     data.session = data.driver.session();
   }
 

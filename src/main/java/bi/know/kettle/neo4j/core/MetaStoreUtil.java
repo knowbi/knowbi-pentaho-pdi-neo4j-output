@@ -2,13 +2,15 @@ package bi.know.kettle.neo4j.core;
 
 import org.pentaho.di.core.logging.LoggingObjectInterface;
 import org.pentaho.di.job.Job;
+import org.pentaho.di.metastore.MetaStoreConst;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.metastore.api.IMetaStore;
+import org.pentaho.metastore.api.exceptions.MetaStoreException;
 
 public class MetaStoreUtil {
 
-  public static final IMetaStore findMetaStore( LoggingObjectInterface executor ) {
+  public static final IMetaStore findMetaStore( LoggingObjectInterface executor ) throws MetaStoreException {
 
     if ( executor instanceof StepInterface ) {
       StepInterface step = (StepInterface) executor;
@@ -53,6 +55,8 @@ public class MetaStoreUtil {
 
     // Didn't find it anywhere in the tree above: lazy programmers!
     //
-    return null;
+    System.err.println("METASTORE PROBLEM: Local couldn't be found, force load local");
+
+    return MetaStoreConst.openLocalPentahoMetaStore();
   }
 }

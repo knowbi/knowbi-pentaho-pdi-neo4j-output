@@ -1,6 +1,8 @@
 package bi.know.kettle.neo4j.entries.cypherscript;
 
+import bi.know.kettle.neo4j.core.MetaStoreUtil;
 import bi.know.kettle.neo4j.core.Neo4jDefaults;
+import bi.know.kettle.neo4j.shared.DriverSingleton;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Driver;
@@ -88,20 +90,30 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
 
   @Override public Result execute( Result result, int nr ) throws KettleException {
 
+    try {
+      metaStore = MetaStoreUtil.findMetaStore( this );
+    } catch(Exception e) {
+      throw new KettleException( "Error finding metastore", e );
+    }
     MetaStoreFactory<NeoConnection> connectionFactory = new MetaStoreFactory<>( NeoConnection.class, metaStore, Neo4jDefaults.NAMESPACE );
 
     // Replace variables & parameters
     //
     NeoConnection connection;
+    String realConnectionName = environmentSubstitute( connectionName );
     try {
-      connection = connectionFactory.loadElement( environmentSubstitute( connectionName ) );
+      if (StringUtils.isEmpty( realConnectionName )) {
+        throw new KettleException( "The Neo4j connection name is not set" );
+      }
+
+      connection = connectionFactory.loadElement( realConnectionName );
       if (connection==null) {
-        throw new KettleException( "Unable to find connection with name '"+connectionName+"'" );
+        throw new KettleException( "Unable to find connection with name '"+realConnectionName+"'" );
       }
     } catch(Exception e) {
       result.setResult( false );
       result.increaseErrors( 1L );
-      throw new KettleException( "Unable to load or find connection with name '"+connectionName+"'", e);
+      throw new KettleException( "Unable to load or find connection with name '"+realConnectionName+"'", e);
     }
 
     String realScript;
@@ -123,7 +135,7 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
 
       // Connect to the database
       //
-      driver = connection.getDriver( log );
+      driver = DriverSingleton.getDriver( log, connection );
       session = driver.session();
       transaction = session.beginTransaction();
 
@@ -166,9 +178,6 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
       }
       if (session!=null) {
         session.close();
-      }
-      if (driver!=null) {
-        driver.close();
       }
     }
 

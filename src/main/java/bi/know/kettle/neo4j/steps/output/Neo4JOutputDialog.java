@@ -793,14 +793,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
       //   Text Area 1 --> textArea1
       //   My_Silly_Column --> mySillyColumn
       //
-      String propertyName = valueMeta.getName();
-      propertyName = WordUtils.capitalize( propertyName, delimitersLiteral );
-      for (String delimiterRegex : delimitersRegex) {
-        propertyName = propertyName.replaceAll( delimiterRegex, "");
-      }
-      if (propertyName.length()>0) {
-        propertyName = propertyName.substring( 0, 1 ).toLowerCase() + propertyName.substring( 1 );
-      }
+      String propertyName = standardizePropertyName( valueMeta );
 
       item.setText( nameColumn, propertyName );
     }
@@ -815,6 +808,18 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     }
 
     return true;
+  }
+
+  public static String standardizePropertyName( ValueMetaInterface valueMeta ) {
+    String propertyName = valueMeta.getName();
+    propertyName = WordUtils.capitalize( propertyName, delimitersLiteral );
+    for (String delimiterRegex : delimitersRegex) {
+      propertyName = propertyName.replaceAll( delimiterRegex, "");
+    }
+    if (propertyName.length()>0) {
+      propertyName = propertyName.substring( 0, 1 ).toLowerCase() + propertyName.substring( 1 );
+    }
+    return propertyName;
   }
 
   private void newConnection() {
