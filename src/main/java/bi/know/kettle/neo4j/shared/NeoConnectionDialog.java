@@ -34,11 +34,12 @@ import org.pentaho.di.ui.trans.step.BaseStepDialog;
  * @see NeoConnection
  */
 
-public class NeoConnectionDialog extends Dialog {
+public class NeoConnectionDialog {
   private static Class<?> PKG = NeoConnectionDialog.class; // for i18n purposes, needed by Translator2!!
 
   private NeoConnection neoConnection;
 
+  private Shell parent;
   private Shell shell;
 
   // Connection properties
@@ -62,15 +63,15 @@ public class NeoConnectionDialog extends Dialog {
   private boolean ok;
   private Label wlPolicy;
 
-  public NeoConnectionDialog( Shell par, NeoConnection neoConnection ) {
-    super( par, SWT.NONE );
+  public NeoConnectionDialog( Shell parent, NeoConnection neoConnection ) {
+    this.parent = parent;
     this.neoConnection = neoConnection;
     props = PropsUI.getInstance();
     ok = false;
   }
 
   public boolean open() {
-    Shell parent = getParent();
+    Display display = parent.getDisplay();
     shell = new Shell( parent, SWT.DIALOG_TRIM | SWT.RESIZE | SWT.MAX | SWT.MIN );
     props.setLook( shell );
     shell.setImage( GUIResource.getInstance().getImageSlave() );
@@ -129,7 +130,7 @@ public class NeoConnectionDialog extends Dialog {
     BaseStepDialog.setSize( shell );
 
     shell.open();
-    Display display = parent.getDisplay();
+
     while ( !shell.isDisposed() ) {
       if ( !display.readAndDispatch() ) {
         display.sleep();
