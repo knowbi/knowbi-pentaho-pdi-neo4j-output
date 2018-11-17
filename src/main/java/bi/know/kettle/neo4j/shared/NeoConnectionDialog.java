@@ -324,6 +324,7 @@ public class NeoConnectionDialog extends Dialog {
     wName.setText( Const.NVL( neoConnection.getName(), "" ) );
     wServer.setText( Const.NVL( neoConnection.getServer(), "" ) );
     wBoltPort.setText( Const.NVL( neoConnection.getBoltPort(), "" ) );
+    wBrowserPort.setText( Const.NVL( neoConnection.getBrowserPort(), "" ) );
     wRouting.setSelection( neoConnection.isRouting() );
     wPolicy.setText( Const.NVL( neoConnection.getRoutingPolicy(), "" ) );
     wUsername.setText( Const.NVL( neoConnection.getUsername(), "" ) );
@@ -357,6 +358,7 @@ public class NeoConnectionDialog extends Dialog {
     neo.setName( wName.getText() );
     neo.setServer( wServer.getText() );
     neo.setBoltPort( wBoltPort.getText() );
+    neo.setBrowserPort( wBrowserPort.getText() );
     neo.setRouting( wRouting.getSelection() );
     neo.setRoutingPolicy( wPolicy.getText() );
     neo.setUsername( wUsername.getText() );
