@@ -15,7 +15,6 @@ import org.pentaho.metastore.persist.MetaStoreElementType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 
 @MetaStoreElementType(

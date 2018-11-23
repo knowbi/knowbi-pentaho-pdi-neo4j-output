@@ -23,6 +23,8 @@
 package bi.know.kettle.neo4j.perspective;
 
 import bi.know.kettle.neo4j.core.Neo4jDefaults;
+import bi.know.kettle.neo4j.model.GraphModel;
+import bi.know.kettle.neo4j.model.GraphModelUtils;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.pentaho.di.core.variables.VariableSpace;
@@ -46,6 +48,7 @@ public class Neo4jHelper extends AbstractXulEventHandler implements ISpoonMenuCo
 
   private Spoon spoon;
   private MetaStoreFactory<NeoConnection> connectionFactory;
+  private MetaStoreFactory<GraphModel> modelFactory;
   private VariableSpace space;
 
   private Neo4jHelper() {
@@ -59,6 +62,7 @@ public class Neo4jHelper extends AbstractXulEventHandler implements ISpoonMenuCo
       instance.space = new Variables();
       instance.space.initializeVariablesFrom( null );
       instance.connectionFactory = new MetaStoreFactory<NeoConnection>( NeoConnection.class, instance.spoon.getMetaStore(), Neo4jDefaults.NAMESPACE );
+      instance.modelFactory = new MetaStoreFactory<GraphModel>( GraphModel.class, instance.spoon.getMetaStore(), Neo4jDefaults.NAMESPACE );
     }
     return instance;
   }
@@ -97,13 +101,49 @@ public class Neo4jHelper extends AbstractXulEventHandler implements ISpoonMenuCo
       Collections.sort( elementNames );
       String[] names = elementNames.toArray( new String[ 0 ] );
 
-      EnterSelectionDialog dialog = new EnterSelectionDialog( spoon.getShell(), names, "Edit Neo4j connection", "Select the connection to edit" );
+      EnterSelectionDialog dialog = new EnterSelectionDialog( spoon.getShell(), names, "Delete Neo4j connection", "Select the connection to delete" );
       String choice = dialog.open();
       if ( choice != null ) {
         NeoConnectionUtils.deleteConnection( spoon.getShell(), connectionFactory, choice );
       }
     } catch(Exception e) {
       new ErrorDialog( spoon.getShell(), "Error", "Error deleting Neo4j connection", e );
+    }
+  }
+
+  public void createModel() {
+    GraphModelUtils.newModel( spoon.getShell(), modelFactory, null);
+  }
+
+  public void editModel() {
+    try {
+      List<String> elementNames = modelFactory.getElementNames();
+      Collections.sort(elementNames);
+      String[] names = elementNames.toArray( new String[ 0 ] );
+
+      EnterSelectionDialog dialog = new EnterSelectionDialog( spoon.getShell(), names, "Edit Neo4j model", "Select the graph model to edit" );
+      String choice = dialog.open();
+      if (choice!=null) {
+        GraphModelUtils.editModel( spoon.getShell(), modelFactory, choice, null);
+      }
+    } catch(Exception e) {
+      new ErrorDialog( spoon.getShell(), "Error", "Error editing Neo4j graph model", e );
+    }
+  }
+
+  public void deleteModel() {
+    try {
+      List<String> elementNames = modelFactory.getElementNames();
+      Collections.sort( elementNames );
+      String[] names = elementNames.toArray( new String[ 0 ] );
+
+      EnterSelectionDialog dialog = new EnterSelectionDialog( spoon.getShell(), names, "Delete Neo4j model", "Select the graph model to delete" );
+      String choice = dialog.open();
+      if ( choice != null ) {
+        GraphModelUtils.deleteModel( spoon.getShell(), modelFactory, choice );
+      }
+    } catch(Exception e) {
+      new ErrorDialog( spoon.getShell(), "Error", "Error deleting Neo4j graph model", e );
     }
   }
 
