@@ -15,7 +15,14 @@
         <menuitem id="neo4-create-connection" label="Create connection" command="neo4jHelper.createConnection()"/>
         <menuitem id="neo4-edit-connection" label="Edit connection" command="neo4jHelper.editConnection()"/>
         <menuitem id="neo4-delete-connection" label="Delete connection" command="neo4jHelper.deleteConnection()"/>
+        <menuseparator id="neo4j-popup-sep1"/>
+        <menuitem id="neo4-create-model" label="Create data model" command="neo4jHelper.createModel()"/>
+        <menuitem id="neo4-edit-model" label="Edit data model" command="neo4jHelper.editModel()"/>
+        <menuitem id="neo4-delete-model" label="Delete data model" command="neo4jHelper.deleteModel()"/>
+        <menuseparator id="neo4j-popup-sep2"/>
         <menuitem id="neo4-show-metastore" label="Show Metastore Browser" command="neo4jHelper.showMetaStoreBrowser()"/>
+        <menuseparator id="neo4j-popup-sep3"/>
+
       </menupopup>
     </menu>
 

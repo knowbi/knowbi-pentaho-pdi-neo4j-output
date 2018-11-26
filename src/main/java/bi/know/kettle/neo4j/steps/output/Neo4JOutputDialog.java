@@ -58,8 +58,10 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
   private TextVar wBatchSize;
   private Button wCreateIndexes;
   private Button wUseCreate;
+  private Button wOnlyCreateRelationships;
 
   private Combo wRel;
+  private TextVar wRelValue;
   private TableView wFromPropsGrid;
   private TableView wFromLabelGrid;
   private TableView wToPropsGrid;
@@ -224,6 +226,23 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     wUseCreate.setLayoutData( fdUseCreate );
     lastControl = wUseCreate;
 
+    Label wlOnlyCreateRelationships = new Label( shell, SWT.RIGHT );
+    wlOnlyCreateRelationships.setText( "Only create relationships? " );
+    props.setLook( wlOnlyCreateRelationships );
+    FormData fdlOnlyCreateRelationships = new FormData();
+    fdlOnlyCreateRelationships.left = new FormAttachment( 0, 0 );
+    fdlOnlyCreateRelationships.right = new FormAttachment( middle, -margin );
+    fdlOnlyCreateRelationships.top = new FormAttachment( lastControl, 2 * margin );
+    wlOnlyCreateRelationships.setLayoutData( fdlOnlyCreateRelationships );
+    wOnlyCreateRelationships = new Button( shell, SWT.CHECK | SWT.BORDER );
+    props.setLook( wOnlyCreateRelationships );
+    FormData fdOnlyCreateRelationships = new FormData();
+    fdOnlyCreateRelationships.left = new FormAttachment( middle, 0 );
+    fdOnlyCreateRelationships.right = new FormAttachment( 100, 0 );
+    fdOnlyCreateRelationships.top = new FormAttachment( wlOnlyCreateRelationships, 0, SWT.CENTER );
+    wOnlyCreateRelationships.setLayoutData( fdOnlyCreateRelationships );
+    lastControl = wOnlyCreateRelationships;
+
     // Some buttons
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) ); //$NON-NLS-1$
@@ -276,7 +295,9 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     final int fromLabelRows = ( input.getFromNodeLabels() != null ? input.getFromNodeLabels().length : 10 );
     ColumnInfo[] fromLabelInf = new ColumnInfo[] {
       new ColumnInfo( BaseMessages.getString( PKG, "Neo4JOutputDialog.FromLabelsTable.FromFields" ), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
+      new ColumnInfo( BaseMessages.getString( PKG, "Neo4JOutputDialog.FromLabelsTable.FromValues" ), ColumnInfo.COLUMN_TYPE_TEXT, false, false ),
     };
+    fromLabelInf[1].setUsingVariables( true );
     wFromLabelGrid = new TableView( Variables.getADefaultVariableSpace(), wFromComp, SWT.BORDER
       | SWT.FULL_SELECTION | SWT.MULTI, fromLabelInf, fromLabelRows, null, PropsUI.getInstance() );
     props.setLook( wFromLabelGrid );
@@ -387,7 +408,10 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     final int toLabelRows = ( input.getToNodeLabels() != null ? input.getToNodeLabels().length : 10 );
     ColumnInfo[] toLabelInf = new ColumnInfo[] {
       new ColumnInfo( BaseMessages.getString( PKG, "Neo4JOutputDialog.ToLabelsTable.ToFields" ), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames ),
+      new ColumnInfo( BaseMessages.getString( PKG, "Neo4JOutputDialog.ToLabelsTable.ToValues" ), ColumnInfo.COLUMN_TYPE_TEXT, false, false ),
     };
+    toLabelInf[1].setUsingVariables( true );
+
     wToLabelGrid =
       new TableView( Variables.getADefaultVariableSpace(), wToComp, SWT.BORDER
         | SWT.FULL_SELECTION | SWT.MULTI, toLabelInf, toLabelRows, null, PropsUI.getInstance() );
@@ -491,27 +515,46 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     props.setLook( wlRel );
     FormData fdlRel = new FormData();
     fdlRel.left = new FormAttachment( 0, 0 );
-    fdlRel.top = new FormAttachment( lastControl, margin * 3 );
+    fdlRel.top = new FormAttachment( 0, 0 );
     wlRel.setLayoutData( fdlRel );
-
     wRel = new Combo( wRelationshipsComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     wRel.setItems( fieldNames );
     props.setLook( wRel );
     wRel.addModifyListener( lsMod );
     FormData fdRel = new FormData();
     fdRel.left = new FormAttachment( wlRel, margin );
+    fdRel.right = new FormAttachment( 100, 0);
     fdRel.top = new FormAttachment( wlRel, 0, SWT.CENTER );
     wRel.setLayoutData( fdRel );
+    lastControl = wRel;
 
+    // Relationship value field
+    Label wlRelValue = new Label( wRelationshipsComp, SWT.RIGHT );
+    wlRelValue.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.RelationshipValue.Label" ) );
+    props.setLook( wlRelValue );
+    FormData fdlRelValue = new FormData();
+    fdlRelValue.left = new FormAttachment( 0, 0 );
+    fdlRelValue.top = new FormAttachment( lastControl, margin );
+    wlRelValue.setLayoutData( fdlRelValue );
+    wRelValue = new TextVar( transMeta, wRelationshipsComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wRelValue );
+    wRelValue.addModifyListener( lsMod );
+    FormData fdRelValue = new FormData();
+    fdRelValue.left = new FormAttachment( wlRelValue, margin );
+    fdRelValue.right = new FormAttachment( 100, 0);
+    fdRelValue.top = new FormAttachment( wlRelValue, 0, SWT.CENTER );
+    wRelValue.setLayoutData( fdRelValue );
+    lastControl = wRelValue;
 
     // Relationship properties
     Label wlRelProps = new Label( wRelationshipsComp, SWT.RIGHT );
-    wlRelProps.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.RelationshipField.Label" ) );
+    wlRelProps.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.RelationshipProperties.Label" ) );
     props.setLook( wlRelProps );
     FormData fdlRelProps = new FormData();
     fdlRelProps.left = new FormAttachment( 0, 0 );
-    fdlRelProps.top = new FormAttachment( wRel, margin * 3 );
+    fdlRelProps.top = new FormAttachment( lastControl, margin * 3 );
     wlRelProps.setLayoutData( fdlRelProps );
+
     final int relPropsRows = ( input.getRelProps() != null ? input.getRelProps().length : 10 );
     ColumnInfo[] relPropsInf = new ColumnInfo[] {
       new ColumnInfo( BaseMessages.getString( PKG, "Neo4JOutputDialog.RelPropsTable.PropertiesField" ), ColumnInfo.COLUMN_TYPE_CCOMBO, fieldNames,
@@ -524,9 +567,9 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
       relPropsInf, relPropsRows, null, PropsUI.getInstance() );
     props.setLook( wRelPropsGrid );
 
-    Button wRelProps = new Button( wRelationshipsComp, SWT.PUSH );
-    wRelProps.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.GetFields.Button" ) ); //$NON-NLS-1$
-    wRelProps.addSelectionListener( new SelectionAdapter() {
+    Button wbRelProps = new Button( wRelationshipsComp, SWT.PUSH );
+    wbRelProps.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.GetFields.Button" ) ); //$NON-NLS-1$
+    wbRelProps.addSelectionListener( new SelectionAdapter() {
       @Override
       public void widgetSelected( SelectionEvent event ) {
         get( 4 );
@@ -534,14 +577,14 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     } );
     FormData fdRelProps = new FormData();
     fdRelProps.right = new FormAttachment( 100, 0 );
-    fdRelProps.top = new FormAttachment( wRel, margin * 3 );
-    wRelProps.setLayoutData( fdRelProps );
+    fdRelProps.top = new FormAttachment( lastControl, margin * 3);
+    wbRelProps.setLayoutData( fdRelProps );
 
 
     FormData fdRelPropsGrid = new FormData();
     fdRelPropsGrid.left = new FormAttachment( wlRelProps, margin );
-    fdRelPropsGrid.right = new FormAttachment( wRelProps, 0 );
-    fdRelPropsGrid.top = new FormAttachment( wRel, margin * 3 );
+    fdRelPropsGrid.right = new FormAttachment( wbRelProps, -margin );
+    fdRelPropsGrid.top = new FormAttachment( lastControl, margin * 3 );
     fdRelPropsGrid.bottom = new FormAttachment( 100, 0 );
     wRelPropsGrid.setLayoutData( fdRelPropsGrid );
 
@@ -595,6 +638,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     wBatchSize.setText( Const.NVL( input.getBatchSize(), "" ) );
     wCreateIndexes.setSelection( input.isCreatingIndexes() );
     wUseCreate.setSelection( input.isUsingCreate() );
+    wOnlyCreateRelationships.setSelection( input.isOnlyCreatingRelationships() );
 
     // List of connections...
     //
@@ -608,10 +652,12 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
     if ( input.getFromNodeLabels() != null ) {
       String fromNodeLabels[] = input.getFromNodeLabels();
+      String fromNodeLabelValues[] = input.getFromNodeLabelValues();
 
       for ( int i = 0; i < fromNodeLabels.length; i++ ) {
         TableItem item = wFromLabelGrid.table.getItem( i );
         item.setText( 1, Const.NVL( fromNodeLabels[ i ], "" ) );
+        item.setText( 2, Const.NVL( fromNodeLabelValues[ i ], "" ) );
       }
     }
 
@@ -628,10 +674,12 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
     if ( input.getToNodeLabels() != null ) {
       String toNodeLabels[] = input.getToNodeLabels();
+      String toNodeLabelValues[] = input.getToNodeLabelValues();
 
       for ( int i = 0; i < toNodeLabels.length; i++ ) {
         TableItem item = wToLabelGrid.table.getItem( i );
         item.setText( 1, Const.NVL( toNodeLabels[ i ], "" ) );
+        item.setText( 2, Const.NVL( toNodeLabelValues[ i ], "" ) );
       }
     }
 
@@ -646,6 +694,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     }
 
     wRel.setText( Const.NVL( input.getRelationship(), "" ) );
+    wRelValue.setText( Const.NVL( input.getRelationshipValue(), "" ) );
 
     if ( input.getRelProps() != null ) {
       for ( int i = 0; i < input.getRelProps().length; i++ ) {
@@ -670,20 +719,27 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     input.setBatchSize( wBatchSize.getText() );
     input.setCreatingIndexes( wCreateIndexes.getSelection() );
     input.setUsingCreate( wUseCreate.getSelection() );
+    input.setOnlyCreatingRelationships( wOnlyCreateRelationships.getSelection() );
 
     String fromNodeLabels[] = new String[ wFromLabelGrid.nrNonEmpty() ];
+    String fromNodeLabelValues[] = new String[ wFromLabelGrid.nrNonEmpty() ];
     for ( int i = 0; i < fromNodeLabels.length; i++ ) {
       TableItem item = wFromLabelGrid.table.getItem( i );
       fromNodeLabels[ i ] = item.getText( 1 );
+      fromNodeLabelValues[ i ] = item.getText( 2 );
     }
     input.setFromNodeLabels( fromNodeLabels );
+    input.setFromNodeLabelValues( fromNodeLabelValues );
 
     String toNodeLabels[] = new String[ wToLabelGrid.nrNonEmpty() ];
+    String toNodeLabelValues[] = new String[ wToLabelGrid.nrNonEmpty() ];
     for ( int i = 0; i < toNodeLabels.length; i++ ) {
       TableItem item = wToLabelGrid.table.getItem( i );
       toNodeLabels[ i ] = item.getText( 1 );
+      toNodeLabelValues[ i ] = item.getText( 2 );
     }
     input.setToNodeLabels( toNodeLabels );
+    input.setToNodeLabelValues( toNodeLabelValues );
 
     int nbFromPropLines = wFromPropsGrid.nrNonEmpty();
     String fromNodeProps[] = new String[ nbFromPropLines ];
@@ -722,6 +778,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     input.setToNodePropPrimary( toNodePropPrimary );
 
     input.setRelationship( wRel.getText() );
+    input.setRelationshipValue( wRelValue.getText() );
 
     int nbRelProps = wRelPropsGrid.nrNonEmpty();
     String relProps[] = new String[ nbRelProps ];
@@ -738,7 +795,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     input.setRelPropTypes( relPropTypes );
 
     dispose();
-
   }
 
 
