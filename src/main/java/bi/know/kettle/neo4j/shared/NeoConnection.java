@@ -6,6 +6,7 @@ import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.variables.VariableSpace;
@@ -14,6 +15,7 @@ import org.pentaho.metastore.persist.MetaStoreAttribute;
 import org.pentaho.metastore.persist.MetaStoreElementType;
 
 import java.net.URLEncoder;
+import java.util.concurrent.TimeUnit;
 
 @MetaStoreElementType( name = "Neo4j Connection", description = "A shared connection to a Neo4j server" )
 public class NeoConnection extends Variables {
@@ -43,6 +45,25 @@ public class NeoConnection extends Variables {
   @MetaStoreAttribute
   private boolean usingEncryption;
 
+  @MetaStoreAttribute
+  private String connectionLivenessCheckTimeout;
+
+  @MetaStoreAttribute
+  private String maxConnectionLifetime;
+
+  @MetaStoreAttribute
+  private String maxConnectionPoolSize;
+
+  @MetaStoreAttribute
+  private String connectionAcquisitionTimeout;
+
+  @MetaStoreAttribute
+  private String connectionTimeout;
+
+  @MetaStoreAttribute
+  private String maxTransactionRetryTime;
+
+
   public NeoConnection() {
     boltPort = "7687";
     browserPort = "7474";
@@ -53,8 +74,8 @@ public class NeoConnection extends Variables {
     usingEncryption = true;
   }
 
-  public NeoConnection(VariableSpace parent, NeoConnection source) {
-    this(parent);
+  public NeoConnection( VariableSpace parent, NeoConnection source ) {
+    this( parent );
     this.name = source.name;
     this.server = source.server;
     this.boltPort = source.boltPort;
@@ -148,15 +169,52 @@ public class NeoConnection extends Variables {
     String url = getUrl();
     String realUsername = environmentSubstitute( username );
     String realPassword = environmentSubstitute( password );
-    Config config;
+    Config.ConfigBuilder configBuilder;
     if ( usingEncryption ) {
-      config = Config.build().withEncryption().toConfig();
+      configBuilder = Config.build().withEncryption();
     } else {
-      config = Config.build().withoutEncryption().toConfig();
+      configBuilder = Config.build().withoutEncryption();
     }
-    // System.out.println("config.connectionTimeoutMillis() : "+config.connectionTimeoutMillis());
-    // System.out.println("config.idleTimeBeforeConnectionTest() : "+config.idleTimeBeforeConnectionTest());
-    // System.out.println("config.maxConnectionLifetimeMillis() : "+config.maxConnectionLifetimeMillis());
+
+    if ( StringUtils.isNotEmpty( connectionLivenessCheckTimeout ) ) {
+      long seconds = Const.toLong( environmentSubstitute( connectionLivenessCheckTimeout ), -1L );
+      if ( seconds > 0 ) {
+        configBuilder = configBuilder.withConnectionLivenessCheckTimeout( seconds, TimeUnit.MILLISECONDS );
+      }
+    }
+    if ( StringUtils.isNotEmpty( maxConnectionLifetime ) ) {
+      long seconds = Const.toLong( environmentSubstitute( maxConnectionLifetime ), -1L );
+      if ( seconds > 0 ) {
+        configBuilder = configBuilder.withMaxConnectionLifetime( seconds, TimeUnit.MILLISECONDS );
+      }
+    }
+    if ( StringUtils.isNotEmpty( maxConnectionPoolSize ) ) {
+      int size = Const.toInt( environmentSubstitute( maxConnectionPoolSize ), -1 );
+      if ( size > 0 ) {
+        configBuilder = configBuilder.withMaxConnectionPoolSize( size );
+      }
+    }
+    if ( StringUtils.isNotEmpty( connectionAcquisitionTimeout ) ) {
+      long seconds = Const.toLong( environmentSubstitute( connectionAcquisitionTimeout ), -1L );
+      if ( seconds > 0 ) {
+        configBuilder = configBuilder.withConnectionAcquisitionTimeout( seconds, TimeUnit.MILLISECONDS );
+      }
+    }
+    if ( StringUtils.isNotEmpty( connectionTimeout ) ) {
+      long seconds = Const.toLong( environmentSubstitute( connectionTimeout ), -1L );
+      if ( seconds > 0 ) {
+        configBuilder = configBuilder.withConnectionTimeout( seconds, TimeUnit.MILLISECONDS );
+      }
+    }
+    if ( StringUtils.isNotEmpty( maxTransactionRetryTime ) ) {
+      long seconds = Const.toLong( environmentSubstitute( maxTransactionRetryTime ), -1L );
+      if ( seconds > 0 ) {
+        configBuilder = configBuilder.withMaxTransactionRetryTime( seconds, TimeUnit.MILLISECONDS );
+      }
+    }
+
+    Config config = configBuilder.toConfig();
+
     return GraphDatabase.driver( url, AuthTokens.basic( realUsername, realPassword ), config );
   }
 
@@ -302,5 +360,101 @@ public class NeoConnection extends Variables {
    */
   public void setUsingEncryption( boolean usingEncryption ) {
     this.usingEncryption = usingEncryption;
+  }
+
+  /**
+   * Gets connectionLivenessCheckTimeout
+   *
+   * @return value of connectionLivenessCheckTimeout
+   */
+  public String getConnectionLivenessCheckTimeout() {
+    return connectionLivenessCheckTimeout;
+  }
+
+  /**
+   * @param connectionLivenessCheckTimeout The connectionLivenessCheckTimeout to set
+   */
+  public void setConnectionLivenessCheckTimeout( String connectionLivenessCheckTimeout ) {
+    this.connectionLivenessCheckTimeout = connectionLivenessCheckTimeout;
+  }
+
+  /**
+   * Gets maxConnectionLifetime
+   *
+   * @return value of maxConnectionLifetime
+   */
+  public String getMaxConnectionLifetime() {
+    return maxConnectionLifetime;
+  }
+
+  /**
+   * @param maxConnectionLifetime The maxConnectionLifetime to set
+   */
+  public void setMaxConnectionLifetime( String maxConnectionLifetime ) {
+    this.maxConnectionLifetime = maxConnectionLifetime;
+  }
+
+  /**
+   * Gets maxConnectionPoolSize
+   *
+   * @return value of maxConnectionPoolSize
+   */
+  public String getMaxConnectionPoolSize() {
+    return maxConnectionPoolSize;
+  }
+
+  /**
+   * @param maxConnectionPoolSize The maxConnectionPoolSize to set
+   */
+  public void setMaxConnectionPoolSize( String maxConnectionPoolSize ) {
+    this.maxConnectionPoolSize = maxConnectionPoolSize;
+  }
+
+  /**
+   * Gets connectionAcquisitionTimeout
+   *
+   * @return value of connectionAcquisitionTimeout
+   */
+  public String getConnectionAcquisitionTimeout() {
+    return connectionAcquisitionTimeout;
+  }
+
+  /**
+   * @param connectionAcquisitionTimeout The connectionAcquisitionTimeout to set
+   */
+  public void setConnectionAcquisitionTimeout( String connectionAcquisitionTimeout ) {
+    this.connectionAcquisitionTimeout = connectionAcquisitionTimeout;
+  }
+
+  /**
+   * Gets connectionTimeout
+   *
+   * @return value of connectionTimeout
+   */
+  public String getConnectionTimeout() {
+    return connectionTimeout;
+  }
+
+  /**
+   * @param connectionTimeout The connectionTimeout to set
+   */
+  public void setConnectionTimeout( String connectionTimeout ) {
+    this.connectionTimeout = connectionTimeout;
+  }
+
+  /**
+   * Gets maxTransactionRetryTime
+   *
+   * @return value of maxTransactionRetryTime
+   */
+  public String getMaxTransactionRetryTime() {
+    return maxTransactionRetryTime;
+  }
+
+  /**
+   * @param maxTransactionRetryTime The maxTransactionRetryTime to set
+   */
+  public void setMaxTransactionRetryTime( String maxTransactionRetryTime ) {
+    this.maxTransactionRetryTime = maxTransactionRetryTime;
   }
 }

@@ -11,8 +11,8 @@ import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
 import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Control;
-import org.eclipse.swt.widgets.Dialog;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
@@ -62,6 +62,13 @@ public class NeoConnectionDialog {
 
   private boolean ok;
   private Label wlPolicy;
+  
+  private TextVar wConnectionLivenessCheckTimeout;
+  private TextVar wMaxConnectionLifetime;
+  private TextVar wMaxConnectionPoolSize;
+  private TextVar wConnectionAcquisitionTimeout;
+  private TextVar wConnectionTimeout;
+  private TextVar wMaxTransactionRetryTime;
 
   public NeoConnectionDialog( Shell parent, NeoConnection neoConnection ) {
     this.parent = parent;
@@ -117,6 +124,12 @@ public class NeoConnectionDialog {
     wBoltPort.addSelectionListener( selAdapter );
     wBrowserPort.addSelectionListener( selAdapter );
     wPolicy.addSelectionListener( selAdapter );
+    wConnectionLivenessCheckTimeout.addSelectionListener( selAdapter );
+    wMaxConnectionLifetime.addSelectionListener( selAdapter );
+    wMaxConnectionPoolSize.addSelectionListener( selAdapter );
+    wConnectionAcquisitionTimeout.addSelectionListener( selAdapter );
+    wConnectionTimeout.addSelectionListener( selAdapter );
+    wMaxTransactionRetryTime.addSelectionListener( selAdapter );
 
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
@@ -309,6 +322,131 @@ public class NeoConnectionDialog {
     fdEncryption.right = new FormAttachment( 95, 0 );
     wEncryption.setLayoutData( fdEncryption );
     lastControl = wEncryption;
+
+    Group gAdvanced = new Group(shell, SWT.SHADOW_ETCHED_IN);
+    props.setLook( gAdvanced );
+    FormLayout advancedLayout = new FormLayout();
+    advancedLayout.marginTop = margin;
+    advancedLayout.marginBottom = margin;
+    gAdvanced.setLayout( advancedLayout );
+    gAdvanced.setText("Advanced options");
+
+    // ConnectionLivenessCheckTimeout
+    Label wlConnectionLivenessCheckTimeout = new Label( gAdvanced, SWT.RIGHT );
+    wlConnectionLivenessCheckTimeout.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.ConnectionLivenessCheckTimeout.Label" ) );
+    props.setLook( wlConnectionLivenessCheckTimeout );
+    FormData fdlConnectionLivenessCheckTimeout = new FormData();
+    fdlConnectionLivenessCheckTimeout.top = new FormAttachment( 0, 0 );
+    fdlConnectionLivenessCheckTimeout.left = new FormAttachment( 0, 0 );
+    fdlConnectionLivenessCheckTimeout.right = new FormAttachment( middle, -margin );
+    wlConnectionLivenessCheckTimeout.setLayoutData( fdlConnectionLivenessCheckTimeout );
+    wConnectionLivenessCheckTimeout = new TextVar( neoConnection, gAdvanced, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wConnectionLivenessCheckTimeout );
+    FormData fdConnectionLivenessCheckTimeout = new FormData();
+    fdConnectionLivenessCheckTimeout.top = new FormAttachment( wlConnectionLivenessCheckTimeout, 0, SWT.CENTER );
+    fdConnectionLivenessCheckTimeout.left = new FormAttachment( middle, 0 );
+    fdConnectionLivenessCheckTimeout.right = new FormAttachment( 95, 0 );
+    wConnectionLivenessCheckTimeout.setLayoutData( fdConnectionLivenessCheckTimeout );
+    Control lastGroupControl = wConnectionLivenessCheckTimeout;
+    
+    // MaxConnectionLifetime
+    Label wlMaxConnectionLifetime = new Label( gAdvanced, SWT.RIGHT );
+    wlMaxConnectionLifetime.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.MaxConnectionLifetime.Label" ) );
+    props.setLook( wlMaxConnectionLifetime );
+    FormData fdlMaxConnectionLifetime = new FormData();
+    fdlMaxConnectionLifetime.top = new FormAttachment( lastGroupControl, margin );
+    fdlMaxConnectionLifetime.left = new FormAttachment( 0, 0 );
+    fdlMaxConnectionLifetime.right = new FormAttachment( middle, -margin );
+    wlMaxConnectionLifetime.setLayoutData( fdlMaxConnectionLifetime );
+    wMaxConnectionLifetime = new TextVar( neoConnection, gAdvanced, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wMaxConnectionLifetime );
+    FormData fdMaxConnectionLifetime = new FormData();
+    fdMaxConnectionLifetime.top = new FormAttachment( wlMaxConnectionLifetime, 0, SWT.CENTER );
+    fdMaxConnectionLifetime.left = new FormAttachment( middle, 0 );
+    fdMaxConnectionLifetime.right = new FormAttachment( 95, 0 );
+    wMaxConnectionLifetime.setLayoutData( fdMaxConnectionLifetime );
+    lastGroupControl = wMaxConnectionLifetime;
+
+    // MaxConnectionPoolSize
+    Label wlMaxConnectionPoolSize = new Label( gAdvanced, SWT.RIGHT );
+    wlMaxConnectionPoolSize.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.MaxConnectionPoolSize.Label" ) );
+    props.setLook( wlMaxConnectionPoolSize );
+    FormData fdlMaxConnectionPoolSize = new FormData();
+    fdlMaxConnectionPoolSize.top = new FormAttachment( lastGroupControl, margin );
+    fdlMaxConnectionPoolSize.left = new FormAttachment( 0, 0 );
+    fdlMaxConnectionPoolSize.right = new FormAttachment( middle, -margin );
+    wlMaxConnectionPoolSize.setLayoutData( fdlMaxConnectionPoolSize );
+    wMaxConnectionPoolSize = new TextVar( neoConnection, gAdvanced, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wMaxConnectionPoolSize );
+    FormData fdMaxConnectionPoolSize = new FormData();
+    fdMaxConnectionPoolSize.top = new FormAttachment( wlMaxConnectionPoolSize, 0, SWT.CENTER );
+    fdMaxConnectionPoolSize.left = new FormAttachment( middle, 0 );
+    fdMaxConnectionPoolSize.right = new FormAttachment( 95, 0 );
+    wMaxConnectionPoolSize.setLayoutData( fdMaxConnectionPoolSize );
+    lastGroupControl = wMaxConnectionPoolSize;
+
+    // ConnectionAcquisitionTimeout
+    Label wlConnectionAcquisitionTimeout = new Label( gAdvanced, SWT.RIGHT );
+    wlConnectionAcquisitionTimeout.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.ConnectionAcquisitionTimeout.Label" ) );
+    props.setLook( wlConnectionAcquisitionTimeout );
+    FormData fdlConnectionAcquisitionTimeout = new FormData();
+    fdlConnectionAcquisitionTimeout.top = new FormAttachment( lastGroupControl, margin );
+    fdlConnectionAcquisitionTimeout.left = new FormAttachment( 0, 0 );
+    fdlConnectionAcquisitionTimeout.right = new FormAttachment( middle, -margin );
+    wlConnectionAcquisitionTimeout.setLayoutData( fdlConnectionAcquisitionTimeout );
+    wConnectionAcquisitionTimeout = new TextVar( neoConnection, gAdvanced, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wConnectionAcquisitionTimeout );
+    FormData fdConnectionAcquisitionTimeout = new FormData();
+    fdConnectionAcquisitionTimeout.top = new FormAttachment( wlConnectionAcquisitionTimeout, 0, SWT.CENTER );
+    fdConnectionAcquisitionTimeout.left = new FormAttachment( middle, 0 );
+    fdConnectionAcquisitionTimeout.right = new FormAttachment( 95, 0 );
+    wConnectionAcquisitionTimeout.setLayoutData( fdConnectionAcquisitionTimeout );
+    lastGroupControl = wConnectionAcquisitionTimeout;
+    
+    // ConnectionTimeout
+    Label wlConnectionTimeout = new Label( gAdvanced, SWT.RIGHT );
+    wlConnectionTimeout.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.ConnectionTimeout.Label" ) );
+    props.setLook( wlConnectionTimeout );
+    FormData fdlConnectionTimeout = new FormData();
+    fdlConnectionTimeout.top = new FormAttachment( lastGroupControl, margin );
+    fdlConnectionTimeout.left = new FormAttachment( 0, 0 );
+    fdlConnectionTimeout.right = new FormAttachment( middle, -margin );
+    wlConnectionTimeout.setLayoutData( fdlConnectionTimeout );
+    wConnectionTimeout = new TextVar( neoConnection, gAdvanced, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wConnectionTimeout );
+    FormData fdConnectionTimeout = new FormData();
+    fdConnectionTimeout.top = new FormAttachment( wlConnectionTimeout, 0, SWT.CENTER );
+    fdConnectionTimeout.left = new FormAttachment( middle, 0 );
+    fdConnectionTimeout.right = new FormAttachment( 95, 0 );
+    wConnectionTimeout.setLayoutData( fdConnectionTimeout );
+    lastGroupControl = wConnectionTimeout;
+    
+    // MaxTransactionRetryTime
+    Label wlMaxTransactionRetryTime = new Label( gAdvanced, SWT.RIGHT );
+    wlMaxTransactionRetryTime.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.MaxTransactionRetryTime.Label" ) );
+    props.setLook( wlMaxTransactionRetryTime );
+    FormData fdlMaxTransactionRetryTime = new FormData();
+    fdlMaxTransactionRetryTime.top = new FormAttachment( lastGroupControl, margin );
+    fdlMaxTransactionRetryTime.left = new FormAttachment( 0, 0 );
+    fdlMaxTransactionRetryTime.right = new FormAttachment( middle, -margin );
+    wlMaxTransactionRetryTime.setLayoutData( fdlMaxTransactionRetryTime );
+    wMaxTransactionRetryTime = new TextVar( neoConnection, gAdvanced, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wMaxTransactionRetryTime );
+    FormData fdMaxTransactionRetryTime = new FormData();
+    fdMaxTransactionRetryTime.top = new FormAttachment( wlMaxTransactionRetryTime, 0, SWT.CENTER );
+    fdMaxTransactionRetryTime.left = new FormAttachment( middle, 0 );
+    fdMaxTransactionRetryTime.right = new FormAttachment( 95, 0 );
+    wMaxTransactionRetryTime.setLayoutData( fdMaxTransactionRetryTime );
+    lastGroupControl = wMaxTransactionRetryTime;
+
+    // End of Advanced group
+    //
+    FormData fdAdvanced = new FormData();
+    fdAdvanced.left = new FormAttachment( 0, 0 );
+    fdAdvanced.right = new FormAttachment( 100, 0 );
+    fdAdvanced.top = new FormAttachment( lastControl, margin*2 );
+    gAdvanced.setLayoutData( fdAdvanced );
+    lastControl = gAdvanced;
   }
 
   private void enableFields() {
@@ -331,7 +469,13 @@ public class NeoConnectionDialog {
     wUsername.setText( Const.NVL( neoConnection.getUsername(), "" ) );
     wPassword.setText( Const.NVL( neoConnection.getPassword(), "" ) );
     wEncryption.setSelection( neoConnection.isUsingEncryption() );
-
+    wConnectionLivenessCheckTimeout.setText( Const.NVL(neoConnection.getConnectionLivenessCheckTimeout(), "") );
+    wMaxConnectionLifetime.setText( Const.NVL(neoConnection.getMaxConnectionLifetime(), "") );
+    wMaxConnectionPoolSize.setText( Const.NVL(neoConnection.getMaxConnectionPoolSize(), "") );
+    wConnectionAcquisitionTimeout.setText( Const.NVL(neoConnection.getConnectionAcquisitionTimeout(), "") );
+    wConnectionTimeout.setText( Const.NVL(neoConnection.getConnectionTimeout(), "") );
+    wMaxTransactionRetryTime.setText( Const.NVL(neoConnection.getMaxTransactionRetryTime(), "") );
+    
     enableFields();
     wName.setFocus();
   }
@@ -365,6 +509,13 @@ public class NeoConnectionDialog {
     neo.setUsername( wUsername.getText() );
     neo.setPassword( wPassword.getText() );
     neo.setUsingEncryption( wEncryption.getSelection() );
+
+    neo.setConnectionLivenessCheckTimeout( wConnectionLivenessCheckTimeout.getText() );
+    neo.setMaxConnectionLifetime( wMaxConnectionLifetime.getText() );
+    neo.setMaxConnectionPoolSize( wMaxConnectionPoolSize.getText() );
+    neo.setConnectionAcquisitionTimeout( wConnectionAcquisitionTimeout.getText() );
+    neo.setConnectionTimeout( wConnectionTimeout.getText() );
+    neo.setMaxTransactionRetryTime( wMaxTransactionRetryTime.getText() );
   }
 
   public void test() {

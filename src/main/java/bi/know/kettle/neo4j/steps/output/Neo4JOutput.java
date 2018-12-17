@@ -827,9 +827,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
     // Allow gc
     //
-    data.fromUnwindList = null;
-    data.toUnwindList = null;
-    data.relUnwindList = null;
+    data.fromUnwindList = new ArrayList<>(  );
+    data.toUnwindList = new ArrayList<>(  );
+    data.relUnwindList = new ArrayList<>(  );
 
     if ( data.outputCount > 0 ) {
       data.transaction.success();
