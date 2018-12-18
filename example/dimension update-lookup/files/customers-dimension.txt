@@ -1,0 +1,16 @@
+id;name;firstname;zip;city;birthdate;street;housenr;stateCode;state
+ 1;atectfduly-name;ojdcgfqxom-firstname; 18800;azz-city;1958/05/25;qaci-street; 197;NY;NEW YORK
+ 2;veucsjrhqq-name;eflskpswrn-firstname; 11520;jog-city;1954/09/13;qzgv-street; 45;AS;AMERICAN SAMOA
+ 3;imzlhtoajv-name;lzieqpeyid-firstname; 15300;guj-city;1990/02/22;qojz-street; 50;UT;UTAH
+ 4;eoykfrieua-name;dbingibmfu-firstname; 16120;ynz-city;1982/03/21;oukn-street; 108;FM;FEDERATED STATES OF MICRONESIA
+ 5;bhmdfpzaaa-name;ynpetirfml-firstname; 18620;jnz-city;1986/07/06;fniy-street; 98;NH;NEW HAMPSHIRE
+ 6;mgwqekwbbb-name;dpmcbxlmbo-firstname; 11580;ltg-city;1970/11/06;xipw-street; 84;NV;NEVADA
+ 7;vepowudgcf-name;gdekrxhfkg-firstname; 18580;tut-city;1975/01/02;ifyx-street; 186;RI;RHODE ISLAND
+ 8;zaztsddrin-name;zsqyrfznrf-firstname; 18440;ddp-city;1982/07/01;optj-street; 113;WI;WISCONSIN
+ 9;kzgsmyzdzb-name;ozlqwwabqz-firstname; 11120;rry-city;1974/02/22;levn-street; 163;ME;MAINE
+ 10;fyvyglumdn-name;vmsatjzvts-firstname; 11660;vtp-city;1950/10/16;cpnv-street; 76;AR;ARKANSAS
+ 1;atectfduly-name;ojdcgfqxom-firstname; 18820;azs-city;1958/05/25;qaci-street; 197;NY;NEW YORK
+ 2;veucsjrhqq-name;eflskpswrn-firstname; 11520;jog-city;1954/09/13;qzgv-street; 45;NH;NEW HAMPSHIRE
+ 3;imzlhtoajv-name;lzieqpeyid-firstname; 15300;guj-city;1990/08/22;qojz-street; 50;UT;UTAH
+ 1;atectfaaaa-name;ojdcgfqxom-firstname; 18820;azs-city;1958/05/25;qaci-street; 197;NY;NEW YORK
+ 1;atectfaaaa-name;ojdcgfqxom-firstname; 18820;azs-city;1958/05/25;icaq-street; 197;NY;NEW YORK
