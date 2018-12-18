@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="100px" height="100px" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 51.2 (57519) - http://www.bohemiancoding.com/sketch -->
+    <title>Neo4jOutput Dimension lookup/update</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Neo4jOutput-Dimension-lookup/update" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <rect id="Rectangle" fill-rule="nonzero" x="0" y="0" width="100" height="100" rx="8"></rect>
+        <g id="Group" transform="translate(25.000000, 12.000000)" fill-rule="nonzero">
+            <circle id="Oval" fill="#008CC2" cx="30" cy="30" r="30"></circle>
+            <circle id="Oval-2" stroke="#FFFFFF" fill="#64B345" cx="14" cy="7" r="7"></circle>
+            <circle id="Oval-2" stroke="#FFFFFF" fill="#64B345" cx="20" cy="54" r="10"></circle>
+            <circle id="Oval-2" stroke="#FFFFFF" fill="#64B345" cx="48" cy="22" r="15"></circle>
+            <circle id="Oval-3" fill="#FFFFFF" cx="26" cy="7" r="3"></circle>
+            <circle id="Oval-3" fill="#FFFFFF" cx="33" cy="10" r="3"></circle>
+            <circle id="Oval-3" fill="#FFFFFF" cx="42" cy="42" r="3"></circle>
+            <circle id="Oval-3" fill="#FFFFFF" cx="37" cy="49" r="3"></circle>
+            <circle id="Oval-3" fill="#FFFFFF" cx="15" cy="40" r="3"></circle>
+            <circle id="Oval-3" fill="#FFFFFF" cx="11" cy="34" r="3"></circle>
+            <circle id="Oval-3" fill="#FFFFFF" cx="10" cy="26" r="3"></circle>
+            <circle id="Oval-3" fill="#FFFFFF" cx="11" cy="19" r="3"></circle>
+        </g>
+        <path id="Line" d="M10.15,27.5 L3.15,41.5 L17.15,41.5 L10.15,27.5 Z M11.15,87.5 L11.15,40.5 L11.15,39.5 L9.15,39.5 L9.15,40.5 L9.15,87.5 L9.15,88.5 L11.15,88.5 L11.15,87.5 Z" fill="#3D6380" fill-rule="nonzero"></path>
+        <path id="Line" d="M72,87.5 L58,80.5 L58,94.5 L72,87.5 Z M11.15,88.5 L59,88.5 L60,88.5 L60,86.5 L59,86.5 L11.15,86.5 L10.15,86.5 L10.15,88.5 L11.15,88.5 Z" fill="#3D6380" fill-rule="nonzero"></path>
+        <path id="Line" d="M52.3143217,43.8479827 L37.616578,49.2309492 L47.8020487,58.8359576 L52.3143217,43.8479827 Z M11.8775336,88.186072 L44.1534055,53.9596629 L44.8394775,53.2321293 L43.3844102,51.8599852 L42.6983382,52.5875188 L10.4224664,86.813928 L9.73639435,87.5414616 L11.1914616,88.9136057 L11.8775336,88.186072 Z" fill="#3D6380" fill-rule="nonzero"></path>
+        <polygon id="Triangle" fill="#FFFFFF" fill-rule="nonzero" transform="translate(84.729708, 86.729708) rotate(135.000000) translate(-84.729708, -86.729708) " points="84.7297077 64.2297077 129.729708 109.229708 39.7297077 109.229708"></polygon>
+        <g id="Group-2" transform="translate(70.000000, 71.000000)" fill-rule="nonzero" stroke="#3D6380" stroke-width="2">
+            <circle id="Oval-4" cx="7" cy="7" r="7"></circle>
+            <path d="M12.5,12.5 L19.5710678,19.5710678" id="Line-2" stroke-linecap="square"></path>
+        </g>
+    </g>
+</svg>
