@@ -103,6 +103,16 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         data.relPropTypes[ i ] = GraphPropertyType.parseCode( meta.getRelPropTypes()[ i ] );
       }
       data.relationshipIndex = data.outputRowMeta.indexOfValue( meta.getRelationship() );
+      data.fromLabelValues = new String[meta.getFromNodeLabelValues().length];
+      for (int i=0;i<meta.getFromNodeLabelValues().length;i++) {
+        data.fromLabelValues[i] = environmentSubstitute( meta.getFromNodeLabelValues()[i] );
+      }
+      data.toLabelValues = new String[meta.getToNodeLabelValues().length];
+      for (int i=0;i<meta.getToNodeLabelValues().length;i++) {
+        data.toLabelValues[i] = environmentSubstitute( meta.getToNodeLabelValues()[i] );
+      }
+      data.relationshipLabelValue = environmentSubstitute( meta.getRelationshipValue() );
+
 
       // Create a session
       //
@@ -129,7 +139,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     try {
       if ( meta.getFromNodeProps().length > 0 && !meta.isOnlyCreatingRelationships() ) {
 
-        String[] fromLabels = getNodeLabels( meta.getFromNodeLabels(), meta.getFromNodeLabelValues(), getInputRowMeta(), row, data.fromNodeLabelIndexes );
+        List<String> fromLabels = getNodeLabels( meta.getFromNodeLabels(), data.fromLabelValues, getInputRowMeta(), row, data.fromNodeLabelIndexes );
 
         if ( meta.isUsingCreate() ) {
 
@@ -151,7 +161,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       }
       if ( meta.getToNodeProps().length > 0 && !meta.isOnlyCreatingRelationships() ) {
 
-        String[] toLabels = getNodeLabels( meta.getToNodeLabels(), meta.getToNodeLabelValues(), getInputRowMeta(), row, data.toNodeLabelIndexes );
+        List<String> toLabels = getNodeLabels( meta.getToNodeLabels(), data.toLabelValues, getInputRowMeta(), row, data.toNodeLabelIndexes );
 
         if ( meta.isUsingCreate() ) {
 
@@ -178,26 +188,27 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
     try {
 
-      String relationshipLabel;
-      if ( data.relationshipIndex < 0 ) {
-        relationshipLabel = meta.getRelationshipValue();
-      } else {
+      String relationshipLabel = null;
+      if ( data.relationshipIndex >= 0 ) {
         relationshipLabel = getInputRowMeta().getString( row, data.relationshipIndex );
       }
+      if ( StringUtils.isEmpty( relationshipLabel ) && StringUtils.isNotEmpty( data.relationshipLabelValue ) ) {
+        relationshipLabel = data.relationshipLabelValue;
+      }
+
       // We only create a relationship if we have a label
       //
-      if (StringUtils.isNotEmpty(relationshipLabel)) {
+      if ( StringUtils.isNotEmpty( relationshipLabel ) ) {
 
         if ( meta.isOnlyCreatingRelationships() ) {
           // Use UNWIND statements to create relationships...
           //
           createOnlyRelationship( getInputRowMeta(), row, meta, data, relationshipLabel );
-          updateUsageMap( new String[] { relationshipLabel }, GraphUsage.RELATIONSHIP_CREATE );
+          updateUsageMap( Collections.singletonList( relationshipLabel ), GraphUsage.RELATIONSHIP_CREATE );
 
         } else {
-
           createRelationship( getInputRowMeta(), row, meta, data, relationshipLabel );
-          updateUsageMap( new String[] { relationshipLabel }, GraphUsage.RELATIONSHIP_UPDATE );
+          updateUsageMap( Collections.singletonList( relationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE );
         }
 
       }
@@ -329,7 +340,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
   }
 
   private void mergeNode( RowMetaInterface rowMeta, Object[] row, Neo4JOutputData data,
-                          String[] nodeLabels, int[] nodePropIndexes,
+                          List<String> nodeLabels, int[] nodePropIndexes,
                           String[] nodePropNames, GraphPropertyType[] propertyTypes, boolean[] nodePropPrimary )
     throws KettleException {
 
@@ -410,12 +421,12 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     }
   }
 
-  private String getLabels( String nodeAlias, String[] nodeLabels ) {
+  private String getLabels( String nodeAlias, List<String> nodeLabels ) {
 
     String labels = nodeAlias;
-    for ( int i = 0; i < nodeLabels.length; i++ ) {
+    for ( int i = 0; i < nodeLabels.size(); i++ ) {
       labels += ":";
-      labels += escapeLabel( nodeLabels[ i ] );
+      labels += escapeLabel( nodeLabels.get( i ) );
     }
     return labels;
   }
@@ -465,14 +476,14 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     }
   }
 
-  private String generateMatchClause( String alias, String mapName, String[] nodeLabels, String[] nodeProps, String[] nodePropNames,
+  private String generateMatchClause( String alias, String mapName, List<String> nodeLabels, String[] nodeProps, String[] nodePropNames,
                                       GraphPropertyType[] nodePropTypes,
                                       boolean[] nodePropPrimary,
                                       RowMetaInterface rowMeta, Object[] rowData, int[] nodePropIndexes,
                                       Map<String, Object> parameters, AtomicInteger paramNr ) throws KettleValueException {
     String matchClause = "(" + alias;
-    for ( int i = 0; i < nodeLabels.length; i++ ) {
-      String label = escapeProp( nodeLabels[ i ] );
+    for ( int i = 0; i < nodeLabels.size(); i++ ) {
+      String label = escapeProp( nodeLabels.get(i) );
       matchClause += ":" + label;
     }
     matchClause += " {";
@@ -493,10 +504,10 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         }
         String parameterName = "param" + paramNr.incrementAndGet();
 
-        if (mapName==null) {
+        if ( mapName == null ) {
           matchClause += propName + " : {" + parameterName + "}";
         } else {
-          matchClause += propName + " : "+mapName+"."+parameterName;
+          matchClause += propName + " : " + mapName + "." + parameterName;
         }
 
         if ( parameters != null ) {
@@ -515,16 +526,22 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     return matchClause;
   }
 
-  public String[] getNodeLabels( String[] labelFields, String[] labelValues, RowMetaInterface rowMeta, Object[] rowData, int[] labelIndexes ) throws KettleValueException {
-    String[] nodeLabels = new String[ labelFields.length ];
+  public List<String> getNodeLabels( String[] labelFields, String[] labelValues, RowMetaInterface rowMeta, Object[] rowData, int[] labelIndexes ) throws KettleValueException {
+    List<String> labels = new ArrayList<>();
+
     for ( int a = 0; a < labelFields.length; a++ ) {
-      if ( StringUtils.isEmpty( labelFields[ a ] ) ) {
-        nodeLabels[ a ] = environmentSubstitute( labelValues[ a ] );
-      } else {
-        nodeLabels[ a ] = rowMeta.getString( rowData, labelIndexes[ a ] );
+      String label = null;
+      if ( StringUtils.isNotEmpty( labelFields[ a ] ) ) {
+        label = rowMeta.getString( rowData, labelIndexes[ a ] );
+      }
+      if ( label == null && StringUtils.isNotEmpty( labelValues[ a ] ) ) {
+        label = labelValues[ a ];
+      }
+      if ( StringUtils.isNotEmpty( label ) ) {
+        labels.add( label );
       }
     }
-    return nodeLabels;
+    return labels;
   }
 
   private void createRelationship( RowMetaInterface rowMeta, Object[] rowData, Neo4JOutputMeta meta, Neo4JOutputData data, String relationshipLabel ) throws
@@ -540,7 +557,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       StringBuffer relCypher = new StringBuffer();
       relCypher.append( "MATCH " );
 
-      String[] fromNodeLabels = getNodeLabels( meta.getFromNodeLabels(), meta.getFromNodeLabelValues(), rowMeta, rowData, data.fromNodeLabelIndexes );
+      List<String> fromNodeLabels = getNodeLabels( meta.getFromNodeLabels(), data.fromLabelValues, rowMeta, rowData, data.fromNodeLabelIndexes );
 
       relCypher.append( generateMatchClause( "from", null, fromNodeLabels,
         meta.getFromNodeProps(), meta.getFromNodePropNames(), data.fromNodePropTypes, meta.getFromNodePropPrimary(),
@@ -551,7 +568,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
       relCypher.append( ", " );
 
-      String[] toNodeLabels = getNodeLabels( meta.getToNodeLabels(), meta.getToNodeLabelValues(), rowMeta, rowData, data.toNodeLabelIndexes );
+      List<String> toNodeLabels = getNodeLabels( meta.getToNodeLabels(), data.toLabelValues, rowMeta, rowData, data.toNodeLabelIndexes );
 
       relCypher.append( generateMatchClause( "to", null, toNodeLabels,
         meta.getToNodeProps(), meta.getToNodePropNames(), data.toNodePropTypes, meta.getToNodePropPrimary(),
@@ -698,7 +715,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     cypher.append( "UNWIND $props AS prop " );
     cypher.append( "MATCH " );
 
-    String[] fromNodeLabels = getNodeLabels( meta.getFromNodeLabels(), meta.getFromNodeLabelValues(), null, null, null );
+    List<String> fromNodeLabels = getNodeLabels( meta.getFromNodeLabels(), data.fromLabelValues, null, null, null );
     cypher.append( generateMatchClause( "from", "prop", fromNodeLabels, meta.getFromNodeProps(), meta.getFromNodePropNames(), data.fromNodePropTypes, meta.getFromNodePropPrimary(),
       null, null,
       data.fromNodePropIndexes,
@@ -706,9 +723,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     ) );
     cypher.append( ", " );
 
-    String[] toNodeLabels = getNodeLabels( meta.getToNodeLabels(), meta.getToNodeLabelValues(), null, null, null );
+    List<String> toNodeLabels = getNodeLabels( meta.getToNodeLabels(), data.toLabelValues, null, null, null );
 
-    cypher.append( generateMatchClause( "to",  "prop", toNodeLabels, meta.getToNodeProps(), meta.getToNodePropNames(), data.toNodePropTypes, meta.getToNodePropPrimary(),
+    cypher.append( generateMatchClause( "to", "prop", toNodeLabels, meta.getToNodeProps(), meta.getToNodePropNames(), data.toNodePropTypes, meta.getToNodePropPrimary(),
       null, null,
       data.toNodePropIndexes,
       null, paramNr ) );
@@ -805,7 +822,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       }
 
       if ( nodeLabel != null && primaryProperties.size() > 0 ) {
-        NeoConnectionUtils.createNodeIndex( log, data.session, Arrays.asList( nodeLabel ), primaryProperties );
+        NeoConnectionUtils.createNodeIndex( log, data.session, Collections.singletonList( nodeLabel ), primaryProperties );
       }
     }
   }
@@ -827,9 +844,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
     // Allow gc
     //
-    data.fromUnwindList = new ArrayList<>(  );
-    data.toUnwindList = new ArrayList<>(  );
-    data.relUnwindList = new ArrayList<>(  );
+    data.fromUnwindList = new ArrayList<>();
+    data.toUnwindList = new ArrayList<>();
+    data.relUnwindList = new ArrayList<>();
 
     if ( data.outputCount > 0 ) {
       data.transaction.success();
@@ -844,7 +861,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
    * @param labels
    * @param usage
    */
-  protected void updateUsageMap( String[] labels, GraphUsage usage ) throws KettleValueException {
+  protected void updateUsageMap( List<String> labels, GraphUsage usage ) throws KettleValueException {
 
     Map<String, Set<String>> stepsMap = data.usageMap.get( usage.name() );
     if ( stepsMap == null ) {
@@ -859,9 +876,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     }
 
     for ( String label : labels ) {
-      if ( StringUtils.isNotEmpty( label ) ) {
-        labelSet.add( label );
-      }
+      labelSet.add( label );
     }
   }
 }

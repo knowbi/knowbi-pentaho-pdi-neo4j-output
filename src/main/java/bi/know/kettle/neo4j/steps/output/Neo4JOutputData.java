@@ -47,5 +47,10 @@ public class Neo4JOutputData extends BaseNeoStepData implements StepDataInterfac
 
   public List<Map<String, Object>> relUnwindList;
 
+  public String[] fromLabelValues;
+  public String[] toLabelValues;
+  public String relationshipLabelValue;
+
+
   public IMetaStore metaStore;
 }
