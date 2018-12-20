@@ -7,6 +7,7 @@ import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.pentaho.di.core.Const;
+import org.pentaho.di.core.encryption.Encr;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.variables.VariableSpace;
@@ -168,7 +169,7 @@ public class NeoConnection extends Variables {
   public Driver getDriver( LogChannelInterface log ) {
     String url = getUrl();
     String realUsername = environmentSubstitute( username );
-    String realPassword = environmentSubstitute( password );
+    String realPassword = Encr.decryptPasswordOptionallyEncrypted(environmentSubstitute( password ));
     Config.ConfigBuilder configBuilder;
     if ( usingEncryption ) {
       configBuilder = Config.build().withEncryption();
