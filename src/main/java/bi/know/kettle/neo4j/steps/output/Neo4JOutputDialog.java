@@ -59,6 +59,9 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
   private Button wCreateIndexes;
   private Button wUseCreate;
   private Button wOnlyCreateRelationships;
+  private Button wReturnGraph;
+  private Label wlReturnGraphField;
+  private TextVar wReturnGraphField;
 
   private Combo wRel;
   private TextVar wRelValue;
@@ -242,6 +245,45 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     fdOnlyCreateRelationships.top = new FormAttachment( wlOnlyCreateRelationships, 0, SWT.CENTER );
     wOnlyCreateRelationships.setLayoutData( fdOnlyCreateRelationships );
     lastControl = wOnlyCreateRelationships;
+
+    Label wlReturnGraph = new Label( shell, SWT.RIGHT );
+    wlReturnGraph.setText( "Return graph data?" );
+    String returnGraphTooltipText = "The update data to be updated in the form of Graph a value in the output of this step";
+    wlReturnGraph.setToolTipText( returnGraphTooltipText );
+    props.setLook( wlReturnGraph );
+    FormData fdlReturnGraph = new FormData();
+    fdlReturnGraph.left = new FormAttachment( 0, 0 );
+    fdlReturnGraph.right = new FormAttachment( middle, -margin );
+    fdlReturnGraph.top = new FormAttachment( lastControl, 2 * margin );
+    wlReturnGraph.setLayoutData( fdlReturnGraph );
+    wReturnGraph = new Button( shell, SWT.CHECK | SWT.BORDER );
+    wReturnGraph.setToolTipText( returnGraphTooltipText );
+    props.setLook( wReturnGraph );
+    FormData fdReturnGraph = new FormData();
+    fdReturnGraph.left = new FormAttachment( middle, 0 );
+    fdReturnGraph.right = new FormAttachment( 100, 0 );
+    fdReturnGraph.top = new FormAttachment( wlReturnGraph, 0, SWT.CENTER );
+    wReturnGraph.setLayoutData( fdReturnGraph );
+    lastControl = wReturnGraph;
+    // wReturnGraph.addListener(SWT.Selection, e-> enableFields());
+
+    wlReturnGraphField = new Label( shell, SWT.RIGHT );
+    wlReturnGraphField.setText( "Graph output field name" );
+    props.setLook( wlReturnGraphField );
+    FormData fdlReturnGraphField = new FormData();
+    fdlReturnGraphField.left = new FormAttachment( 0, 0 );
+    fdlReturnGraphField.right = new FormAttachment( middle, -margin );
+    fdlReturnGraphField.top = new FormAttachment( lastControl, 2 * margin );
+    wlReturnGraphField.setLayoutData( fdlReturnGraphField );
+    wReturnGraphField = new TextVar(transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wReturnGraphField );
+    wReturnGraphField.addModifyListener( lsMod );
+    FormData fdReturnGraphField = new FormData();
+    fdReturnGraphField.left = new FormAttachment( middle, 0 );
+    fdReturnGraphField.right = new FormAttachment( 100, 0 );
+    fdReturnGraphField.top = new FormAttachment( wlReturnGraphField, 0, SWT.CENTER );
+    wReturnGraphField.setLayoutData( fdReturnGraphField );
+    lastControl = wReturnGraphField;
 
     // Some buttons
     wOK = new Button( shell, SWT.PUSH );
@@ -639,6 +681,8 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     wCreateIndexes.setSelection( input.isCreatingIndexes() );
     wUseCreate.setSelection( input.isUsingCreate() );
     wOnlyCreateRelationships.setSelection( input.isOnlyCreatingRelationships() );
+    wReturnGraph.setSelection( input.isReturningGraph() );
+    wReturnGraphField.setText(Const.NVL(input.getReturnGraphField(), ""));
 
     // List of connections...
     //
@@ -720,6 +764,8 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     input.setCreatingIndexes( wCreateIndexes.getSelection() );
     input.setUsingCreate( wUseCreate.getSelection() );
     input.setOnlyCreatingRelationships( wOnlyCreateRelationships.getSelection() );
+    input.setReturningGraph( wReturnGraph.getSelection() );
+    input.setReturnGraphField( wReturnGraphField.getText() );
 
     String fromNodeLabels[] = new String[ wFromLabelGrid.nrNonEmpty() ];
     String fromNodeLabelValues[] = new String[ wFromLabelGrid.nrNonEmpty() ];

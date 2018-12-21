@@ -2,6 +2,7 @@ package bi.know.kettle.neo4j.steps.cypher;
 
 
 import bi.know.kettle.neo4j.core.MetaStoreUtil;
+import bi.know.kettle.neo4j.core.data.GraphData;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.DriverSingleton;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
@@ -295,65 +296,85 @@ public class Cypher extends BaseStep implements StepInterface {
     int rowsWritten = 0;
 
     if (result!=null) {
-      while ( result.hasNext() ) {
-        Record record = result.next();
 
+      if (meta.isReturningGraph()) {
+
+        GraphData graphData = new GraphData( result );
         // Create output row
-        Object[] outputRow;
+        Object[] outputRowData;
         if (unwind) {
-          outputRow = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
+          outputRowData = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
         } else {
-          outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
+          outputRowData = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
         }
-
-        // add result values...
-        //
         int index = data.hasInput && !unwind ? getInputRowMeta().size() : 0;
-        for ( ReturnValue returnValue : meta.getReturnValues() ) {
-          Value recordValue = record.get( returnValue.getName() );
-          ValueMetaInterface targetValueMeta = data.outputRowMeta.getValueMeta( index );
-          Object value = null;
-          if ( recordValue != null ) {
-            try {
-              switch ( targetValueMeta.getType() ) {
-                case ValueMetaInterface.TYPE_STRING:
-                  value = recordValue.asString();
-                  break;
-                case ValueMetaInterface.TYPE_INTEGER:
-                  value = recordValue.asLong();
-                  break;
-                case ValueMetaInterface.TYPE_NUMBER:
-                  value = recordValue.asDouble();
-                  break;
-                case ValueMetaInterface.TYPE_BOOLEAN:
-                  value = recordValue.asBoolean();
-                  break;
-                case ValueMetaInterface.TYPE_BIGNUMBER:
-                  value = new BigDecimal( recordValue.asString() );
-                  break;
-                case ValueMetaInterface.TYPE_DATE:
-                  LocalDate localDate = recordValue.asLocalDate();
-                  value = java.sql.Date.valueOf( localDate );
-                  break;
-                case ValueMetaInterface.TYPE_TIMESTAMP:
-                  LocalDateTime localDateTime = recordValue.asLocalDateTime();
-                  value = java.sql.Timestamp.valueOf( localDateTime );
-                  break;
-                default:
-                  throw new KettleException( "Unable to convert Neo4j data to type " + targetValueMeta.toStringMeta() );
-              }
-            } catch ( Exception e ) {
-              throw new KettleException(
-                "Unable to convert Neo4j record value '" + returnValue.getName() + "' to type : " + targetValueMeta.getTypeDesc(), e );
-            }
-          }
-          outputRow[ index++ ] = value;
-        }
 
-        // Pass the rows to the next steps
-        //
-        putRow( data.outputRowMeta, outputRow );
+        outputRowData[index] = graphData;
+        putRow(data.outputRowMeta, outputRowData);
         rowsWritten++;
+
+      } else {
+
+        while ( result.hasNext() ) {
+          Record record = result.next();
+
+          // Create output row
+          Object[] outputRow;
+          if ( unwind ) {
+            outputRow = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
+          } else {
+            outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
+          }
+
+          // add result values...
+          //
+          int index = data.hasInput && !unwind ? getInputRowMeta().size() : 0;
+          for ( ReturnValue returnValue : meta.getReturnValues() ) {
+            Value recordValue = record.get( returnValue.getName() );
+            ValueMetaInterface targetValueMeta = data.outputRowMeta.getValueMeta( index );
+            Object value = null;
+            if ( recordValue != null ) {
+              try {
+                switch ( targetValueMeta.getType() ) {
+                  case ValueMetaInterface.TYPE_STRING:
+                    value = recordValue.asString();
+                    break;
+                  case ValueMetaInterface.TYPE_INTEGER:
+                    value = recordValue.asLong();
+                    break;
+                  case ValueMetaInterface.TYPE_NUMBER:
+                    value = recordValue.asDouble();
+                    break;
+                  case ValueMetaInterface.TYPE_BOOLEAN:
+                    value = recordValue.asBoolean();
+                    break;
+                  case ValueMetaInterface.TYPE_BIGNUMBER:
+                    value = new BigDecimal( recordValue.asString() );
+                    break;
+                  case ValueMetaInterface.TYPE_DATE:
+                    LocalDate localDate = recordValue.asLocalDate();
+                    value = java.sql.Date.valueOf( localDate );
+                    break;
+                  case ValueMetaInterface.TYPE_TIMESTAMP:
+                    LocalDateTime localDateTime = recordValue.asLocalDateTime();
+                    value = java.sql.Timestamp.valueOf( localDateTime );
+                    break;
+                  default:
+                    throw new KettleException( "Unable to convert Neo4j data to type " + targetValueMeta.toStringMeta() );
+                }
+              } catch ( Exception e ) {
+                throw new KettleException(
+                  "Unable to convert Neo4j record value '" + returnValue.getName() + "' to type : " + targetValueMeta.getTypeDesc(), e );
+              }
+            }
+            outputRow[ index++ ] = value;
+          }
+
+          // Pass the rows to the next steps
+          //
+          putRow( data.outputRowMeta, outputRow );
+          rowsWritten++;
+        }
       }
 
       // Now that all result rows are consumed we can evaluate the result summary.

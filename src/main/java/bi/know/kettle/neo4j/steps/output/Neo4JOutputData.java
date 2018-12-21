@@ -51,6 +51,5 @@ public class Neo4JOutputData extends BaseNeoStepData implements StepDataInterfac
   public String[] toLabelValues;
   public String relationshipLabelValue;
 
-
   public IMetaStore metaStore;
 }

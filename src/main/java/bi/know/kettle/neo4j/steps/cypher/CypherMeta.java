@@ -1,9 +1,9 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
+import bi.know.kettle.neo4j.core.value.ValueMetaGraph;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
-import com.sun.jersey.spi.inject.Inject;
 import org.apache.commons.lang.StringUtils;
-import org.pentaho.di.core.KettleAttributeInterface;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -24,10 +24,8 @@ import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDataInterface;
-import org.pentaho.di.trans.step.StepInjectionMetaEntry;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
-import org.pentaho.di.trans.step.StepMetaInjectionInterface;
 import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.IMetaStore;
 import org.w3c.dom.Node;
@@ -53,6 +51,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   public static final String CYPHER_FIELD = "cypher_field";
   public static final String UNWIND = "unwind";
   public static final String UNWIND_MAP = "unwind_map";
+  public static final String RETURNING_GRAPH = "returning_graph";
+  public static final String RETURN_GRAPH_FIELD = "return_graph_field";
   public static final String MAPPINGS = "mappings";
   public static final String MAPPING = "mapping";
   public static final String PARAMETERS = "parameters";
@@ -69,26 +69,32 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   public static final String RETURN_NAME = "return_name";
   public static final String RETURN_TYPE = "return_type";
 
-  @Injection( name = "CONNECTION" )
+  @Injection( name = CONNECTION )
   private String connectionName;
 
-  @Injection( name = "CYPHER")
+  @Injection( name = CYPHER )
   private String cypher;
 
-  @Injection( name = "BATCH_SIZE" )
+  @Injection( name = BATCH_SIZE )
   private String batchSize;
 
-  @Injection( name = "CYPHER_FROM_FIELD" )
+  @Injection( name = CYPHER_FROM_FIELD )
   private boolean cypherFromField;
 
-  @Injection( name = "CYPHER_FIELD" )
+  @Injection( name = CYPHER_FIELD )
   private String cypherField;
 
-  @Injection( name = "UNWIND" )
+  @Injection( name = UNWIND )
   private boolean usingUnwind;
 
-  @Injection( name = "UNWIND_MAP" )
+  @Injection( name = UNWIND_MAP )
   private String unwindMapName;
+
+  @Injection( name = RETURNING_GRAPH )
+  private boolean returningGraph;
+
+  @Injection( name = RETURN_GRAPH_FIELD )
+  private String returnGraphField;
 
   @InjectionDeep
   private List<ParameterMapping> parameterMappings;
@@ -121,26 +127,32 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   @Override public void getFields( RowMetaInterface rowMeta, String name, RowMetaInterface[] info, StepMeta nextStep, VariableSpace space,
                                    Repository repository, IMetaStore metaStore ) throws KettleStepException {
 
-    if (usingUnwind) {
+    if ( usingUnwind ) {
       // Unwind only outputs results, not input
       //
       rowMeta.clear();
     }
 
-    // Check return values in the metadata...
-    for ( ReturnValue returnValue : returnValues ) {
-      try {
-        int type = ValueMetaFactory.getIdForValueMeta( returnValue.getType() );
-        ValueMetaInterface valueMeta = ValueMetaFactory.createValueMeta( returnValue.getName(), type );
-        valueMeta.setOrigin( name );
-        rowMeta.addValueMeta( valueMeta );
-      } catch ( KettlePluginException e ) {
-        throw new KettleStepException( "Unknown data type '" + returnValue.getType() + "' for value named '" + returnValue.getName() + "'" );
+    if (returningGraph) {
+      // We send out a single Graph value per input row
+      //
+      ValueMetaInterface valueMetaGraph = new ValueMetaGraph( Const.NVL(returnGraphField, "graph") );
+      valueMetaGraph.setOrigin( name );
+      rowMeta.addValueMeta( valueMetaGraph );
+    } else {
+      // Check return values in the metadata...
+      //
+      for ( ReturnValue returnValue : returnValues ) {
+        try {
+          int type = ValueMetaFactory.getIdForValueMeta( returnValue.getType() );
+          ValueMetaInterface valueMeta = ValueMetaFactory.createValueMeta( returnValue.getName(), type );
+          valueMeta.setOrigin( name );
+          rowMeta.addValueMeta( valueMeta );
+        } catch ( KettlePluginException e ) {
+          throw new KettleStepException( "Unknown data type '" + returnValue.getType() + "' for value named '" + returnValue.getName() + "'" );
+        }
       }
     }
-
-
-    // No output fields for now
   }
 
   @Override public String getXML() {
@@ -151,7 +163,9 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     xml.append( XMLHandler.addTagValue( CYPHER_FROM_FIELD, cypherFromField ) );
     xml.append( XMLHandler.addTagValue( CYPHER_FIELD, cypherField ) );
     xml.append( XMLHandler.addTagValue( UNWIND, usingUnwind ) );
-    xml.append( XMLHandler.addTagValue( UNWIND_MAP, unwindMapName) );
+    xml.append( XMLHandler.addTagValue( UNWIND_MAP, unwindMapName ) );
+    xml.append( XMLHandler.addTagValue( RETURNING_GRAPH, returningGraph ) );
+    xml.append( XMLHandler.addTagValue( RETURN_GRAPH_FIELD, returnGraphField) );
 
     xml.append( XMLHandler.openTag( MAPPINGS ) );
     for ( ParameterMapping parameterMapping : parameterMappings ) {
@@ -184,6 +198,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     cypherField = XMLHandler.getTagValue( stepnode, CYPHER_FIELD );
     usingUnwind = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, UNWIND ) );
     unwindMapName = XMLHandler.getTagValue( stepnode, UNWIND_MAP );
+    returningGraph = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, RETURNING_GRAPH ) );
+    returnGraphField = XMLHandler.getTagValue( stepnode, RETURN_GRAPH_FIELD);
 
     // Parse parameter mappings
     //
@@ -214,53 +230,57 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     super.loadXML( stepnode, databases, metaStore );
   }
 
-  @Override public void saveRep( Repository rep, IMetaStore metaStore, ObjectId id_transformation, ObjectId id_step ) throws KettleException {
-    rep.saveStepAttribute( id_transformation, id_step, CONNECTION, connectionName );
-    rep.saveStepAttribute( id_transformation, id_step, CYPHER, cypher );
-    rep.saveStepAttribute( id_transformation, id_step, BATCH_SIZE, batchSize );
-    rep.saveStepAttribute( id_transformation, id_step, CYPHER_FROM_FIELD, cypherFromField );
-    rep.saveStepAttribute( id_transformation, id_step, CYPHER_FIELD, cypherField );
-    rep.saveStepAttribute( id_transformation, id_step, UNWIND, usingUnwind );
-    rep.saveStepAttribute( id_transformation, id_step, UNWIND_MAP, unwindMapName );
+  @Override public void saveRep( Repository rep, IMetaStore metaStore, ObjectId transformationId, ObjectId stepId ) throws KettleException {
+    rep.saveStepAttribute( transformationId, stepId, CONNECTION, connectionName );
+    rep.saveStepAttribute( transformationId, stepId, CYPHER, cypher );
+    rep.saveStepAttribute( transformationId, stepId, BATCH_SIZE, batchSize );
+    rep.saveStepAttribute( transformationId, stepId, CYPHER_FROM_FIELD, cypherFromField );
+    rep.saveStepAttribute( transformationId, stepId, CYPHER_FIELD, cypherField );
+    rep.saveStepAttribute( transformationId, stepId, UNWIND, usingUnwind );
+    rep.saveStepAttribute( transformationId, stepId, UNWIND_MAP, unwindMapName );
+    rep.saveStepAttribute( transformationId, stepId, RETURNING_GRAPH, returningGraph );
+    rep.saveStepAttribute( transformationId, stepId, RETURN_GRAPH_FIELD, returnGraphField );
 
     for ( int i = 0; i < parameterMappings.size(); i++ ) {
       ParameterMapping parameterMapping = parameterMappings.get( i );
-      rep.saveStepAttribute( id_transformation, id_step, i, PARAMETER_NAME, parameterMapping.getParameter() );
-      rep.saveStepAttribute( id_transformation, id_step, i, PARAMETER_FIELD, parameterMapping.getField() );
-      rep.saveStepAttribute( id_transformation, id_step, i, PARAMETER_TYPE, parameterMapping.getNeoType() );
+      rep.saveStepAttribute( transformationId, stepId, i, PARAMETER_NAME, parameterMapping.getParameter() );
+      rep.saveStepAttribute( transformationId, stepId, i, PARAMETER_FIELD, parameterMapping.getField() );
+      rep.saveStepAttribute( transformationId, stepId, i, PARAMETER_TYPE, parameterMapping.getNeoType() );
     }
     for ( int i = 0; i < returnValues.size(); i++ ) {
       ReturnValue returnValue = returnValues.get( i );
-      rep.saveStepAttribute( id_transformation, id_step, i, RETURN_NAME, returnValue.getName() );
-      rep.saveStepAttribute( id_transformation, id_step, i, RETURN_TYPE, returnValue.getType() );
+      rep.saveStepAttribute( transformationId, stepId, i, RETURN_NAME, returnValue.getName() );
+      rep.saveStepAttribute( transformationId, stepId, i, RETURN_TYPE, returnValue.getType() );
     }
   }
 
-  @Override public void readRep( Repository rep, IMetaStore metaStore, ObjectId id_step, List<DatabaseMeta> databases ) throws KettleException {
-    connectionName = rep.getStepAttributeString( id_step, CONNECTION );
-    cypher = rep.getStepAttributeString( id_step, CYPHER );
-    batchSize = rep.getStepAttributeString( id_step, BATCH_SIZE );
-    cypherFromField = rep.getStepAttributeBoolean( id_step, CYPHER_FROM_FIELD );
-    cypherField = rep.getStepAttributeString( id_step, CYPHER_FIELD );
-    usingUnwind = rep.getStepAttributeBoolean( id_step, UNWIND );
-    unwindMapName = rep.getStepAttributeString( id_step, UNWIND_MAP );
+  @Override public void readRep( Repository rep, IMetaStore metaStore, ObjectId stepId, List<DatabaseMeta> databases ) throws KettleException {
+    connectionName = rep.getStepAttributeString( stepId, CONNECTION );
+    cypher = rep.getStepAttributeString( stepId, CYPHER );
+    batchSize = rep.getStepAttributeString( stepId, BATCH_SIZE );
+    cypherFromField = rep.getStepAttributeBoolean( stepId, CYPHER_FROM_FIELD );
+    cypherField = rep.getStepAttributeString( stepId, CYPHER_FIELD );
+    usingUnwind = rep.getStepAttributeBoolean( stepId, UNWIND );
+    unwindMapName = rep.getStepAttributeString( stepId, UNWIND_MAP );
+    returningGraph = rep.getStepAttributeBoolean( stepId, RETURNING_GRAPH );
+    returnGraphField = rep.getStepAttributeString( stepId, RETURN_GRAPH_FIELD );
 
     parameterMappings = new ArrayList<>();
-    int nrMappings = rep.countNrStepAttributes( id_step, PARAMETER );
+    int nrMappings = rep.countNrStepAttributes( stepId, PARAMETER );
     for ( int i = 0; i < nrMappings; i++ ) {
-      String parameter = rep.getStepAttributeString( id_step, i, PARAMETER_NAME );
-      String field = rep.getStepAttributeString( id_step, i, PARAMETER_FIELD );
-      String neoType = rep.getStepAttributeString( id_step, i, PARAMETER_TYPE );
+      String parameter = rep.getStepAttributeString( stepId, i, PARAMETER_NAME );
+      String field = rep.getStepAttributeString( stepId, i, PARAMETER_FIELD );
+      String neoType = rep.getStepAttributeString( stepId, i, PARAMETER_TYPE );
       if ( StringUtils.isEmpty( neoType ) ) {
         neoType = GraphPropertyType.String.name();
       }
       parameterMappings.add( new ParameterMapping( parameter, field, neoType ) );
     }
     returnValues = new ArrayList<>();
-    int nrReturns = rep.countNrStepAttributes( id_step, RETURN_NAME );
+    int nrReturns = rep.countNrStepAttributes( stepId, RETURN_NAME );
     for ( int i = 0; i < nrReturns; i++ ) {
-      String name = rep.getStepAttributeString( id_step, i, RETURN_NAME );
-      String type = rep.getStepAttributeString( id_step, i, RETURN_TYPE );
+      String name = rep.getStepAttributeString( stepId, i, RETURN_NAME );
+      String type = rep.getStepAttributeString( stepId, i, RETURN_TYPE );
       returnValues.add( new ReturnValue( name, type ) );
     }
 
@@ -372,6 +392,22 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   }
 
   /**
+   * Gets returningGraph
+   *
+   * @return value of returningGraph
+   */
+  public boolean isReturningGraph() {
+    return returningGraph;
+  }
+
+  /**
+   * @param returningGraph The returningGraph to set
+   */
+  public void setReturningGraph( boolean returningGraph ) {
+    this.returningGraph = returningGraph;
+  }
+
+  /**
    * @param unwindMapName The unwindMapName to set
    */
   public void setUnwindMapName( String unwindMapName ) {
@@ -408,5 +444,21 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
    */
   public void setReturnValues( List<ReturnValue> returnValues ) {
     this.returnValues = returnValues;
+  }
+
+  /**
+   * Gets returnGraphField
+   *
+   * @return value of returnGraphField
+   */
+  public String getReturnGraphField() {
+    return returnGraphField;
+  }
+
+  /**
+   * @param returnGraphField The returnGraphField to set
+   */
+  public void setReturnGraphField( String returnGraphField ) {
+    this.returnGraphField = returnGraphField;
   }
 }

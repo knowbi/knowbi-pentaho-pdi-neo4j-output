@@ -1,8 +1,10 @@
 package bi.know.kettle.neo4j.steps.output;
 
+import bi.know.kettle.neo4j.core.value.ValueMetaGraph;
 import org.eclipse.swt.widgets.Shell;
 import org.pentaho.di.core.CheckResult;
 import org.pentaho.di.core.CheckResultInterface;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -11,6 +13,7 @@ import org.pentaho.di.core.exception.KettleXMLException;
 import org.pentaho.di.core.injection.Injection;
 import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.repository.ObjectId;
@@ -63,17 +66,19 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
   private static final String STRING_CREATE_INDEXES = "create_indexes";
   private static final String STRING_USE_CREATE = "use_create";
   private static final String STRING_ONLY_CREATE_RELATIONSHIPS = "only_create_relationships";
+  private static final String RETURNING_GRAPH = "returning_graph";
+  private static final String RETURN_GRAPH_FIELD = "return_graph_field";
 
 
-  @Injection( name = "CONNECTION" )
+  @Injection( name = STRING_CONNECTION )
   private String connection;
-  @Injection( name = "BATCH_SIZE" )
+  @Injection( name = STRING_BATCH_SIZE )
   private String batchSize;
-  @Injection( name = "CREATE_INDEXES" )
+  @Injection( name = STRING_CREATE_INDEXES )
   private boolean creatingIndexes;
-  @Injection( name = "USE_CREATE" )
+  @Injection( name = STRING_USE_CREATE )
   private boolean usingCreate;
-  @Injection( name = "ONLY_CREATE_RELATIONSHIPS" )
+  @Injection( name = STRING_ONLY_CREATE_RELATIONSHIPS )
   private boolean onlyCreatingRelationships;
 
   @Injection( name = "FROM_NODE_PROPERTY_FIELD", group = "FROM_NODE_PROPS" )
@@ -116,6 +121,13 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
 
   @Injection( name = "REL_VALUE" )
   private String relationshipValue;
+
+  @Injection( name = RETURNING_GRAPH )
+  private boolean returningGraph;
+
+  @Injection( name = RETURN_GRAPH_FIELD )
+  private String returnGraphField;
+
 
   // Unused fields from previous version
   //
@@ -168,6 +180,8 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
     xml.append( XMLHandler.addTagValue( STRING_CREATE_INDEXES, creatingIndexes ) );
     xml.append( XMLHandler.addTagValue( STRING_USE_CREATE, usingCreate ) );
     xml.append( XMLHandler.addTagValue( STRING_ONLY_CREATE_RELATIONSHIPS, onlyCreatingRelationships) );
+    xml.append( XMLHandler.addTagValue( RETURNING_GRAPH, returningGraph ) );
+    xml.append( XMLHandler.addTagValue( RETURN_GRAPH_FIELD, returnGraphField) );
 
     xml.append( XMLHandler.openTag( STRING_FROM ) );
 
@@ -235,6 +249,8 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
     creatingIndexes = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, STRING_CREATE_INDEXES ) );
     usingCreate = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, STRING_USE_CREATE ) );
     onlyCreatingRelationships = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, STRING_ONLY_CREATE_RELATIONSHIPS) );
+    returningGraph = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, RETURNING_GRAPH ) );
+    returnGraphField = XMLHandler.getTagValue( stepnode, RETURN_GRAPH_FIELD);
 
     Node fromNode = XMLHandler.getSubNode( stepnode, STRING_FROM );
     Node fromLabelsNode = XMLHandler.getSubNode( fromNode, STRING_LABELS );
@@ -330,6 +346,8 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
     rep.saveStepAttribute( transId, stepId, STRING_CREATE_INDEXES, creatingIndexes );
     rep.saveStepAttribute( transId, stepId, STRING_USE_CREATE, usingCreate );
     rep.saveStepAttribute( transId, stepId, STRING_ONLY_CREATE_RELATIONSHIPS, onlyCreatingRelationships);
+    rep.saveStepAttribute( transId, stepId, RETURNING_GRAPH, returningGraph );
+    rep.saveStepAttribute( transId, stepId, RETURN_GRAPH_FIELD, returnGraphField );
 
     String fromLabelKey = STRING_FROM + "_" + STRING_LABEL;
     for ( int i = 0; i < fromNodeLabels.length; i++ ) {
@@ -378,6 +396,8 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
     creatingIndexes = rep.getStepAttributeBoolean( stepId, STRING_CREATE_INDEXES );
     usingCreate = rep.getStepAttributeBoolean( stepId, STRING_USE_CREATE );
     onlyCreatingRelationships = rep.getStepAttributeBoolean( stepId, STRING_ONLY_CREATE_RELATIONSHIPS );
+    returningGraph = rep.getStepAttributeBoolean( stepId, RETURNING_GRAPH );
+    returnGraphField = rep.getStepAttributeString( stepId, RETURN_GRAPH_FIELD );
 
     String fromLabelKey = STRING_FROM + "_" + STRING_LABEL;
     int nrFromLabels = rep.countNrStepAttributes( stepId, fromLabelKey );
@@ -467,7 +487,13 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
 
   @Override public void getFields( RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep, VariableSpace space,
                                    Repository repository, IMetaStore metaStore ) throws KettleStepException {
-    // No fields added
+    if (returningGraph) {
+
+      ValueMetaInterface valueMetaGraph = new ValueMetaGraph( Const.NVL(returnGraphField, "graph") );
+      valueMetaGraph.setOrigin( name );
+      inputRowMeta.addValueMeta( valueMetaGraph );
+
+    }
   }
 
   public Object clone() {
@@ -840,5 +866,37 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
    */
   public void setRelationshipValue( String relationshipValue ) {
     this.relationshipValue = relationshipValue;
+  }
+
+  /**
+   * Gets returningGraph
+   *
+   * @return value of returningGraph
+   */
+  public boolean isReturningGraph() {
+    return returningGraph;
+  }
+
+  /**
+   * @param returningGraph The returningGraph to set
+   */
+  public void setReturningGraph( boolean returningGraph ) {
+    this.returningGraph = returningGraph;
+  }
+
+  /**
+   * Gets returnGraphField
+   *
+   * @return value of returnGraphField
+   */
+  public String getReturnGraphField() {
+    return returnGraphField;
+  }
+
+  /**
+   * @param returnGraphField The returnGraphField to set
+   */
+  public void setReturnGraphField( String returnGraphField ) {
+    this.returnGraphField = returnGraphField;
   }
 }
