@@ -56,7 +56,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     meta = (GraphOutputMeta) smi;
     data = (GraphOutputData) sdi;
 
-    // Load some extra metadata...
+    // Importer some extra metadata...
     //
     if ( StringUtils.isEmpty(meta.getConnectionName()) ) {
       log.logError( "You need to specify a Neo4j connection to use in this step" );

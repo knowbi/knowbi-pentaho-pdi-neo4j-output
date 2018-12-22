@@ -145,7 +145,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       }
     }
 
-    if (meta.isReturningGraph()) {
+    if ( meta.isReturningGraph() ) {
       // Let the next steps handle writing to Neo4j
       //
       outputGraphValue( getInputRowMeta(), row );
@@ -249,22 +249,26 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       GraphNodeData targetNodeData = null;
       GraphRelationshipData relationshipData = null;
 
-      if ( meta.getFromNodeProps().length > 0 && !meta.isOnlyCreatingRelationships() ) {
+      if ( meta.getFromNodeProps().length > 0 ) {
         sourceNodeData = createGraphNodeData( rowMeta, row, meta.getFromNodeLabels(), data.fromLabelValues, data.fromNodeLabelIndexes,
           data.fromNodePropIndexes, meta.getFromNodePropNames(), meta.getFromNodePropPrimary() );
-        graphData.getNodes().add( sourceNodeData );
+        if ( !meta.isOnlyCreatingRelationships() ) {
+          graphData.getNodes().add( sourceNodeData );
+        }
       }
-      if ( meta.getToNodeProps().length > 0 && !meta.isOnlyCreatingRelationships() ) {
+      if ( meta.getToNodeProps().length > 0 ) {
         targetNodeData = createGraphNodeData( rowMeta, row, meta.getToNodeLabels(), data.toLabelValues, data.toNodeLabelIndexes,
           data.toNodePropIndexes, meta.getToNodePropNames(), meta.getToNodePropPrimary() );
-        graphData.getNodes().add( targetNodeData );
+        if ( !meta.isOnlyCreatingRelationships()) {
+          graphData.getNodes().add( targetNodeData );
+        }
       }
 
       String relationshipLabel = null;
-      if ( data.relationshipIndex>=0 ) {
+      if ( data.relationshipIndex >= 0 ) {
         relationshipLabel = getInputRowMeta().getString( row, data.relationshipIndex );
       }
-      if ( StringUtil.isEmpty(relationshipLabel) && StringUtils.isNotEmpty( data.relationshipLabelValue ) ) {
+      if ( StringUtil.isEmpty( relationshipLabel ) && StringUtils.isNotEmpty( data.relationshipLabelValue ) ) {
         relationshipLabel = data.relationshipLabelValue;
       }
       if ( sourceNodeData != null && targetNodeData != null && StringUtils.isNotEmpty( relationshipLabel ) ) {
@@ -662,7 +666,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       if ( StringUtils.isNotEmpty( labelFields[ a ] ) ) {
         label = rowMeta.getString( rowData, labelIndexes[ a ] );
       }
-      if ( StringUtils.isEmpty(label) && StringUtils.isNotEmpty( labelValues[ a ] ) ) {
+      if ( StringUtils.isEmpty( label ) && StringUtils.isNotEmpty( labelValues[ a ] ) ) {
         label = labelValues[ a ];
       }
       if ( StringUtils.isNotEmpty( label ) ) {

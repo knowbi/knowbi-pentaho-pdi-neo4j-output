@@ -11,6 +11,7 @@ import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.logging.LogLevel;
+import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
@@ -63,12 +64,36 @@ public class Load extends BaseStep implements StepInterface {
       if ( data.nodesProcessed > 0 ) {
         loadBufferIntoDb();
       }
+      if ( !meta.isLoadingFiles() &&
+        StringUtils.isNotEmpty( data.filenameField ) &&
+        StringUtils.isNotEmpty( data.fileTypeField )) {
+
+        // Output the filenames and nothing more.
+        //
+        if (data.nodesProcessed>0) {
+          Object[] nodeFileRow = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
+          nodeFileRow[ 0 ] = calculateNodeShortFilename();
+          nodeFileRow[ 1 ] = "Nodes";
+          putRow( data.outputRowMeta, nodeFileRow );
+        }
+
+        if (data.relsProcessed>0) {
+          Object[] relFileRow = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
+          relFileRow[ 0 ] = calculateRelatiohshipsShortFilename();
+          relFileRow[ 1 ] = "Relationships";
+          putRow( data.outputRowMeta, relFileRow );
+        }
+      }
+
       setOutputDone();
       return false;
     }
 
     if ( first ) {
       first = false;
+
+      data.outputRowMeta = getInputRowMeta().clone();
+      meta.getFields( data.outputRowMeta, getStepname(), null, null, this, repository, metaStore );
 
       data.nodesProcessed = 0L;
 
@@ -92,8 +117,10 @@ public class Load extends BaseStep implements StepInterface {
       }
       data.databaseFilename = environmentSubstitute( meta.getDatabaseFilename() );
       data.reportFile = environmentSubstitute( meta.getReportFile() );
+      data.filesPrefix = environmentSubstitute( meta.getFilesPrefix() );
 
-      data.connection = null;
+      data.filenameField = environmentSubstitute( meta.getFilenameField() );
+      data.fileTypeField = environmentSubstitute( meta.getFileTypeField() );
 
       data.baseFolder = environmentSubstitute( meta.getBaseFolder() );
       if ( !data.baseFolder.endsWith( File.separator ) ) {
@@ -101,7 +128,6 @@ public class Load extends BaseStep implements StepInterface {
       }
 
       data.importFolder = data.baseFolder + "import/";
-
     }
 
     if ( meta.getUniquenessStrategy() != UniquenessStrategy.None ) {
@@ -187,7 +213,7 @@ public class Load extends BaseStep implements StepInterface {
           }
 
           try {
-            writeRelsCsvHeader( data.relsOutputStream, data.nodeProps, data.relPropertyIndexes );
+            writeRelsCsvHeader( data.relsOutputStream, data.relProps, data.relPropertyIndexes );
           } catch ( Exception e ) {
             throw new KettleException( "Error writing Node CSV file header ", e );
           }
@@ -204,14 +230,16 @@ public class Load extends BaseStep implements StepInterface {
         data.relsProcessed++;
       }
 
-      // if ( data.batchSize > 0 && data.nodesProcessed >= data.batchSize ) {
+      // if ( data.batchSize > 0 && data.filesRead >= data.batchSize ) {
       //  loadBufferIntoDb();
       // }
     }
 
     // Pay it forward
     //
-    putRow( getInputRowMeta(), row );
+    if (meta.isLoadingFiles()) {
+      putRow( getInputRowMeta(), row );
+    }
 
     return true;
   }
@@ -229,6 +257,11 @@ public class Load extends BaseStep implements StepInterface {
         // Create a file for the relationships in the import folder called rels-0,csv (0 = copy number)
         //
         String relsFile = createRelationshipsFile();
+
+        // Allow GC on the indexed graph data
+        //
+        data.indexedGraphData = null;
+
 
         runImport( nodesFile, relsFile );
       } else {
@@ -311,19 +344,19 @@ public class Load extends BaseStep implements StepInterface {
 
 
   private String calculateNodeShortFilename() {
-    return "import/nodes-" + environmentSubstitute( "${" + Const.INTERNAL_VARIABLE_STEP_COPYNR + "}" ) + ".csv";
+    return "import/"+Const.NVL(data.filesPrefix+"-", "")+"nodes-" + environmentSubstitute( "${" + Const.INTERNAL_VARIABLE_STEP_COPYNR + "}" ) + ".csv";
   }
 
   private String calculateNodeFilename() {
-    return data.importFolder + "nodes-" + environmentSubstitute( "${" + Const.INTERNAL_VARIABLE_STEP_COPYNR + "}" ) + ".csv";
+    return data.importFolder+Const.NVL(data.filesPrefix+"-", "")+ "nodes-" + environmentSubstitute( "${" + Const.INTERNAL_VARIABLE_STEP_COPYNR + "}" ) + ".csv";
   }
 
   private String calculateRelatiohshipsShortFilename() {
-    return "import/rels-" + environmentSubstitute( "${" + Const.INTERNAL_VARIABLE_STEP_COPYNR + "}" ) + ".csv";
+    return "import/"+Const.NVL(data.filesPrefix+"-", "") + "rels-" + environmentSubstitute( "${" + Const.INTERNAL_VARIABLE_STEP_COPYNR + "}" ) + ".csv";
   }
 
   private String calculateRelatiohshipsFilename() {
-    return data.importFolder + "rels-" + environmentSubstitute( "${" + Const.INTERNAL_VARIABLE_STEP_COPYNR + "}" ) + ".csv";
+    return data.importFolder +Const.NVL(data.filesPrefix+"-", "") + "rels-" + environmentSubstitute( "${" + Const.INTERNAL_VARIABLE_STEP_COPYNR + "}" ) + ".csv";
   }
 
   private void writeNodeCsvHeader( OutputStream os, List<IdType> props ) throws KettleException, IOException {
@@ -528,6 +561,9 @@ public class Load extends BaseStep implements StepInterface {
 
   private void runImport( String nodesFile, String relsFile ) throws KettleException {
 
+    if (!meta.isLoadingFiles()) {
+      return;
+    }
 
     // See if we need to delete the existing database folder...
     //

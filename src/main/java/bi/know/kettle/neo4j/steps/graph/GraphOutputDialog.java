@@ -430,7 +430,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
       Collections.sort( modelNames );
       wModel.setItems( modelNames.toArray( new String[ 0 ] ) );
 
-      // Load the active model...
+      // Importer the active model...
       //
       if ( StringUtils.isNotEmpty( wModel.getText() ) ) {
         activeModel = modelFactory.loadElement( wModel.getText() );

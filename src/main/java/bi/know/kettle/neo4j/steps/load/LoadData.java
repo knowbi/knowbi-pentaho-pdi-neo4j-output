@@ -1,12 +1,8 @@
 package bi.know.kettle.neo4j.steps.load;
 
-import bi.know.kettle.neo4j.shared.NeoConnection;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Session;
+import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
 import org.pentaho.di.trans.step.StepDataInterface;
-import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.persist.MetaStoreFactory;
 
 import java.io.OutputStream;
 import java.util.List;
@@ -14,11 +10,7 @@ import java.util.Map;
 
 public class LoadData extends BaseStepData implements StepDataInterface {
 
-  public NeoConnection connection;
-  public MetaStoreFactory<NeoConnection> connectionFactory;
-  public IMetaStore metaStore;
-  public Driver driver;
-  public Session session;
+  public RowMetaInterface outputRowMeta;
   public String importFolder;
   public long nodesProcessed;
   public long relsProcessed;
@@ -36,4 +28,7 @@ public class LoadData extends BaseStepData implements StepDataInterface {
   public Map<String, Integer> relPropertyIndexes;
   public String reportFile;
   public String relsFilename;
+  public String filesPrefix;
+  public String filenameField;
+  public String fileTypeField;
 }

@@ -1,5 +1,8 @@
-package bi.know.kettle.neo4j.steps.load;
+package bi.know.kettle.neo4j.steps.importer;
 
+import bi.know.kettle.neo4j.shared.NeoConnection;
+import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
+import bi.know.kettle.neo4j.steps.load.UniquenessStrategy;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -26,36 +29,36 @@ import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
+import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
-public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
+import java.util.Collections;
+import java.util.List;
 
-  private static Class<?> PKG = LoadMeta.class; // for i18n purposes, needed by Translator2!!
+public class ImporterDialog extends BaseStepDialog implements StepDialogInterface {
+
+  private static Class<?> PKG = ImporterMeta.class; // for i18n purposes, needed by Translator2!!
 
   private Text wStepname;
 
-  private CCombo wGraphField;
+  private CCombo wFilenameField;
+  private CCombo wFileTypeField;
   private TextVar wDatabaseFilename;
   private TextVar wAdminCommand;
   private TextVar wBaseFolder;
-  private TextVar wReportFile;
-  private CCombo wStrategy;
+  private TextVar wMaxMemory;
+  private Button wHighIo;
+  private Button wIgnoreDuplicateNodes;
+  private Button wIgnoreMissingNodes;
+  private Button wIgnoreExtraColumns;
+  
+  private ImporterMeta input;
 
-  private TextVar wFilesPrefix;
-
-  private Button wLoadFiles;
-  private Label wlFilenameField;
-  private TextVar wFilenameField;
-  private Label wlFileTypeField;
-  private TextVar wFileTypeField;
-
-  private LoadMeta input;
-
-  public LoadDialog( Shell parent, Object inputMetadata, TransMeta transMeta, String stepname ) {
+  public ImporterDialog( Shell parent, Object inputMetadata, TransMeta transMeta, String stepname ) {
     super( parent, (BaseStepMeta) inputMetadata, transMeta, stepname );
-    input = (LoadMeta) inputMetadata;
+    input = (ImporterMeta) inputMetadata;
 
     // Hack the metastore...
     //
@@ -72,7 +75,7 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
 
     FormLayout shellLayout = new FormLayout();
     shell.setLayout( shellLayout );
-    shell.setText( "Neo4j Load" );
+    shell.setText( "Neo4j Importer" );
 
     ModifyListener lsMod = e -> input.setChanged();
     changed = input.hasChanged();
@@ -123,33 +126,53 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     fdStepname.right = new FormAttachment( 100, 0 );
     wStepname.setLayoutData( fdStepname );
     Control lastControl = wStepname;
-
+    
     String[] fieldnames = new String[] {};
     try {
       fieldnames = transMeta.getPrevStepFields(stepMeta).getFieldNames();
     } catch ( KettleStepException e ) {
       log.logError("error getting input field names: ", e);
     }
-
-    // Graph field
+    
+    // Filename field
     //
-    Label wlGraphField = new Label( wComposite, SWT.RIGHT );
-    wlGraphField.setText( "Graph field " );
-    props.setLook( wlGraphField );
-    FormData fdlGraphField = new FormData();
-    fdlGraphField.left = new FormAttachment( 0, 0 );
-    fdlGraphField.right = new FormAttachment( middle, -margin );
-    fdlGraphField.top = new FormAttachment( lastControl, 2 * margin );
-    wlGraphField.setLayoutData( fdlGraphField );
-    wGraphField = new CCombo( wComposite, SWT.FLAT | SWT.BORDER );
-    wGraphField.setItems( fieldnames );
-    props.setLook( wGraphField );
-    FormData fdGraphField = new FormData();
-    fdGraphField.left = new FormAttachment( middle, 0 );
-    fdGraphField.right = new FormAttachment( 100, 0 );
-    fdGraphField.top = new FormAttachment( wlGraphField, 0, SWT.CENTER );
-    wGraphField.setLayoutData( fdGraphField );
-    lastControl = wGraphField;
+    Label wlFilenameField = new Label( wComposite, SWT.RIGHT );
+    wlFilenameField.setText( "Filename field " );
+    props.setLook( wlFilenameField );
+    FormData fdlFilenameField = new FormData();
+    fdlFilenameField.left = new FormAttachment( 0, 0 );
+    fdlFilenameField.right = new FormAttachment( middle, -margin );
+    fdlFilenameField.top = new FormAttachment( lastControl, 2 * margin );
+    wlFilenameField.setLayoutData( fdlFilenameField );
+    wFilenameField = new CCombo( wComposite, SWT.CHECK | SWT.BORDER );
+    wFilenameField.setItems( fieldnames );
+    props.setLook( wFilenameField );
+    FormData fdFilenameField = new FormData();
+    fdFilenameField.left = new FormAttachment( middle, 0 );
+    fdFilenameField.right = new FormAttachment( 100, 0 );
+    fdFilenameField.top = new FormAttachment( wlFilenameField, 0, SWT.CENTER );
+    wFilenameField.setLayoutData( fdFilenameField );
+    lastControl = wFilenameField;
+    
+    // FileType field
+    //
+    Label wlFileTypeField = new Label( wComposite, SWT.RIGHT );
+    wlFileTypeField.setText( "File type field " );
+    props.setLook( wlFileTypeField );
+    FormData fdlFileTypeField = new FormData();
+    fdlFileTypeField.left = new FormAttachment( 0, 0 );
+    fdlFileTypeField.right = new FormAttachment( middle, -margin );
+    fdlFileTypeField.top = new FormAttachment( lastControl, 2 * margin );
+    wlFileTypeField.setLayoutData( fdlFileTypeField );
+    wFileTypeField = new CCombo( wComposite, SWT.CHECK | SWT.BORDER );
+    wFileTypeField.setItems( fieldnames );
+    props.setLook( wFileTypeField );
+    FormData fdFileTypeField = new FormData();
+    fdFileTypeField.left = new FormAttachment( middle, 0 );
+    fdFileTypeField.right = new FormAttachment( 100, 0 );
+    fdFileTypeField.top = new FormAttachment( wlFileTypeField, 0, SWT.CENTER );
+    wFileTypeField.setLayoutData( fdFileTypeField );
+    lastControl = wFileTypeField;
 
     // The database filename to load to
     //
@@ -211,114 +234,102 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     wBaseFolder.setLayoutData( fdBaseFolder );
     lastControl = wBaseFolder;
 
-    Label wlReportFile = new Label( wComposite, SWT.RIGHT );
-    wlReportFile.setText( "Report file name " );
-    props.setLook( wlReportFile );
-    FormData fdlReportFile = new FormData();
-    fdlReportFile.left = new FormAttachment( 0, 0 );
-    fdlReportFile.right = new FormAttachment( middle, -margin );
-    fdlReportFile.top = new FormAttachment( lastControl, 2 * margin );
-    wlReportFile.setLayoutData( fdlReportFile );
-    wReportFile = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wReportFile );
-    wReportFile.addModifyListener( lsMod );
-    FormData fdReportFile = new FormData();
-    fdReportFile.left = new FormAttachment( middle, 0 );
-    fdReportFile.right = new FormAttachment( 100, 0 );
-    fdReportFile.top = new FormAttachment( wlReportFile, 0, SWT.CENTER );
-    wReportFile.setLayoutData( fdReportFile );
-    lastControl = wReportFile;
+    // The max memory used
+    //
+    Label wlMaxMemory = new Label( wComposite, SWT.RIGHT );
+    wlMaxMemory.setText( "Max memory) " );
+    props.setLook( wlMaxMemory );
+    FormData fdlMaxMemory = new FormData();
+    fdlMaxMemory.left = new FormAttachment( 0, 0 );
+    fdlMaxMemory.right = new FormAttachment( middle, -margin );
+    fdlMaxMemory.top = new FormAttachment( lastControl, 2 * margin );
+    wlMaxMemory.setLayoutData( fdlMaxMemory );
+    wMaxMemory = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wMaxMemory );
+    wMaxMemory.addModifyListener( lsMod );
+    FormData fdMaxMemory = new FormData();
+    fdMaxMemory.left = new FormAttachment( middle, 0 );
+    fdMaxMemory.right = new FormAttachment( 100, 0 );
+    fdMaxMemory.top = new FormAttachment( wlMaxMemory, 0, SWT.CENTER );
+    wMaxMemory.setLayoutData( fdMaxMemory );
+    lastControl = wMaxMemory;
 
-    Label wlFilesPrefix = new Label( wComposite, SWT.RIGHT );
-    wlFilesPrefix.setText( "CSV files prefix " );
-    props.setLook( wlFilesPrefix );
-    FormData fdlFilesPrefix = new FormData();
-    fdlFilesPrefix.left = new FormAttachment( 0, 0 );
-    fdlFilesPrefix.right = new FormAttachment( middle, -margin );
-    fdlFilesPrefix.top = new FormAttachment( lastControl, 2 * margin );
-    wlFilesPrefix.setLayoutData( fdlFilesPrefix );
-    wFilesPrefix = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wFilesPrefix );
-    wFilesPrefix.addModifyListener( lsMod );
-    FormData fdFilesPrefix = new FormData();
-    fdFilesPrefix.left = new FormAttachment( middle, 0 );
-    fdFilesPrefix.right = new FormAttachment( 100, 0 );
-    fdFilesPrefix.top = new FormAttachment( wlFilesPrefix, 0, SWT.CENTER );
-    wFilesPrefix.setLayoutData( fdFilesPrefix );
-    lastControl = wFilesPrefix;
+    // High IO?
+    //
+    Label wlHighIo = new Label( wComposite, SWT.RIGHT );
+    wlHighIo.setText( "High IO? " );
+    props.setLook( wlHighIo );
+    FormData fdlHighIo = new FormData();
+    fdlHighIo.left = new FormAttachment( 0, 0 );
+    fdlHighIo.right = new FormAttachment( middle, -margin );
+    fdlHighIo.top = new FormAttachment( lastControl, 2 * margin );
+    wlHighIo.setLayoutData( fdlHighIo );
+    wHighIo = new Button(wComposite, SWT.CHECK | SWT.LEFT );
+    props.setLook( wHighIo );
+    FormData fdHighIo = new FormData();
+    fdHighIo.left = new FormAttachment( middle, 0 );
+    fdHighIo.right = new FormAttachment( 100, 0 );
+    fdHighIo.top = new FormAttachment( wlHighIo, 0, SWT.CENTER );
+    wHighIo.setLayoutData( fdHighIo );
+    lastControl = wHighIo;
 
-    Label wlStrategy = new Label( wComposite, SWT.RIGHT );
-    wlStrategy.setText( "Node/Relationships Uniqueness strategy " );
-    props.setLook( wlStrategy );
-    FormData fdlStrategy = new FormData();
-    fdlStrategy.left = new FormAttachment( 0, 0 );
-    fdlStrategy.right = new FormAttachment( middle, -margin );
-    fdlStrategy.top = new FormAttachment( lastControl, 2 * margin );
-    wlStrategy.setLayoutData( fdlStrategy );
-    wStrategy = new CCombo( wComposite, SWT.FLAT | SWT.BORDER );
-    wStrategy.setItems( UniquenessStrategy.getNames() );
-    props.setLook( wStrategy );
-    FormData fdStrategy = new FormData();
-    fdStrategy.left = new FormAttachment( middle, 0 );
-    fdStrategy.right = new FormAttachment( 100, 0 );
-    fdStrategy.top = new FormAttachment( wlStrategy, 0, SWT.CENTER );
-    wStrategy.setLayoutData( fdStrategy );
-    lastControl = wStrategy;
+    // Ignore duplicate nodes?
+    //
+    Label wlIgnoreDuplicateNodes = new Label( wComposite, SWT.RIGHT );
+    wlIgnoreDuplicateNodes.setText( "Ignore duplicate nodes? " );
+    props.setLook( wlIgnoreDuplicateNodes );
+    FormData fdlIgnoreDuplicateNodes = new FormData();
+    fdlIgnoreDuplicateNodes.left = new FormAttachment( 0, 0 );
+    fdlIgnoreDuplicateNodes.right = new FormAttachment( middle, -margin );
+    fdlIgnoreDuplicateNodes.top = new FormAttachment( lastControl, 2 * margin );
+    wlIgnoreDuplicateNodes.setLayoutData( fdlIgnoreDuplicateNodes );
+    wIgnoreDuplicateNodes = new Button(wComposite, SWT.CHECK | SWT.LEFT );
+    props.setLook( wIgnoreDuplicateNodes );
+    FormData fdIgnoreDuplicateNodes = new FormData();
+    fdIgnoreDuplicateNodes.left = new FormAttachment( middle, 0 );
+    fdIgnoreDuplicateNodes.right = new FormAttachment( 100, 0 );
+    fdIgnoreDuplicateNodes.top = new FormAttachment( wlIgnoreDuplicateNodes, 0, SWT.CENTER );
+    wIgnoreDuplicateNodes.setLayoutData( fdIgnoreDuplicateNodes );
+    lastControl = wIgnoreDuplicateNodes;
 
-    Label wlLoadFiles = new Label( wComposite, SWT.RIGHT );
-    wlLoadFiles.setText( "Load generated files? " );
-    props.setLook( wlLoadFiles );
-    FormData fdlLoadFiles = new FormData();
-    fdlLoadFiles.left = new FormAttachment( 0, 0 );
-    fdlLoadFiles.right = new FormAttachment( middle, -margin );
-    fdlLoadFiles.top = new FormAttachment( lastControl, 2 * margin );
-    wlLoadFiles.setLayoutData( fdlLoadFiles );
-    wLoadFiles = new Button( wComposite, SWT.CHECK | SWT.BORDER );
-    props.setLook( wLoadFiles );
-    FormData fdLoadFiles = new FormData();
-    fdLoadFiles.left = new FormAttachment( middle, 0 );
-    fdLoadFiles.right = new FormAttachment( 100, 0 );
-    fdLoadFiles.top = new FormAttachment( wlLoadFiles, 0, SWT.CENTER );
-    wLoadFiles.setLayoutData( fdLoadFiles );
-    wLoadFiles.addListener( SWT.Selection, (e)->enableFields() );
-    lastControl = wLoadFiles;
+    // Ignore missing nodes?
+    //
+    Label wlIgnoreMissingNodes = new Label( wComposite, SWT.RIGHT );
+    wlIgnoreMissingNodes.setText( "Ignore missing nodes? " );
+    props.setLook( wlIgnoreMissingNodes );
+    FormData fdlIgnoreMissingNodes = new FormData();
+    fdlIgnoreMissingNodes.left = new FormAttachment( 0, 0 );
+    fdlIgnoreMissingNodes.right = new FormAttachment( middle, -margin );
+    fdlIgnoreMissingNodes.top = new FormAttachment( lastControl, 2 * margin );
+    wlIgnoreMissingNodes.setLayoutData( fdlIgnoreMissingNodes );
+    wIgnoreMissingNodes = new Button(wComposite, SWT.CHECK | SWT.LEFT );
+    props.setLook( wIgnoreMissingNodes );
+    FormData fdIgnoreMissingNodes = new FormData();
+    fdIgnoreMissingNodes.left = new FormAttachment( middle, 0 );
+    fdIgnoreMissingNodes.right = new FormAttachment( 100, 0 );
+    fdIgnoreMissingNodes.top = new FormAttachment( wlIgnoreMissingNodes, 0, SWT.CENTER );
+    wIgnoreMissingNodes.setLayoutData( fdIgnoreMissingNodes );
+    lastControl = wIgnoreMissingNodes;
 
-    wlFilenameField = new Label( wComposite, SWT.RIGHT );
-    wlFilenameField.setText( "Filename field) " );
-    props.setLook( wlFilenameField );
-    FormData fdlFilenameField = new FormData();
-    fdlFilenameField.left = new FormAttachment( 0, 0 );
-    fdlFilenameField.right = new FormAttachment( middle, -margin );
-    fdlFilenameField.top = new FormAttachment( lastControl, 2 * margin );
-    wlFilenameField.setLayoutData( fdlFilenameField );
-    wFilenameField = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wFilenameField );
-    wFilenameField.addModifyListener( lsMod );
-    FormData fdFilenameField = new FormData();
-    fdFilenameField.left = new FormAttachment( middle, 0 );
-    fdFilenameField.right = new FormAttachment( 100, 0 );
-    fdFilenameField.top = new FormAttachment( wlFilenameField, 0, SWT.CENTER );
-    wFilenameField.setLayoutData( fdFilenameField );
-    lastControl = wFilenameField;
+    // Ignore extra columns?
+    //
+    Label wlIgnoreExtraColumns = new Label( wComposite, SWT.RIGHT );
+    wlIgnoreExtraColumns.setText( "Ignore extra columns? " );
+    props.setLook( wlIgnoreExtraColumns );
+    FormData fdlIgnoreExtraColumns = new FormData();
+    fdlIgnoreExtraColumns.left = new FormAttachment( 0, 0 );
+    fdlIgnoreExtraColumns.right = new FormAttachment( middle, -margin );
+    fdlIgnoreExtraColumns.top = new FormAttachment( lastControl, 2 * margin );
+    wlIgnoreExtraColumns.setLayoutData( fdlIgnoreExtraColumns );
+    wIgnoreExtraColumns = new Button(wComposite, SWT.CHECK | SWT.LEFT );
+    props.setLook( wIgnoreExtraColumns );
+    FormData fdIgnoreExtraColumns = new FormData();
+    fdIgnoreExtraColumns.left = new FormAttachment( middle, 0 );
+    fdIgnoreExtraColumns.right = new FormAttachment( 100, 0 );
+    fdIgnoreExtraColumns.top = new FormAttachment( wlIgnoreExtraColumns, 0, SWT.CENTER );
+    wIgnoreExtraColumns.setLayoutData( fdIgnoreExtraColumns );
+    lastControl = wIgnoreExtraColumns;
 
-    wlFileTypeField = new Label( wComposite, SWT.RIGHT );
-    wlFileTypeField.setText( "File type field " );
-    props.setLook( wlFileTypeField );
-    FormData fdlFileTypeField = new FormData();
-    fdlFileTypeField.left = new FormAttachment( 0, 0 );
-    fdlFileTypeField.right = new FormAttachment( middle, -margin );
-    fdlFileTypeField.top = new FormAttachment( lastControl, 2 * margin );
-    wlFileTypeField.setLayoutData( fdlFileTypeField );
-    wFileTypeField = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wFileTypeField );
-    wFileTypeField.addModifyListener( lsMod );
-    FormData fdFileTypeField = new FormData();
-    fdFileTypeField.left = new FormAttachment( middle, 0 );
-    fdFileTypeField.right = new FormAttachment( 100, 0 );
-    fdFileTypeField.top = new FormAttachment( wlFileTypeField, 0, SWT.CENTER );
-    wFileTypeField.setLayoutData( fdFileTypeField );
-    lastControl = wFileTypeField;
-    
     // Some buttons
     wOK = new Button( wComposite, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
@@ -351,14 +362,12 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     };
 
     wStepname.addSelectionListener( lsDef );
-    wGraphField.addSelectionListener( lsDef );
+    wFilenameField.addSelectionListener( lsDef );
+    wFileTypeField.addSelectionListener( lsDef );
     wDatabaseFilename.addSelectionListener( lsDef );
     wAdminCommand.addSelectionListener( lsDef );
     wBaseFolder.addSelectionListener( lsDef );
-    wReportFile.addSelectionListener( lsDef );
-    wFilesPrefix.addSelectionListener( lsDef );
-    wFilenameField.addSelectionListener( lsDef );
-    wFileTypeField.addSelectionListener( lsDef );
+    wMaxMemory.addSelectionListener( lsDef );
 
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
@@ -384,15 +393,6 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
 
   }
 
-  private void enableFields() {
-    boolean outputFieldsActive = wLoadFiles.getSelection();
-
-    wlFilenameField.setEnabled( !outputFieldsActive );
-    wFilenameField.setEnabled( !outputFieldsActive );
-    wlFileTypeField.setEnabled( !outputFieldsActive );
-    wFileTypeField.setEnabled( !outputFieldsActive );
-  }
-
   private void cancel() {
     stepname = null;
     input.setChanged( changed );
@@ -402,21 +402,16 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
   public void getData() {
 
     wStepname.setText( Const.NVL( stepname, "" ) );
-    wGraphField.setText( Const.NVL( input.getGraphFieldName(), "" ) );
+    wFilenameField.setText( Const.NVL( input.getFilenameField(), "" ) );
+    wFileTypeField.setText( Const.NVL( input.getFileTypeField(), "" ) );
     wDatabaseFilename.setText( Const.NVL( input.getDatabaseFilename(), "" ) );
     wAdminCommand.setText( Const.NVL( input.getAdminCommand(), "" ) );
     wBaseFolder.setText( Const.NVL( input.getBaseFolder(), "" ) );
-    wReportFile.setText( Const.NVL( input.getReportFile(), "" ) );
-    if (input.getUniquenessStrategy()!=null) {
-      int idx = Const.indexOfString( input.getUniquenessStrategy().name(), UniquenessStrategy.getNames() );
-      wStrategy.select(idx);
-    }
-    wFilesPrefix.setText(Const.NVL(input.getFilesPrefix(), ""));
-    wLoadFiles.setSelection( input.isLoadingFiles() );
-    wFilenameField.setText(Const.NVL(input.getFilenameField(), ""));
-    wFileTypeField.setText(Const.NVL(input.getFileTypeField(), ""));
-
-    enableFields();
+    wMaxMemory.setText( Const.NVL( input.getMaxMemory(), "" ) );
+    wHighIo.setSelection( input.isHighIo() );
+    wIgnoreDuplicateNodes.setSelection( input.isIgnoringDuplicateNodes() );
+    wIgnoreMissingNodes.setSelection( input.isIgnoringMissingNodes() );
+    wIgnoreExtraColumns.setSelection( input.isIgnoringExtraColumns() );
   }
 
   private void ok() {
@@ -428,16 +423,17 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     dispose();
   }
 
-  private void getInfo(LoadMeta meta) {
-    meta.setGraphFieldName( wGraphField.getText() );
-    meta.setDatabaseFilename( wDatabaseFilename.getText() );
-    meta.setAdminCommand( wAdminCommand.getText() );
-    meta.setBaseFolder( wBaseFolder.getText() );
-    meta.setReportFile( wReportFile.getText() );
-    meta.setUniquenessStrategy( UniquenessStrategy.getStrategyFromName( wStrategy.getText() ) );
-    meta.setLoadingFiles( wLoadFiles.getSelection() );
-    meta.setFilesPrefix( wFilesPrefix.getText() );
-    meta.setFilenameField(wFilenameField.getText());
+  private void getInfo( ImporterMeta meta) {
+    meta.setFilenameField( wFilenameField.getText() );
     meta.setFileTypeField( wFileTypeField.getText() );
+    meta.setAdminCommand( wAdminCommand.getText() );
+    meta.setDatabaseFilename( wDatabaseFilename.getText() );
+    meta.setBaseFolder( wBaseFolder.getText() );
+    meta.setMaxMemory( wMaxMemory.getText() );
+    meta.setHighIo( wHighIo.getSelection() );
+    meta.setIgnoringDuplicateNodes( wIgnoreDuplicateNodes.getSelection() );
+    meta.setIgnoringMissingNodes( wIgnoreMissingNodes.getSelection() );
+    meta.setIgnoringExtraColumns( wIgnoreExtraColumns.getSelection() );
   }
+
 }
