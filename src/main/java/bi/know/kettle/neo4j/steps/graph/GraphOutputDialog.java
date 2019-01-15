@@ -52,11 +52,19 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
 
   private Text wStepname;
 
+  private Label wlConnection;
   private CCombo wConnection;
+  private Button wEditConnection;
+  private Button wNewConnection;
 
   private CCombo wModel;
+  private Label wlBatchSize;
   private TextVar wBatchSize;
+  private Label wlCreateIndexes;
   private Button wCreateIndexes;
+  private Button wReturnGraph;
+  private Label wlReturnGraphField;
+  private TextVar wReturnGraphField;
 
   private TableView wFieldMappings;
 
@@ -118,7 +126,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
 
     // The connection line of items : Label, Combo, NewButton, EditButton
     //
-    Label wlConnection = new Label( shell, SWT.RIGHT );
+    wlConnection = new Label( shell, SWT.RIGHT );
     wlConnection.setText( "Connection" );
     props.setLook( wlConnection );
     FormData fdlConnection = new FormData();
@@ -127,14 +135,14 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     fdlConnection.top = new FormAttachment( lastControl, 2 * margin );
     wlConnection.setLayoutData( fdlConnection );
 
-    Button wEditConnection = new Button( shell, SWT.PUSH | SWT.BORDER );
+    wEditConnection = new Button( shell, SWT.PUSH | SWT.BORDER );
     wEditConnection.setText( BaseMessages.getString( PKG, "System.Button.Edit" ) );
     FormData fdEditConnection = new FormData();
     fdEditConnection.top = new FormAttachment( wlConnection, 0, SWT.CENTER );
     fdEditConnection.right = new FormAttachment( 100, 0 );
     wEditConnection.setLayoutData( fdEditConnection );
 
-    Button wNewConnection = new Button( shell, SWT.PUSH | SWT.BORDER );
+    wNewConnection = new Button( shell, SWT.PUSH | SWT.BORDER );
     wNewConnection.setText( BaseMessages.getString( PKG, "System.Button.New" ) );
     FormData fdNewConnection = new FormData();
     fdNewConnection.top = new FormAttachment( wlConnection, 0, SWT.CENTER );
@@ -188,7 +196,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     lastControl = wModel;
 
 
-    Label wlBatchSize = new Label( shell, SWT.RIGHT );
+    wlBatchSize = new Label( shell, SWT.RIGHT );
     wlBatchSize.setText( "Batch size (rows)" );
     props.setLook( wlBatchSize );
     FormData fdlBatchSize = new FormData();
@@ -206,7 +214,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wBatchSize.setLayoutData( fdBatchSize );
     lastControl = wBatchSize;
 
-    Label wlCreateIndexes = new Label( shell, SWT.RIGHT );
+    wlCreateIndexes = new Label( shell, SWT.RIGHT );
     wlCreateIndexes.setText( "Create indexes? " );
     wlCreateIndexes.setToolTipText( "Create index on first row using label field and primary key properties." );
     props.setLook( wlCreateIndexes );
@@ -225,6 +233,44 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wCreateIndexes.setLayoutData( fdCreateIndexes );
     lastControl = wCreateIndexes;
 
+    Label wlReturnGraph = new Label( shell, SWT.RIGHT );
+    wlReturnGraph.setText( "Return graph data?" );
+    String returnGraphTooltipText = "The update data to be updated in the form of Graph a value in the output of this step";
+    wlReturnGraph.setToolTipText( returnGraphTooltipText );
+    props.setLook( wlReturnGraph );
+    FormData fdlReturnGraph = new FormData();
+    fdlReturnGraph.left = new FormAttachment( 0, 0 );
+    fdlReturnGraph.right = new FormAttachment( middle, -margin );
+    fdlReturnGraph.top = new FormAttachment( lastControl, 2 * margin );
+    wlReturnGraph.setLayoutData( fdlReturnGraph );
+    wReturnGraph = new Button( shell, SWT.CHECK | SWT.BORDER );
+    wReturnGraph.setToolTipText( returnGraphTooltipText );
+    props.setLook( wReturnGraph );
+    FormData fdReturnGraph = new FormData();
+    fdReturnGraph.left = new FormAttachment( middle, 0 );
+    fdReturnGraph.right = new FormAttachment( 100, 0 );
+    fdReturnGraph.top = new FormAttachment( wlReturnGraph, 0, SWT.CENTER );
+    wReturnGraph.setLayoutData( fdReturnGraph );
+    wReturnGraph.addListener( SWT.Selection, e -> enableFields() );
+    lastControl = wReturnGraph;
+
+    wlReturnGraphField = new Label( shell, SWT.RIGHT );
+    wlReturnGraphField.setText( "Graph output field name" );
+    props.setLook( wlReturnGraphField );
+    FormData fdlReturnGraphField = new FormData();
+    fdlReturnGraphField.left = new FormAttachment( 0, 0 );
+    fdlReturnGraphField.right = new FormAttachment( middle, -margin );
+    fdlReturnGraphField.top = new FormAttachment( lastControl, 2 * margin );
+    wlReturnGraphField.setLayoutData( fdlReturnGraphField );
+    wReturnGraphField = new TextVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wReturnGraphField );
+    wReturnGraphField.addModifyListener( lsMod );
+    FormData fdReturnGraphField = new FormData();
+    fdReturnGraphField.left = new FormAttachment( middle, 0 );
+    fdReturnGraphField.right = new FormAttachment( 100, 0 );
+    fdReturnGraphField.top = new FormAttachment( wlReturnGraphField, 0, SWT.CENTER );
+    wReturnGraphField.setLayoutData( fdReturnGraphField );
+    lastControl = wReturnGraphField;
 
     // Some buttons at the bottom...
     //
@@ -293,6 +339,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wConnection.addSelectionListener( lsDef );
     wStepname.addSelectionListener( lsDef );
     wBatchSize.addSelectionListener( lsDef );
+    wReturnGraph.addSelectionListener( lsDef );
 
     wNewConnection.addListener( SWT.Selection, e -> newConnection() );
     wEditConnection.addListener( SWT.Selection, e -> editConnection() );
@@ -321,6 +368,24 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     return stepname;
 
   }
+
+  private void enableFields() {
+
+    boolean toNeo = !wReturnGraph.getSelection();
+
+    wlConnection.setEnabled( toNeo );
+    wConnection.setEnabled( toNeo );
+    wEditConnection.setEnabled( toNeo );
+    wNewConnection.setEnabled( toNeo );
+    wlBatchSize.setEnabled( toNeo );
+    wBatchSize.setEnabled( toNeo );
+    wlCreateIndexes.setEnabled( toNeo );
+    wCreateIndexes.setEnabled( toNeo );
+
+    wlReturnGraphField.setEnabled( !toNeo );
+    wReturnGraphField.setEnabled( !toNeo );
+  }
+
 
   private void enterMapping() {
     // Map input field names to Node/Property values
@@ -402,7 +467,6 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wModel.setText( Const.NVL( input.getModel(), "" ) );
     updateModelsCombo();
 
-
     wBatchSize.setText( Const.NVL( input.getBatchSize(), "" ) );
     wCreateIndexes.setSelection( input.isCreatingIndexes() );
 
@@ -419,6 +483,10 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wFieldMappings.setRowNums();
     wFieldMappings.optWidth( true );
 
+    wReturnGraph.setSelection( input.isReturningGraph() );
+    wReturnGraphField.setText( Const.NVL( input.getReturnGraphField(), "" ) );
+
+    enableFields();
   }
 
   private void updateModelsCombo() {
@@ -470,6 +538,9 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     input.setBatchSize( wBatchSize.getText() );
     input.setCreatingIndexes( wCreateIndexes.getSelection() );
     input.setModel( wModel.getText() );
+
+    input.setReturningGraph( wReturnGraph.getSelection() );
+    input.setReturnGraphField( wReturnGraphField.getText() );
 
     List<FieldModelMapping> mappings = new ArrayList<>();
     for ( int i = 0; i < wFieldMappings.nrNonEmpty(); i++ ) {

@@ -26,7 +26,7 @@ import java.util.List;
   id = "Neo4jImport",
   name = "Neo4j Import",
   description = "Runs an import command using the provided CSV files ",
-  image = "NEO4J.svg",
+  image = "neo4j_import.svg",
   categoryDescription = "Neo4j",
   documentationUrl = "https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki/"
 )
@@ -43,6 +43,9 @@ public class ImporterMeta extends BaseStepMeta implements StepMetaInterface {
   public static final String IGNORE_EXTRA_COLUMNS = "ignore_extra_columns";
   public static final String MAX_MEMORY = "max_memory";
   public static final String HIGH_IO = "high_io";
+  public static final String MULTI_LINE = "multi_line";
+  public static final String SKIP_BAD_RELATIONSHIPS= "skip_bad_relationships";
+  public static final String READ_BUFFER_SIZE= "read_buffer_size";
 
   protected String filenameField;
   protected String fileTypeField;
@@ -55,12 +58,17 @@ public class ImporterMeta extends BaseStepMeta implements StepMetaInterface {
   protected boolean ignoringMissingNodes;
   protected boolean ignoringExtraColumns;
   protected boolean highIo;
+  protected boolean multiLine;
+  protected boolean skippingBadRelationships;
+  protected String readBufferSize;
+
 
   @Override public void setDefault() {
     databaseFilename = "graph.db";
-    adminCommand = "neo4j-admin";
+    adminCommand = "neo4j-import";
     baseFolder = "/var/lib/neo4j/";
     reportFile = "import.report";
+    readBufferSize = "4M";
   }
 
   @Override public void getFields( RowMetaInterface inputRowMeta, String name, RowMetaInterface[] info, StepMeta nextStep, VariableSpace space, Repository repository, IMetaStore metaStore )
@@ -81,6 +89,9 @@ public class ImporterMeta extends BaseStepMeta implements StepMetaInterface {
     xml.append( XMLHandler.addTagValue( IGNORE_MISSING_NODES, ignoringMissingNodes) );
     xml.append( XMLHandler.addTagValue( IGNORE_EXTRA_COLUMNS, ignoringExtraColumns) );
     xml.append( XMLHandler.addTagValue( HIGH_IO, highIo) );
+    xml.append( XMLHandler.addTagValue( MULTI_LINE, multiLine) );
+    xml.append( XMLHandler.addTagValue( SKIP_BAD_RELATIONSHIPS, skippingBadRelationships) );
+    xml.append( XMLHandler.addTagValue( READ_BUFFER_SIZE, readBufferSize) );
     return xml.toString();
   }
 
@@ -96,6 +107,9 @@ public class ImporterMeta extends BaseStepMeta implements StepMetaInterface {
     ignoringMissingNodes = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, IGNORE_MISSING_NODES ) );
     ignoringExtraColumns = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, IGNORE_EXTRA_COLUMNS ) );
     highIo = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, HIGH_IO ) );
+    multiLine = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, MULTI_LINE ) );
+    skippingBadRelationships = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, SKIP_BAD_RELATIONSHIPS) );
+    readBufferSize = XMLHandler.getTagValue( stepnode, READ_BUFFER_SIZE);
   }
 
   @Override public void saveRep( Repository rep, IMetaStore metaStore, ObjectId transformationId, ObjectId stepId ) throws KettleException {
@@ -110,6 +124,9 @@ public class ImporterMeta extends BaseStepMeta implements StepMetaInterface {
     rep.saveStepAttribute( transformationId, stepId, IGNORE_MISSING_NODES, ignoringMissingNodes );
     rep.saveStepAttribute( transformationId, stepId, IGNORE_EXTRA_COLUMNS, ignoringExtraColumns );
     rep.saveStepAttribute( transformationId, stepId, HIGH_IO, highIo );
+    rep.saveStepAttribute( transformationId, stepId, MULTI_LINE, multiLine);
+    rep.saveStepAttribute( transformationId, stepId, SKIP_BAD_RELATIONSHIPS, skippingBadRelationships);
+    rep.saveStepAttribute( transformationId, stepId, READ_BUFFER_SIZE, readBufferSize);
   }
 
   @Override public void readRep( Repository rep, IMetaStore metaStore, ObjectId stepId, List<DatabaseMeta> databases ) throws KettleException {
@@ -124,6 +141,9 @@ public class ImporterMeta extends BaseStepMeta implements StepMetaInterface {
     ignoringMissingNodes = rep.getStepAttributeBoolean( stepId, IGNORE_MISSING_NODES);
     ignoringExtraColumns = rep.getStepAttributeBoolean( stepId, IGNORE_EXTRA_COLUMNS);
     highIo = rep.getStepAttributeBoolean( stepId, HIGH_IO);
+    multiLine = rep.getStepAttributeBoolean( stepId, MULTI_LINE);
+    skippingBadRelationships = rep.getStepAttributeBoolean( stepId, SKIP_BAD_RELATIONSHIPS);
+    readBufferSize = rep.getStepAttributeString( stepId, READ_BUFFER_SIZE);
   }
 
   @Override public StepInterface getStep( StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta, Trans trans ) {
@@ -308,5 +328,53 @@ public class ImporterMeta extends BaseStepMeta implements StepMetaInterface {
    */
   public void setDatabaseFilename( String databaseFilename ) {
     this.databaseFilename = databaseFilename;
+  }
+
+  /**
+   * Gets multiLine
+   *
+   * @return value of multiLine
+   */
+  public boolean isMultiLine() {
+    return multiLine;
+  }
+
+  /**
+   * @param multiLine The multiLine to set
+   */
+  public void setMultiLine( boolean multiLine ) {
+    this.multiLine = multiLine;
+  }
+
+  /**
+   * Gets skippingBadRelationships
+   *
+   * @return value of skippingBadRelationships
+   */
+  public boolean isSkippingBadRelationships() {
+    return skippingBadRelationships;
+  }
+
+  /**
+   * @param skippingBadRelationships The skippingBadRelationships to set
+   */
+  public void setSkippingBadRelationships( boolean skippingBadRelationships ) {
+    this.skippingBadRelationships = skippingBadRelationships;
+  }
+
+  /**
+   * Gets readBufferSize
+   *
+   * @return value of readBufferSize
+   */
+  public String getReadBufferSize() {
+    return readBufferSize;
+  }
+
+  /**
+   * @param readBufferSize The readBufferSize to set
+   */
+  public void setReadBufferSize( String readBufferSize ) {
+    this.readBufferSize = readBufferSize;
   }
 }

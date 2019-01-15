@@ -43,7 +43,7 @@ public class GraphNodeData {
       Value propertyValue = node.get( propertyKey );
       Object propertyObject = propertyValue.asObject();
       GraphPropertyDataType propertyType = GraphPropertyDataType.getTypeFromNeo4jValue(propertyObject);
-      properties.add( new GraphPropertyData( propertyKey, propertyObject, propertyType ) );
+      properties.add( new GraphPropertyData( propertyKey, propertyObject, propertyType, false ) );
     }
   }
 
@@ -59,7 +59,7 @@ public class GraphNodeData {
     // Copy properties
     List<GraphPropertyData> propertiesCopy = new ArrayList<>();
     for ( GraphPropertyData property : graphNode.getProperties() ) {
-      GraphPropertyData propertyCopy = new GraphPropertyData( property.getId(), property.getValue(), property.getType() );
+      GraphPropertyData propertyCopy = new GraphPropertyData( property.getId(), property.getValue(), property.getType(), property.isPrimary() );
       propertiesCopy.add( propertyCopy );
     }
     setProperties( propertiesCopy );

@@ -28,4 +28,6 @@ public class ImporterData extends BaseStepData implements StepDataInterface {
 
   public int filenameFieldIndex;
   public int fileTypeFieldIndex;
+  public String readBufferSize;
+  public String maxMemory;
 }

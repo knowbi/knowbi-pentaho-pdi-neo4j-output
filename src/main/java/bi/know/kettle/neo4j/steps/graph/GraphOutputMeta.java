@@ -1,6 +1,8 @@
 package bi.know.kettle.neo4j.steps.graph;
 
 
+import bi.know.kettle.neo4j.core.value.ValueMetaGraph;
+import org.pentaho.di.core.Const;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
@@ -9,6 +11,7 @@ import org.pentaho.di.core.injection.Injection;
 import org.pentaho.di.core.injection.InjectionDeep;
 import org.pentaho.di.core.injection.InjectionSupported;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.xml.XMLHandler;
 import org.pentaho.di.repository.ObjectId;
@@ -30,7 +33,7 @@ import java.util.List;
   id = "Neo4jGraphOutput",
   name = "Neo4j Graph Output",
   description = "Write to a Neo4j graph using an input field mapping",
-  image = "neo4j_logo.svg",
+  image = "neo4j_graph_output.svg",
   categoryDescription = "Neo4j",
   documentationUrl = "https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki/Neo4j-Graph-Output#description"
 )
@@ -97,7 +100,13 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
   @Override public void getFields( RowMetaInterface rowMeta, String name, RowMetaInterface[] info, StepMeta nextStep, VariableSpace space,
                                    Repository repository, IMetaStore metaStore ) {
 
-    // No output fields for now
+    if (returningGraph) {
+
+      ValueMetaInterface valueMetaGraph = new ValueMetaGraph( Const.NVL(returnGraphField, "graph") );
+      valueMetaGraph.setOrigin( name );
+      rowMeta.addValueMeta( valueMetaGraph );
+
+    }
   }
 
   @Override public String getXML() {

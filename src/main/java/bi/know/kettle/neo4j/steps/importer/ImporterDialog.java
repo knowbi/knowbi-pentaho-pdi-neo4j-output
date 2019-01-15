@@ -53,7 +53,10 @@ public class ImporterDialog extends BaseStepDialog implements StepDialogInterfac
   private Button wIgnoreDuplicateNodes;
   private Button wIgnoreMissingNodes;
   private Button wIgnoreExtraColumns;
-  
+  private Button wMultiLine;
+  private Button wSkipBadRelationships;
+  private TextVar wReadBufferSize;
+
   private ImporterMeta input;
 
   public ImporterDialog( Shell parent, Object inputMetadata, TransMeta transMeta, String stepname ) {
@@ -330,6 +333,66 @@ public class ImporterDialog extends BaseStepDialog implements StepDialogInterfac
     wIgnoreExtraColumns.setLayoutData( fdIgnoreExtraColumns );
     lastControl = wIgnoreExtraColumns;
 
+    // Whether or not fields from input source can span multiple lines
+    //
+    Label wlMultiLine = new Label( wComposite, SWT.RIGHT );
+    wlMultiLine.setText( "Fields can have multi-line data? " );
+    props.setLook( wlMultiLine );
+    FormData fdlMultiLine = new FormData();
+    fdlMultiLine.left = new FormAttachment( 0, 0 );
+    fdlMultiLine.right = new FormAttachment( middle, -margin );
+    fdlMultiLine.top = new FormAttachment( lastControl, 2 * margin );
+    wlMultiLine.setLayoutData( fdlMultiLine );
+    wMultiLine = new Button(wComposite, SWT.CHECK | SWT.LEFT );
+    props.setLook( wMultiLine );
+    FormData fdMultiLine = new FormData();
+    fdMultiLine.left = new FormAttachment( middle, 0 );
+    fdMultiLine.right = new FormAttachment( 100, 0 );
+    fdMultiLine.top = new FormAttachment( wlMultiLine, 0, SWT.CENTER );
+    wMultiLine.setLayoutData( fdMultiLine );
+    lastControl = wMultiLine;
+
+    // Whether or not to skip importing relationships that refers to missing node ids
+    //
+    Label wlSkipBadRelationships = new Label( wComposite, SWT.RIGHT );
+    wlSkipBadRelationships.setText( "Skip bad relationships? " );
+    props.setLook( wlSkipBadRelationships );
+    FormData fdlSkipBadRelationships = new FormData();
+    fdlSkipBadRelationships.left = new FormAttachment( 0, 0 );
+    fdlSkipBadRelationships.right = new FormAttachment( middle, -margin );
+    fdlSkipBadRelationships.top = new FormAttachment( lastControl, 2 * margin );
+    wlSkipBadRelationships.setLayoutData( fdlSkipBadRelationships );
+    wSkipBadRelationships = new Button(wComposite, SWT.CHECK | SWT.LEFT );
+    props.setLook( wSkipBadRelationships );
+    FormData fdSkipBadRelationships = new FormData();
+    fdSkipBadRelationships.left = new FormAttachment( middle, 0 );
+    fdSkipBadRelationships.right = new FormAttachment( 100, 0 );
+    fdSkipBadRelationships.top = new FormAttachment( wlSkipBadRelationships, 0, SWT.CENTER );
+    wSkipBadRelationships.setLayoutData( fdSkipBadRelationships );
+    lastControl = wSkipBadRelationships;
+
+    // Size of each buffer for reading input data. It has to at least be large enough
+    // to hold the biggest single value in the input data.
+    //
+    Label wlReadBufferSize = new Label( wComposite, SWT.RIGHT );
+    wlReadBufferSize.setText( "Read buffer size) " );
+    props.setLook( wlReadBufferSize );
+    FormData fdlReadBufferSize = new FormData();
+    fdlReadBufferSize.left = new FormAttachment( 0, 0 );
+    fdlReadBufferSize.right = new FormAttachment( middle, -margin );
+    fdlReadBufferSize.top = new FormAttachment( lastControl, 2 * margin );
+    wlReadBufferSize.setLayoutData( fdlReadBufferSize );
+    wReadBufferSize = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wReadBufferSize );
+    wReadBufferSize.addModifyListener( lsMod );
+    FormData fdReadBufferSize = new FormData();
+    fdReadBufferSize.left = new FormAttachment( middle, 0 );
+    fdReadBufferSize.right = new FormAttachment( 100, 0 );
+    fdReadBufferSize.top = new FormAttachment( wlReadBufferSize, 0, SWT.CENTER );
+    wReadBufferSize.setLayoutData( fdReadBufferSize );
+    lastControl = wReadBufferSize;
+    
+
     // Some buttons
     wOK = new Button( wComposite, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
@@ -368,6 +431,7 @@ public class ImporterDialog extends BaseStepDialog implements StepDialogInterfac
     wAdminCommand.addSelectionListener( lsDef );
     wBaseFolder.addSelectionListener( lsDef );
     wMaxMemory.addSelectionListener( lsDef );
+    wReadBufferSize.addSelectionListener( lsDef );
 
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {
@@ -412,6 +476,10 @@ public class ImporterDialog extends BaseStepDialog implements StepDialogInterfac
     wIgnoreDuplicateNodes.setSelection( input.isIgnoringDuplicateNodes() );
     wIgnoreMissingNodes.setSelection( input.isIgnoringMissingNodes() );
     wIgnoreExtraColumns.setSelection( input.isIgnoringExtraColumns() );
+    wSkipBadRelationships.setSelection( input.isSkippingBadRelationships());
+    wMultiLine.setSelection( input.isMultiLine());
+    wReadBufferSize.setText( Const.NVL( input.getReadBufferSize(), "" ) );
+
   }
 
   private void ok() {
@@ -434,6 +502,9 @@ public class ImporterDialog extends BaseStepDialog implements StepDialogInterfac
     meta.setIgnoringDuplicateNodes( wIgnoreDuplicateNodes.getSelection() );
     meta.setIgnoringMissingNodes( wIgnoreMissingNodes.getSelection() );
     meta.setIgnoringExtraColumns( wIgnoreExtraColumns.getSelection() );
+    meta.setSkippingBadRelationships( wSkipBadRelationships.getSelection() );
+    meta.setMultiLine( wMultiLine.getSelection() );
+    meta.setReadBufferSize( wReadBufferSize.getText() );
   }
 
 }

@@ -37,18 +37,10 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
   private Text wStepname;
 
   private CCombo wGraphField;
-  private TextVar wDatabaseFilename;
-  private TextVar wAdminCommand;
   private TextVar wBaseFolder;
-  private TextVar wReportFile;
   private CCombo wStrategy;
-
   private TextVar wFilesPrefix;
-
-  private Button wLoadFiles;
-  private Label wlFilenameField;
   private TextVar wFilenameField;
-  private Label wlFileTypeField;
   private TextVar wFileTypeField;
 
   private LoadMeta input;
@@ -72,7 +64,7 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
 
     FormLayout shellLayout = new FormLayout();
     shell.setLayout( shellLayout );
-    shell.setText( "Neo4j Load" );
+    shell.setText( "Neo4j Generate CSVs" );
 
     ModifyListener lsMod = e -> input.setChanged();
     changed = input.hasChanged();
@@ -151,46 +143,6 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     wGraphField.setLayoutData( fdGraphField );
     lastControl = wGraphField;
 
-    // The database filename to load to
-    //
-    Label wlDatabaseFilename = new Label( wComposite, SWT.RIGHT );
-    wlDatabaseFilename.setText( "Database filename " );
-    props.setLook( wlDatabaseFilename );
-    FormData fdlDatabaseFilename = new FormData();
-    fdlDatabaseFilename.left = new FormAttachment( 0, 0 );
-    fdlDatabaseFilename.right = new FormAttachment( middle, -margin );
-    fdlDatabaseFilename.top = new FormAttachment( lastControl, 2 * margin );
-    wlDatabaseFilename.setLayoutData( fdlDatabaseFilename );
-    wDatabaseFilename = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wDatabaseFilename );
-    wDatabaseFilename.addModifyListener( lsMod );
-    FormData fdDatabaseFilename = new FormData();
-    fdDatabaseFilename.left = new FormAttachment( middle, 0 );
-    fdDatabaseFilename.right = new FormAttachment( 100, 0 );
-    fdDatabaseFilename.top = new FormAttachment( wlDatabaseFilename, 0, SWT.CENTER );
-    wDatabaseFilename.setLayoutData( fdDatabaseFilename );
-    lastControl = wDatabaseFilename;
-
-    // The path to the neo4j-admin command to use
-    //
-    Label wlAdminCommand = new Label( wComposite, SWT.RIGHT );
-    wlAdminCommand.setText( "neo4j-admin command path " );
-    props.setLook( wlAdminCommand );
-    FormData fdlAdminCommand = new FormData();
-    fdlAdminCommand.left = new FormAttachment( 0, 0 );
-    fdlAdminCommand.right = new FormAttachment( middle, -margin );
-    fdlAdminCommand.top = new FormAttachment( lastControl, 2 * margin );
-    wlAdminCommand.setLayoutData( fdlAdminCommand );
-    wAdminCommand = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wAdminCommand );
-    wAdminCommand.addModifyListener( lsMod );
-    FormData fdAdminCommand = new FormData();
-    fdAdminCommand.left = new FormAttachment( middle, 0 );
-    fdAdminCommand.right = new FormAttachment( 100, 0 );
-    fdAdminCommand.top = new FormAttachment( wlAdminCommand, 0, SWT.CENTER );
-    wAdminCommand.setLayoutData( fdAdminCommand );
-    lastControl = wAdminCommand;
-
     // The base folder to run the command from
     //
     Label wlBaseFolder = new Label( wComposite, SWT.RIGHT );
@@ -210,24 +162,6 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     fdBaseFolder.top = new FormAttachment( wlBaseFolder, 0, SWT.CENTER );
     wBaseFolder.setLayoutData( fdBaseFolder );
     lastControl = wBaseFolder;
-
-    Label wlReportFile = new Label( wComposite, SWT.RIGHT );
-    wlReportFile.setText( "Report file name " );
-    props.setLook( wlReportFile );
-    FormData fdlReportFile = new FormData();
-    fdlReportFile.left = new FormAttachment( 0, 0 );
-    fdlReportFile.right = new FormAttachment( middle, -margin );
-    fdlReportFile.top = new FormAttachment( lastControl, 2 * margin );
-    wlReportFile.setLayoutData( fdlReportFile );
-    wReportFile = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
-    props.setLook( wReportFile );
-    wReportFile.addModifyListener( lsMod );
-    FormData fdReportFile = new FormData();
-    fdReportFile.left = new FormAttachment( middle, 0 );
-    fdReportFile.right = new FormAttachment( 100, 0 );
-    fdReportFile.top = new FormAttachment( wlReportFile, 0, SWT.CENTER );
-    wReportFile.setLayoutData( fdReportFile );
-    lastControl = wReportFile;
 
     Label wlFilesPrefix = new Label( wComposite, SWT.RIGHT );
     wlFilesPrefix.setText( "CSV files prefix " );
@@ -265,25 +199,7 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     wStrategy.setLayoutData( fdStrategy );
     lastControl = wStrategy;
 
-    Label wlLoadFiles = new Label( wComposite, SWT.RIGHT );
-    wlLoadFiles.setText( "Load generated files? " );
-    props.setLook( wlLoadFiles );
-    FormData fdlLoadFiles = new FormData();
-    fdlLoadFiles.left = new FormAttachment( 0, 0 );
-    fdlLoadFiles.right = new FormAttachment( middle, -margin );
-    fdlLoadFiles.top = new FormAttachment( lastControl, 2 * margin );
-    wlLoadFiles.setLayoutData( fdlLoadFiles );
-    wLoadFiles = new Button( wComposite, SWT.CHECK | SWT.BORDER );
-    props.setLook( wLoadFiles );
-    FormData fdLoadFiles = new FormData();
-    fdLoadFiles.left = new FormAttachment( middle, 0 );
-    fdLoadFiles.right = new FormAttachment( 100, 0 );
-    fdLoadFiles.top = new FormAttachment( wlLoadFiles, 0, SWT.CENTER );
-    wLoadFiles.setLayoutData( fdLoadFiles );
-    wLoadFiles.addListener( SWT.Selection, (e)->enableFields() );
-    lastControl = wLoadFiles;
-
-    wlFilenameField = new Label( wComposite, SWT.RIGHT );
+    Label wlFilenameField = new Label( wComposite, SWT.RIGHT );
     wlFilenameField.setText( "Filename field) " );
     props.setLook( wlFilenameField );
     FormData fdlFilenameField = new FormData();
@@ -301,7 +217,7 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     wFilenameField.setLayoutData( fdFilenameField );
     lastControl = wFilenameField;
 
-    wlFileTypeField = new Label( wComposite, SWT.RIGHT );
+    Label wlFileTypeField = new Label( wComposite, SWT.RIGHT );
     wlFileTypeField.setText( "File type field " );
     props.setLook( wlFileTypeField );
     FormData fdlFileTypeField = new FormData();
@@ -352,10 +268,7 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
 
     wStepname.addSelectionListener( lsDef );
     wGraphField.addSelectionListener( lsDef );
-    wDatabaseFilename.addSelectionListener( lsDef );
-    wAdminCommand.addSelectionListener( lsDef );
     wBaseFolder.addSelectionListener( lsDef );
-    wReportFile.addSelectionListener( lsDef );
     wFilesPrefix.addSelectionListener( lsDef );
     wFilenameField.addSelectionListener( lsDef );
     wFileTypeField.addSelectionListener( lsDef );
@@ -384,15 +297,6 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
 
   }
 
-  private void enableFields() {
-    boolean outputFieldsActive = wLoadFiles.getSelection();
-
-    wlFilenameField.setEnabled( !outputFieldsActive );
-    wFilenameField.setEnabled( !outputFieldsActive );
-    wlFileTypeField.setEnabled( !outputFieldsActive );
-    wFileTypeField.setEnabled( !outputFieldsActive );
-  }
-
   private void cancel() {
     stepname = null;
     input.setChanged( changed );
@@ -403,20 +307,14 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
 
     wStepname.setText( Const.NVL( stepname, "" ) );
     wGraphField.setText( Const.NVL( input.getGraphFieldName(), "" ) );
-    wDatabaseFilename.setText( Const.NVL( input.getDatabaseFilename(), "" ) );
-    wAdminCommand.setText( Const.NVL( input.getAdminCommand(), "" ) );
     wBaseFolder.setText( Const.NVL( input.getBaseFolder(), "" ) );
-    wReportFile.setText( Const.NVL( input.getReportFile(), "" ) );
     if (input.getUniquenessStrategy()!=null) {
       int idx = Const.indexOfString( input.getUniquenessStrategy().name(), UniquenessStrategy.getNames() );
       wStrategy.select(idx);
     }
     wFilesPrefix.setText(Const.NVL(input.getFilesPrefix(), ""));
-    wLoadFiles.setSelection( input.isLoadingFiles() );
     wFilenameField.setText(Const.NVL(input.getFilenameField(), ""));
     wFileTypeField.setText(Const.NVL(input.getFileTypeField(), ""));
-
-    enableFields();
   }
 
   private void ok() {
@@ -430,12 +328,8 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
 
   private void getInfo(LoadMeta meta) {
     meta.setGraphFieldName( wGraphField.getText() );
-    meta.setDatabaseFilename( wDatabaseFilename.getText() );
-    meta.setAdminCommand( wAdminCommand.getText() );
     meta.setBaseFolder( wBaseFolder.getText() );
-    meta.setReportFile( wReportFile.getText() );
     meta.setUniquenessStrategy( UniquenessStrategy.getStrategyFromName( wStrategy.getText() ) );
-    meta.setLoadingFiles( wLoadFiles.getSelection() );
     meta.setFilesPrefix( wFilesPrefix.getText() );
     meta.setFilenameField(wFilenameField.getText());
     meta.setFileTypeField( wFileTypeField.getText() );

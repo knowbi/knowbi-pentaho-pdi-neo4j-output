@@ -64,9 +64,6 @@ public class Load extends BaseStep implements StepInterface {
       if ( data.nodesProcessed > 0 ) {
         loadBufferIntoDb();
       }
-      if ( !meta.isLoadingFiles() &&
-        StringUtils.isNotEmpty( data.filenameField ) &&
-        StringUtils.isNotEmpty( data.fileTypeField )) {
 
         // Output the filenames and nothing more.
         //
@@ -83,7 +80,6 @@ public class Load extends BaseStep implements StepInterface {
           relFileRow[ 1 ] = "Relationships";
           putRow( data.outputRowMeta, relFileRow );
         }
-      }
 
       setOutputDone();
       return false;
@@ -105,18 +101,11 @@ public class Load extends BaseStep implements StepInterface {
         throw new KettleException( "Field " + meta.getGraphFieldName() + "' needs to be of type Graph" );
       }
 
-      if ( StringUtils.isEmpty( meta.getAdminCommand() ) ) {
-        data.adminCommand = "neo4j-admin";
-      } else {
-        data.adminCommand = environmentSubstitute( meta.getAdminCommand() );
-      }
       if ( meta.getUniquenessStrategy() != UniquenessStrategy.None ) {
         data.indexedGraphData = new IndexedGraphData( meta.getUniquenessStrategy(), meta.getUniquenessStrategy() );
       } else {
         data.indexedGraphData = null;
       }
-      data.databaseFilename = environmentSubstitute( meta.getDatabaseFilename() );
-      data.reportFile = environmentSubstitute( meta.getReportFile() );
       data.filesPrefix = environmentSubstitute( meta.getFilesPrefix() );
 
       data.filenameField = environmentSubstitute( meta.getFilenameField() );
@@ -235,12 +224,8 @@ public class Load extends BaseStep implements StepInterface {
       // }
     }
 
-    // Pay it forward
+    // Don't pass the rows to the next step, only the file names at the end.
     //
-    if (meta.isLoadingFiles()) {
-      putRow( getInputRowMeta(), row );
-    }
-
     return true;
   }
 
@@ -262,8 +247,6 @@ public class Load extends BaseStep implements StepInterface {
         //
         data.indexedGraphData = null;
 
-
-        runImport( nodesFile, relsFile );
       } else {
         try {
           data.nodeOutputStream.flush();
@@ -280,9 +263,6 @@ public class Load extends BaseStep implements StepInterface {
           throw new KettleException( "Unable to flush/close relationships output file '" + data.relsFilename + "'", e );
         }
 
-        // simply run the import
-        //
-        runImport( data.nodeFilename, data.relsFilename );
       }
 
     } catch ( Exception e ) {
@@ -558,64 +538,6 @@ public class Load extends BaseStep implements StepInterface {
     os.write( header.toString().getBytes( "UTF-8" ) );
   }
 
-
-  private void runImport( String nodesFile, String relsFile ) throws KettleException {
-
-    if (!meta.isLoadingFiles()) {
-      return;
-    }
-
-    // See if we need to delete the existing database folder...
-    //
-    String targetDbFolder = data.baseFolder + "data/databases/" + data.databaseFilename;
-    try {
-      if ( new File( targetDbFolder ).exists() ) {
-        log.logBasic( "Removing exsting folder: " + targetDbFolder );
-        FileUtils.deleteDirectory( new File( targetDbFolder ) );
-      }
-    } catch ( Exception e ) {
-      throw new KettleException( "Unable to remove old database files from '" + targetDbFolder + "'", e );
-    }
-
-    List<String> arguments = new ArrayList<>();
-
-    arguments.add( data.adminCommand );
-    arguments.add( "import" );
-    arguments.add( "--database=" + data.databaseFilename + "" );
-    arguments.add( "--id-type=STRING" );
-    arguments.add( "--high-io=true" );
-    arguments.add( "--nodes=" + calculateNodeShortFilename() );
-    arguments.add( "--report-file=" + data.reportFile );
-    if ( StringUtils.isNotEmpty( relsFile ) ) {
-      arguments.add( "--relationships=" + calculateRelatiohshipsShortFilename() );
-    }
-    // arguments.add("--ignore-duplicate-nodes=true");
-
-    log.logBasic( "Running command : " + arguments );
-
-
-    ProcessBuilder pb = new ProcessBuilder( arguments );
-    pb.directory( new File( "/var/lib/neo4j" ) );
-    try {
-      Process process = pb.start();
-
-      StreamConsumer errorConsumer = new StreamConsumer( getLogChannel(), process.getErrorStream(), LogLevel.ERROR );
-      errorConsumer.start();
-      StreamConsumer outputConsumer = new StreamConsumer( getLogChannel(), process.getInputStream(), LogLevel.BASIC );
-      outputConsumer.start();
-
-      boolean exited = process.waitFor( 10, TimeUnit.MILLISECONDS );
-      while ( !exited && !isStopped() ) {
-        exited = process.waitFor( 10, TimeUnit.MILLISECONDS );
-      }
-      if ( !exited && isStopped() ) {
-        process.destroyForcibly();
-      }
-    } catch ( Exception e ) {
-      throw new KettleException( "Error running command: " + arguments, e );
-    }
-  }
-
   protected void addRowToBuffer( RowMetaInterface inputRowMeta, Object[] row ) throws KettleException {
 
     try {
@@ -627,13 +549,15 @@ public class Load extends BaseStep implements StepInterface {
       //
       for ( GraphNodeData node : graphData.getNodes() ) {
         data.indexedGraphData.addAndIndexNode( node );
+        data.nodesProcessed++;
       }
 
       for ( GraphRelationshipData relationship : graphData.getRelationships() ) {
         data.indexedGraphData.addAndIndexRelationship( relationship );
+        data.relsProcessed++;
       }
 
-      data.nodesProcessed++;
+
     } catch ( Exception e ) {
       throw new KettleException( "Error adding row to load buffer", e );
     }

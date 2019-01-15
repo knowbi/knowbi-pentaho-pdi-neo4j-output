@@ -121,27 +121,29 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       }
       data.relationshipLabelValue = environmentSubstitute( meta.getRelationshipValue() );
 
-      // Create a session
-      //
-      data.session = data.driver.session();
-
-      // Create indexes for the primary properties of the From and To nodes
-      //
-      if ( meta.isCreatingIndexes() ) {
-        try {
-          createNodePropertyIndexes( meta, data, getInputRowMeta(), row );
-        } catch ( KettleException e ) {
-          log.logError( "Unable to create indexes", e );
-          return false;
-        }
-      }
-
       data.fromUnwindList = new ArrayList<>();
       data.toUnwindList = new ArrayList<>();
       data.relUnwindList = new ArrayList<>();
 
-      if ( meta.isReturningGraph() ) {
-        log.logBasic( "Writing to output graph field, not to Neo4j" );
+      // Create a session
+      //
+      if (!meta.isReturningGraph()) {
+        data.session = data.driver.session();
+
+        // Create indexes for the primary properties of the From and To nodes
+        //
+        if ( meta.isCreatingIndexes() ) {
+          try {
+            createNodePropertyIndexes( meta, data, getInputRowMeta(), row );
+          } catch ( KettleException e ) {
+            log.logError( "Unable to create indexes", e );
+            return false;
+          }
+        }
+      } else {
+        if ( meta.isReturningGraph() ) {
+          log.logBasic( "Writing to output graph field, not to Neo4j" );
+        }
       }
     }
 
@@ -169,9 +171,11 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
           } else {
 
-            mergeNode( getInputRowMeta(), row, data, fromLabels, data.fromNodePropIndexes, meta.getFromNodePropNames(),
-              data.fromNodePropTypes, meta.getFromNodePropPrimary() );
-            updateUsageMap( fromLabels, GraphUsage.NODE_UPDATE );
+            if (!meta.isReadOnlyFromNode()) {
+              mergeNode( getInputRowMeta(), row, data, fromLabels, data.fromNodePropIndexes, meta.getFromNodePropNames(),
+                data.fromNodePropTypes, meta.getFromNodePropPrimary() );
+              updateUsageMap( fromLabels, GraphUsage.NODE_UPDATE );
+            }
 
           }
         }
@@ -190,9 +194,12 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             updateUsageMap( toLabels, GraphUsage.NODE_CREATE );
 
           } else {
-            mergeNode( getInputRowMeta(), row, data, toLabels, data.toNodePropIndexes, meta.getToNodePropNames(), data.toNodePropTypes,
-              meta.getToNodePropPrimary() );
-            updateUsageMap( toLabels, GraphUsage.NODE_UPDATE );
+
+            if (!meta.isReadOnlyToNode()) {
+              mergeNode( getInputRowMeta(), row, data, toLabels, data.toNodePropIndexes, meta.getToNodePropNames(), data.toNodePropTypes,
+                meta.getToNodePropPrimary() );
+              updateUsageMap( toLabels, GraphUsage.NODE_UPDATE );
+            }
           }
         }
       } catch ( Exception e ) {
@@ -291,9 +298,10 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
           String propertyName = meta.getRelPropNames()[ i ];
           GraphPropertyDataType propertyType = GraphPropertyDataType.getTypeFromKettle( valueMeta );
           Object propertyNeoValue = propertyType.convertFromKettle( valueMeta, valueData );
+          boolean propertyPrimary = false;
 
           relationshipData.getProperties().add(
-            new GraphPropertyData( propertyName, propertyNeoValue, propertyType )
+            new GraphPropertyData( propertyName, propertyNeoValue, propertyType, propertyPrimary )
           );
         }
 
@@ -335,8 +343,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       String propertyName = nodePropNames[ i ];
       GraphPropertyDataType propertyType = GraphPropertyDataType.getTypeFromKettle( valueMeta );
       Object propertyNeoValue = propertyType.convertFromKettle( valueMeta, valueData );
+      boolean propertyPrimary = nodePropPrimary[i];
 
-      nodeData.getProperties().add( new GraphPropertyData( propertyName, propertyNeoValue, propertyType ) );
+      nodeData.getProperties().add( new GraphPropertyData( propertyName, propertyNeoValue, propertyType, propertyPrimary ) );
 
       // Part of the key...
       if ( nodePropPrimary[ i ] ) {
@@ -359,31 +368,34 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     meta = (Neo4JOutputMeta) smi;
     data = (Neo4JOutputData) sdi;
 
-    // Connect to Neo4j using info in Neo4j JDBC connection metadata...
-    //
-    if ( StringUtils.isEmpty( meta.getConnection() ) ) {
-      log.logError( "You need to specify a Neo4j connection to use in this step" );
-      return false;
-    }
+    if (!meta.isReturningGraph()) {
 
-    try {
-      // To correct lazy programmers who built certain PDI steps...
+      // Connect to Neo4j using info metastore Neo4j Connection metadata
       //
-      data.metaStore = MetaStoreUtil.findMetaStore( this );
-      data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnection() );
-      data.neoConnection.initializeVariablesFrom( this );
-    } catch ( MetaStoreException e ) {
-      log.logError( "Could not load Neo4j connection '" + meta.getConnection() + "' from the metastore", e );
-      return false;
-    }
+      if ( StringUtils.isEmpty( meta.getConnection() ) ) {
+        log.logError( "You need to specify a Neo4j connection to use in this step" );
+        return false;
+      }
 
-    data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
+      try {
+        // To correct lazy programmers who built certain PDI steps...
+        //
+        data.metaStore = MetaStoreUtil.findMetaStore( this );
+        data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnection() );
+        data.neoConnection.initializeVariablesFrom( this );
+      } catch ( MetaStoreException e ) {
+        log.logError( "Could not load Neo4j connection '" + meta.getConnection() + "' from the metastore", e );
+        return false;
+      }
 
-    try {
-      data.driver = DriverSingleton.getDriver( log, data.neoConnection );
-    } catch ( Exception e ) {
-      log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
-      return false;
+      data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
+
+      try {
+        data.driver = DriverSingleton.getDriver( log, data.neoConnection );
+      } catch ( Exception e ) {
+        log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
+        return false;
+      }
     }
 
     return super.init( smi, sdi );
@@ -493,20 +505,20 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     Map<String, Object> parameters = new HashMap<String, Object>();
     boolean firstSet = true;
     boolean firstMerge = true;
-    String mergeCypher = " { ";
-    String setCypher = " SET ";
+    StringBuilder mergeCypher = new StringBuilder( " { " );
+    StringBuilder setCypher = new StringBuilder( " SET " );
     for ( int i = 0; i < nodePropIndexes.length; i++ ) {
       if ( nodePropPrimary[ i ] ) {
         if ( firstMerge ) {
           firstMerge = false;
         } else {
-          mergeCypher += ", ";
+          mergeCypher.append( ", " );
         }
       } else {
         if ( firstSet ) {
           firstSet = false;
         } else {
-          setCypher += ", ";
+          setCypher.append( ", " );
         }
       }
 
@@ -524,13 +536,13 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       }
 
       if ( nodePropPrimary[ i ] ) {
-        mergeCypher += propName + " : {" + propName + "}";
+        mergeCypher.append( propName ).append( " : {" ).append( propName ).append( "}" );
       } else {
-        setCypher += "n." + propName + " = {" + propName + "}";
+        setCypher.append( "n." ).append( propName ).append( " = {" ).append( propName ).append( "}" );
       }
       parameters.put( propName, neoValue );
     }
-    mergeCypher += "}";
+    mergeCypher.append( "}" );
 
     // MERGE (n:Person:Mens:`Human Being` { id: {id} }) ON MATCH SET title = {title} ;
     //

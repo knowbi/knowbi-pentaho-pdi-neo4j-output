@@ -46,7 +46,7 @@ public class Importer extends BaseStep implements StepInterface {
 
     Object[] row = getRow();
     if ( row == null ) {
-      if ( !data.nodesFiles.isEmpty() && !data.relsFiles.isEmpty() ) {
+      if ( !data.nodesFiles.isEmpty() || !data.relsFiles.isEmpty() ) {
         runImport();
       }
       setOutputDone();
@@ -83,6 +83,10 @@ public class Importer extends BaseStep implements StepInterface {
       }
 
       data.importFolder = data.baseFolder + "import/";
+
+      data.readBufferSize = environmentSubstitute( meta.getReadBufferSize() );
+
+      data.maxMemory = environmentSubstitute( meta.getMaxMemory() );
 
     }
 
@@ -133,8 +137,8 @@ public class Importer extends BaseStep implements StepInterface {
     List<String> arguments = new ArrayList<>();
 
     arguments.add( data.adminCommand );
-    arguments.add( "import" );
-    arguments.add( "--database=" + data.databaseFilename + "" );
+    arguments.add( "--database=" + data.databaseFilename );
+    arguments.add( "--into=data/databases/"+data.databaseFilename);
     arguments.add( "--id-type=STRING" );
     for ( String nodesFile : data.nodesFiles ) {
       arguments.add( "--nodes=" + nodesFile );
@@ -147,6 +151,14 @@ public class Importer extends BaseStep implements StepInterface {
     arguments.add( "--ignore-extra-columns=" + ( meta.isIgnoringExtraColumns() ? "true" : "false" ) );
     arguments.add( "--ignore-duplicate-nodes=" + ( meta.isIgnoringDuplicateNodes() ? "true" : "false" ) );
     arguments.add( "--ignore-missing-nodes=" + ( meta.isIgnoringMissingNodes() ? "true" : "false" ) );
+    arguments.add( "--skip-bad-relationships=" + ( meta.isSkippingBadRelationships() ? "true" : "false" ) );
+    arguments.add( "--multiline-fields=" + ( meta.isMultiLine() ? "true" : "false" ) );
+    if (StringUtils.isNotEmpty( data.readBufferSize )) {
+      arguments.add("--read-buffer-size="+data.readBufferSize);
+    }
+    if (StringUtils.isNotEmpty( data.maxMemory)) {
+      arguments.add("--max-memory="+data.maxMemory);
+    }
 
     StringBuffer command = new StringBuffer();
     for ( String argument : arguments ) {

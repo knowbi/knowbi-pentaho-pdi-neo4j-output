@@ -16,8 +16,6 @@ public class LoadData extends BaseStepData implements StepDataInterface {
   public long relsProcessed;
   public int graphFieldIndex;
   public IndexedGraphData indexedGraphData;
-  public String adminCommand;
-  public String databaseFilename;
   public String baseFolder;
   public String nodeFilename;
   public OutputStream nodeOutputStream;
@@ -26,7 +24,6 @@ public class LoadData extends BaseStepData implements StepDataInterface {
   public List<IdType> relProps;
   public Map<String, Integer> nodePropertyIndexes;
   public Map<String, Integer> relPropertyIndexes;
-  public String reportFile;
   public String relsFilename;
   public String filesPrefix;
   public String filenameField;

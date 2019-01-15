@@ -11,13 +11,16 @@ public class GraphPropertyData {
 
   protected GraphPropertyDataType type;
 
+  protected boolean primary;
+
   public GraphPropertyData() {
   }
 
-  public GraphPropertyData( String id, Object value, GraphPropertyDataType type ) {
+  public GraphPropertyData( String id, Object value, GraphPropertyDataType type, boolean primary ) {
     this.id = id;
     this.value = value;
     this.type = type;
+    this.primary = primary;
   }
 
   @Override public String toString() {
@@ -35,11 +38,21 @@ public class GraphPropertyData {
   }
 
   public static String escapeString( String string ) {
+
+    // Replace " with ""
+    //
     if ( string.contains( "\"" ) ) {
-      return string.replace( "\"", "\"\"" );
-    } else {
-      return string;
+      string = string.replace( "\"", "\"\"" );
     }
+
+    // Replace \ with \\
+    //
+    if (string.contains("\\")) {
+      string = string.replace( "\\", "\\\\" )
+      ;
+    }
+
+    return string;
   }
 
   public Object toJson() {
@@ -114,5 +127,21 @@ public class GraphPropertyData {
    */
   public void setType( GraphPropertyDataType type ) {
     this.type = type;
+  }
+
+  /**
+   * Gets primary
+   *
+   * @return value of primary
+   */
+  public boolean isPrimary() {
+    return primary;
+  }
+
+  /**
+   * @param primary The primary to set
+   */
+  public void setPrimary( boolean primary ) {
+    this.primary = primary;
   }
 }
