@@ -13,7 +13,9 @@ import org.neo4j.driver.v1.types.Path;
 import org.neo4j.driver.v1.types.Relationship;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GraphData {
 
@@ -21,12 +23,17 @@ public class GraphData {
 
   protected List<GraphRelationshipData> relationships;
 
+  protected String sourceTransformationName;
+
+  protected String sourceStepName;
+
   public GraphData() {
     nodes = new ArrayList<>();
     relationships = new ArrayList<>();
   }
 
   public GraphData( List<GraphNodeData> nodes, List<GraphRelationshipData> relationships ) {
+    this();
     this.nodes = nodes;
     this.relationships = relationships;
   }
@@ -45,7 +52,7 @@ public class GraphData {
     // Same number of nodes, same number of relationships,
     // Same node IDs, same properties
     // TODO:
-    throw new RuntimeException("equals() not yet implemented on GraphData");
+    throw new RuntimeException( "equals() not yet implemented on GraphData" );
   }
 
   public GraphData( GraphData source ) {
@@ -67,46 +74,57 @@ public class GraphData {
     for ( GraphRelationshipData relationship : source.getRelationships() ) {
       relationships.add( new GraphRelationshipData( relationship ) );
     }
+
+    sourceTransformationName = source.sourceTransformationName;
+    sourceStepName = source.sourceStepName;
   }
 
   public JSONObject toJson() {
     JSONObject jGraph = new JSONObject();
 
     JSONArray jNodes = new JSONArray();
-    jGraph.put("nodes", jNodes);
-    for (GraphNodeData node : nodes) {
-      jNodes.add(node.toJson());
+    jGraph.put( "nodes", jNodes );
+    for ( GraphNodeData node : nodes ) {
+      jNodes.add( node.toJson() );
     }
 
     JSONArray jRelationships = new JSONArray();
-    jGraph.put("relationships", jRelationships);
-    for ( GraphRelationshipData relationship : relationships) {
-      jRelationships.add(relationship.toJson());
+    jGraph.put( "relationships", jRelationships );
+    for ( GraphRelationshipData relationship : relationships ) {
+      jRelationships.add( relationship.toJson() );
     }
+
+    jGraph.put( "source_trans", sourceTransformationName );
+    jGraph.put( "source_step", sourceStepName );
 
     return jGraph;
   }
 
   /**
    * Convert from JSON to Graph data
+   *
    * @param graphJsonString
    */
   public GraphData( String graphJsonString ) throws ParseException {
-    this((JSONObject) new JSONParser().parse( graphJsonString ));
+    this( (JSONObject) new JSONParser().parse( graphJsonString ) );
   }
 
-  public GraphData(JSONObject jGraph) {
-    JSONArray jNodes = (JSONArray) jGraph.get("nodes");
-    for (int i=0;i<jNodes.size();i++) {
+  public GraphData( JSONObject jGraph ) {
+    this();
+    JSONArray jNodes = (JSONArray) jGraph.get( "nodes" );
+    for ( int i = 0; i < jNodes.size(); i++ ) {
       JSONObject jNode = (JSONObject) jNodes.get( i );
-      nodes.add(new GraphNodeData(jNode));
+      nodes.add( new GraphNodeData( jNode ) );
     }
 
-    JSONArray jRelationships = (JSONArray) jGraph.get("relationships");
-    for (int i=0;i<jRelationships.size();i++) {
-      JSONObject jRelationship = (JSONObject) jRelationships.get(i);
-      relationships.add(new GraphRelationshipData( jRelationship ));
+    JSONArray jRelationships = (JSONArray) jGraph.get( "relationships" );
+    for ( int i = 0; i < jRelationships.size(); i++ ) {
+      JSONObject jRelationship = (JSONObject) jRelationships.get( i );
+      relationships.add( new GraphRelationshipData( jRelationship ) );
     }
+
+    sourceTransformationName = (String) jGraph.get( "source_trans" );
+    sourceStepName = (String) jGraph.get( "source_step" );
   }
 
 
@@ -114,6 +132,16 @@ public class GraphData {
     return toJson().toJSONString();
   }
 
+  public GraphData clone() {
+    return new GraphData(this);
+  }
+
+  public GraphData createEmptyCopy() {
+    GraphData copy = new GraphData();
+    copy.setSourceTransformationName( getSourceTransformationName() );
+    copy.setSourceStepName( getSourceStepName() );
+    return copy;
+  }
 
   /**
    * Find a node with the given ID
@@ -123,7 +151,7 @@ public class GraphData {
    */
   public GraphNodeData findNode( String nodeId ) {
     for ( GraphNodeData node : nodes ) {
-      if ( node.getId()!=null && node.getId().equals( nodeId ) ) {
+      if ( node.getId() != null && node.getId().equals( nodeId ) ) {
         return node;
       }
     }
@@ -139,7 +167,7 @@ public class GraphData {
    */
   public GraphRelationshipData findRelationship( String relationshipId ) {
     for ( GraphRelationshipData relationship : relationships ) {
-      if ( relationship.getId()!=null && relationship.getId().equals( relationshipId ) ) {
+      if ( relationship.getId() != null && relationship.getId().equals( relationshipId ) ) {
         return relationship;
       }
     }
@@ -396,5 +424,36 @@ public class GraphData {
     this.relationships = relationships;
   }
 
+  /**
+   * Gets sourceTransformationName
+   *
+   * @return value of sourceTransformationName
+   */
+  public String getSourceTransformationName() {
+    return sourceTransformationName;
+  }
+
+  /**
+   * @param sourceTransformationName The sourceTransformationName to set
+   */
+  public void setSourceTransformationName( String sourceTransformationName ) {
+    this.sourceTransformationName = sourceTransformationName;
+  }
+
+  /**
+   * Gets sourceStepName
+   *
+   * @return value of sourceStepName
+   */
+  public String getSourceStepName() {
+    return sourceStepName;
+  }
+
+  /**
+   * @param sourceStepName The sourceStepName to set
+   */
+  public void setSourceStepName( String sourceStepName ) {
+    this.sourceStepName = sourceStepName;
+  }
 
 }

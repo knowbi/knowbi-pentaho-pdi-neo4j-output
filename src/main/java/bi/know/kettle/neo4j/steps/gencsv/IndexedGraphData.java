@@ -1,4 +1,4 @@
-package bi.know.kettle.neo4j.steps.load;
+package bi.know.kettle.neo4j.steps.gencsv;
 
 import bi.know.kettle.neo4j.core.data.GraphData;
 import bi.know.kettle.neo4j.core.data.GraphNodeData;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static bi.know.kettle.neo4j.steps.load.UniquenessStrategy.None;
+import static bi.know.kettle.neo4j.steps.gencsv.UniquenessStrategy.None;
 
 /**
  * Adds an index to graph data.

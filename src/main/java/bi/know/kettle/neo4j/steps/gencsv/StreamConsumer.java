@@ -1,6 +1,5 @@
-package bi.know.kettle.neo4j.steps.load;
+package bi.know.kettle.neo4j.steps.gencsv;
 
-import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.logging.LogLevel;
 

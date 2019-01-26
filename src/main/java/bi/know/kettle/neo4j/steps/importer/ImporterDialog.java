@@ -1,8 +1,5 @@
 package bi.know.kettle.neo4j.steps.importer;
 
-import bi.know.kettle.neo4j.shared.NeoConnection;
-import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
-import bi.know.kettle.neo4j.steps.load.UniquenessStrategy;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -29,13 +26,9 @@ import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
-import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
-
-import java.util.Collections;
-import java.util.List;
 
 public class ImporterDialog extends BaseStepDialog implements StepDialogInterface {
 
@@ -177,7 +170,7 @@ public class ImporterDialog extends BaseStepDialog implements StepDialogInterfac
     wFileTypeField.setLayoutData( fdFileTypeField );
     lastControl = wFileTypeField;
 
-    // The database filename to load to
+    // The database filename to gencsv to
     //
     Label wlDatabaseFilename = new Label( wComposite, SWT.RIGHT );
     wlDatabaseFilename.setText( "Database filename " );

@@ -71,7 +71,7 @@ public class Cypher extends BaseStep implements StepInterface {
       data.neoConnection.initializeVariablesFrom( this );
 
     } catch ( MetaStoreException e ) {
-      log.logError( "Could not load Neo4j connection '" + meta.getConnectionName() + "' from the metastore", e );
+      log.logError( "Could not gencsv Neo4j connection '" + meta.getConnectionName() + "' from the metastore", e );
       return false;
     }
 
@@ -300,6 +300,9 @@ public class Cypher extends BaseStep implements StepInterface {
       if (meta.isReturningGraph()) {
 
         GraphData graphData = new GraphData( result );
+        graphData.setSourceTransformationName( getTransMeta().getName() );
+        graphData.setSourceStepName( getStepname() );
+        
         // Create output row
         Object[] outputRowData;
         if (unwind) {

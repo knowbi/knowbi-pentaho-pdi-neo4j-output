@@ -1,6 +1,6 @@
 package bi.know.kettle.neo4j.steps.importer;
 
-import bi.know.kettle.neo4j.steps.load.StreamConsumer;
+import bi.know.kettle.neo4j.steps.gencsv.StreamConsumer;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.pentaho.di.core.exception.KettleException;
@@ -46,7 +46,7 @@ public class Importer extends BaseStep implements StepInterface {
 
     Object[] row = getRow();
     if ( row == null ) {
-      if ( !data.nodesFiles.isEmpty() || !data.relsFiles.isEmpty() ) {
+      if ( ( data.nodesFiles!=null && !data.nodesFiles.isEmpty() ) || ( data.relsFiles!=null && !data.relsFiles.isEmpty() ) ) {
         runImport();
       }
       setOutputDone();

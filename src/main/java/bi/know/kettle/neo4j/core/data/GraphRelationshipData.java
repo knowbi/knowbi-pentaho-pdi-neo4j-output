@@ -20,6 +20,8 @@ public class GraphRelationshipData {
 
   protected String targetNodeId;
 
+  protected String propertySetId;
+
   public GraphRelationshipData() {
     properties = new ArrayList<>();
   }
@@ -62,6 +64,7 @@ public class GraphRelationshipData {
       properties.add( new GraphPropertyData( property.getId(), property.getValue(), property.getType(), property.isPrimary() ) );
     }
     setProperties( properties );
+    setPropertySetId( graphRelationship.getPropertySetId() );
   }
 
   public GraphRelationshipData( Relationship relationship ) {
@@ -76,7 +79,6 @@ public class GraphRelationshipData {
       GraphPropertyDataType propertyType = GraphPropertyDataType.getTypeFromNeo4jValue(propertyObject);
       properties.add( new GraphPropertyData( propertyKey, propertyObject, propertyType, false ) );
     }
-
   }
 
   public JSONObject toJson() {
@@ -94,6 +96,7 @@ public class GraphRelationshipData {
         jProperties.add( property.toJson() );
       }
     }
+    jRelationship.put("property_set", propertySetId);
 
     return jRelationship;
   }
@@ -112,6 +115,11 @@ public class GraphRelationshipData {
         properties.add(new GraphPropertyData( jProperty ));
       }
     }
+    propertySetId = (String)jRelationship.get("property_set");
+  }
+
+  public GraphRelationshipData clone() {
+    return new GraphRelationshipData( this );
   }
 
 
@@ -195,4 +203,19 @@ public class GraphRelationshipData {
     this.targetNodeId = targetNodeId;
   }
 
+  /**
+   * Gets propertySetId
+   *
+   * @return value of propertySetId
+   */
+  public String getPropertySetId() {
+    return propertySetId;
+  }
+
+  /**
+   * @param propertySetId The propertySetId to set
+   */
+  public void setPropertySetId( String propertySetId ) {
+    this.propertySetId = propertySetId;
+  }
 }

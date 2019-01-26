@@ -1,9 +1,8 @@
-package bi.know.kettle.neo4j.steps.load;
+package bi.know.kettle.neo4j.steps.gencsv;
 
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;
 import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleXMLException;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
@@ -32,7 +31,7 @@ import java.util.List;
   categoryDescription = "Neo4j",
   documentationUrl = "https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki/"
 )
-public class LoadMeta extends BaseStepMeta implements StepMetaInterface {
+public class GenerateCsvMeta extends BaseStepMeta implements StepMetaInterface {
 
   public static final String GRAPH_FIELD_NAME = "graph_field_name";
   public static final String BASE_FOLDER = "base_folder";
@@ -111,11 +110,11 @@ public class LoadMeta extends BaseStepMeta implements StepMetaInterface {
   }
 
   @Override public StepInterface getStep( StepMeta stepMeta, StepDataInterface stepDataInterface, int copyNr, TransMeta transMeta, Trans trans ) {
-    return new Load( stepMeta, stepDataInterface, copyNr, transMeta, trans );
+    return new GenerateCsv( stepMeta, stepDataInterface, copyNr, transMeta, trans );
   }
 
   @Override public StepDataInterface getStepData() {
-    return new LoadData();
+    return new GenerateCsvData();
   }
 
   /**

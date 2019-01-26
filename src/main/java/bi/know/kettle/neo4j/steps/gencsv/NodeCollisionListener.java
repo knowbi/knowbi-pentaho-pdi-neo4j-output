@@ -1,4 +1,4 @@
-package bi.know.kettle.neo4j.steps.load;
+package bi.know.kettle.neo4j.steps.gencsv;
 
 import bi.know.kettle.neo4j.core.data.GraphNodeData;
 import org.pentaho.di.core.exception.KettleException;

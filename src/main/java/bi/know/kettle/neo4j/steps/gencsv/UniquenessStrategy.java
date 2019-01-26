@@ -1,4 +1,4 @@
-package bi.know.kettle.neo4j.steps.load;
+package bi.know.kettle.neo4j.steps.gencsv;
 
 public enum UniquenessStrategy {
   None,    // Don't calculate unique nore or relationship values

@@ -1,4 +1,4 @@
-package bi.know.kettle.neo4j.steps.load;
+package bi.know.kettle.neo4j.steps.gencsv;
 
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
@@ -30,9 +30,9 @@ import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
-public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
+public class GenerateCsvDialog extends BaseStepDialog implements StepDialogInterface {
 
-  private static Class<?> PKG = LoadMeta.class; // for i18n purposes, needed by Translator2!!
+  private static Class<?> PKG = GenerateCsvMeta.class; // for i18n purposes, needed by Translator2!!
 
   private Text wStepname;
 
@@ -43,11 +43,11 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
   private TextVar wFilenameField;
   private TextVar wFileTypeField;
 
-  private LoadMeta input;
+  private GenerateCsvMeta input;
 
-  public LoadDialog( Shell parent, Object inputMetadata, TransMeta transMeta, String stepname ) {
+  public GenerateCsvDialog( Shell parent, Object inputMetadata, TransMeta transMeta, String stepname ) {
     super( parent, (BaseStepMeta) inputMetadata, transMeta, stepname );
-    input = (LoadMeta) inputMetadata;
+    input = (GenerateCsvMeta) inputMetadata;
 
     // Hack the metastore...
     //
@@ -326,7 +326,7 @@ public class LoadDialog extends BaseStepDialog implements StepDialogInterface {
     dispose();
   }
 
-  private void getInfo(LoadMeta meta) {
+  private void getInfo( GenerateCsvMeta meta) {
     meta.setGraphFieldName( wGraphField.getText() );
     meta.setBaseFolder( wBaseFolder.getText() );
     meta.setUniquenessStrategy( UniquenessStrategy.getStrategyFromName( wStrategy.getText() ) );

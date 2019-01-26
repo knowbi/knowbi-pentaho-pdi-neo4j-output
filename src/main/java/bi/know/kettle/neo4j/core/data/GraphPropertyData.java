@@ -65,6 +65,9 @@ public class GraphPropertyData {
     if ( value != null ) {
       jProperty.put( "value", value );
     }
+    if ( primary ) {
+      jProperty.put( "primary", primary);
+    }
 
     return jProperty;
   }
@@ -79,6 +82,8 @@ public class GraphPropertyData {
       type = GraphPropertyDataType.parseCode( typeCode );
     }
     value = jProperty.get( "value" );
+    Object primaryValue = jProperty.get( "primary" );
+    primary = primaryValue!=null && ((Boolean)primaryValue);
   }
 
   /**

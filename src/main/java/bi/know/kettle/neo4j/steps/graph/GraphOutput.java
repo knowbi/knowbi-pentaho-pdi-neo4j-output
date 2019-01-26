@@ -96,7 +96,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         return false;
       }
     } catch ( MetaStoreException e ) {
-      log.logError( "Could not load connection'" + meta.getConnectionName() + "' from the metastore", e );
+      log.logError( "Could not gencsv connection'" + meta.getConnectionName() + "' from the metastore", e );
       return false;
     }
 
@@ -672,7 +672,8 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
                                     RowMetaInterface rowMeta, int[] fieldIndexes ) throws KettleException {
 
     GraphData graphData = new GraphData();
-
+    graphData.setSourceTransformationName( getTransMeta().getName() );
+    graphData.setSourceStepName( getStepMeta().getName() );
 
     // The strategy is to determine all the nodes involved and the properties to set.
     // Then we can determine the relationships between the nodes
@@ -795,6 +796,10 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
           relationshipData.setSourceNodeId( sourceNodeId );
           relationshipData.setTargetNodeId( targetNodeId );
 
+          // The property set ID is simply the name of the GraphRelationship (metadata)
+          //
+          relationshipData.setPropertySetId( relationship.getName() );
+
           graphData.getRelationships().add( relationshipData );
         }
       }
@@ -809,6 +814,10 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     if ( !ignored.contains( node ) && !handled.contains( node ) ) {
 
       GraphNodeData graphNodeData = new GraphNodeData();
+
+      // The property set ID is simply the name of the GraphNode (metadata)
+      //
+      graphNodeData.setPropertySetId( node.getName() );
 
       // Don't update twice.
       //
@@ -846,6 +855,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
             GraphPropertyDataType type = GraphPropertyDataType.getTypeFromKettle( napd.sourceValueMeta );
             propertyData.setType( type );
             propertyData.setValue( type.convertFromKettle( napd.sourceValueMeta, napd.sourceValueData ) );
+            propertyData.setPrimary( napd.property.isPrimary() );
 
             graphNodeData.getProperties().add( propertyData );
           }

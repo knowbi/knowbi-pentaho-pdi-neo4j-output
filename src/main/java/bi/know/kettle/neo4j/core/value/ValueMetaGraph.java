@@ -9,6 +9,8 @@ import org.pentaho.di.core.row.value.ValueMetaBase;
 import org.pentaho.di.core.row.value.ValueMetaPlugin;
 import org.w3c.dom.Node;
 
+import java.util.Date;
+
 @ValueMetaPlugin(
   id = "303",
   name = "Graph",
@@ -32,7 +34,7 @@ public class ValueMetaGraph extends ValueMetaBase implements ValueMetaInterface 
   /**
    * Create the value from an XML node
    *
-   * @param node The DOM node to load from
+   * @param node The DOM node to gencsv from
    * @throws KettleException
    */
   public ValueMetaGraph( Node node ) throws KettleException {
@@ -177,6 +179,14 @@ public class ValueMetaGraph extends ValueMetaBase implements ValueMetaInterface 
 
   }
 
+  public Object cloneValueData( Object object ) throws KettleValueException {
+    if ( object == null ) {
+      return null;
+    }
+
+    GraphData graphData = getGraphData( object );
+    return new GraphData(graphData);
+  }
 
   @Override
   public Class<?> getNativeDataTypeClass() throws KettleValueException {

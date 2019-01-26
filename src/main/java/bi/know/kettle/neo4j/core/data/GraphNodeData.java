@@ -17,6 +17,8 @@ public class GraphNodeData {
 
   protected List<GraphPropertyData> properties;
 
+  protected String propertySetId;
+
   public GraphNodeData() {
     labels = new ArrayList<>();
     properties = new ArrayList<>();
@@ -36,8 +38,13 @@ public class GraphNodeData {
   public GraphNodeData( Node node ) {
     this();
     this.id = Long.toString( node.id() );
+    StringBuilder propertySet = new StringBuilder();
     for ( String label : node.labels() ) {
       labels.add( label );
+      if (propertySet.length()>0) {
+        propertySet.append( "," );
+      }
+      propertySet.append( label );
     }
     for ( String propertyKey : node.keys() ) {
       Value propertyValue = node.get( propertyKey );
@@ -45,6 +52,7 @@ public class GraphNodeData {
       GraphPropertyDataType propertyType = GraphPropertyDataType.getTypeFromNeo4jValue(propertyObject);
       properties.add( new GraphPropertyData( propertyKey, propertyObject, propertyType, false ) );
     }
+    this.propertySetId = propertySet.toString();
   }
 
 
@@ -63,6 +71,8 @@ public class GraphNodeData {
       propertiesCopy.add( propertyCopy );
     }
     setProperties( propertiesCopy );
+
+    setPropertySetId( graphNode.getPropertySetId() );
   }
 
   public JSONObject toJson() {
@@ -76,6 +86,8 @@ public class GraphNodeData {
     for (GraphPropertyData property : properties) {
       jProperties.add(property.toJson());
     }
+
+    jNode.put("property_set", propertySetId );
 
     return jNode;
   }
@@ -93,6 +105,11 @@ public class GraphNodeData {
       properties.add(new GraphPropertyData( (JSONObject)jProperties.get(i)) );
     }
 
+    propertySetId = (String) jNode.get("property_set");
+  }
+
+  public GraphNodeData clone() {
+    return new GraphNodeData( this );
   }
 
 
@@ -203,5 +220,19 @@ public class GraphNodeData {
     this.properties = properties;
   }
 
+  /**
+   * Gets propertySetId
+   *
+   * @return value of propertySetId
+   */
+  public String getPropertySetId() {
+    return propertySetId;
+  }
 
+  /**
+   * @param propertySetId The propertySetId to set
+   */
+  public void setPropertySetId( String propertySetId ) {
+    this.propertySetId = propertySetId;
+  }
 }

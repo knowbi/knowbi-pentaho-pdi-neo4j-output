@@ -252,20 +252,23 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     try {
 
       GraphData graphData = new GraphData();
+      graphData.setSourceTransformationName( getTransMeta().getName() );
+      graphData.setSourceStepName( getStepMeta().getName() );
+
       GraphNodeData sourceNodeData = null;
       GraphNodeData targetNodeData = null;
       GraphRelationshipData relationshipData = null;
 
       if ( meta.getFromNodeProps().length > 0 ) {
         sourceNodeData = createGraphNodeData( rowMeta, row, meta.getFromNodeLabels(), data.fromLabelValues, data.fromNodeLabelIndexes,
-          data.fromNodePropIndexes, meta.getFromNodePropNames(), meta.getFromNodePropPrimary() );
+          data.fromNodePropIndexes, meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), "from" );
         if ( !meta.isOnlyCreatingRelationships() ) {
           graphData.getNodes().add( sourceNodeData );
         }
       }
       if ( meta.getToNodeProps().length > 0 ) {
         targetNodeData = createGraphNodeData( rowMeta, row, meta.getToNodeLabels(), data.toLabelValues, data.toNodeLabelIndexes,
-          data.toNodePropIndexes, meta.getToNodePropNames(), meta.getToNodePropPrimary() );
+          data.toNodePropIndexes, meta.getToNodePropNames(), meta.getToNodePropPrimary(), "to" );
         if ( !meta.isOnlyCreatingRelationships()) {
           graphData.getNodes().add( targetNodeData );
         }
@@ -285,6 +288,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         relationshipData.setTargetNodeId( targetNodeData.getId() );
         relationshipData.setLabel( relationshipLabel );
         relationshipData.setId( sourceNodeData.getId() + " -> " + targetNodeData.getId() );
+        relationshipData.setPropertySetId( "relationship" );
 
         // Add relationship properties...
         //
@@ -321,8 +325,13 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
   }
 
   private GraphNodeData createGraphNodeData( RowMetaInterface rowMeta, Object[] row, String[] nodeLabels, String[] nodeLabelValues, int[] nodeLabelIndexes,
-                                             int[] nodePropIndexes, String[] nodePropNames, boolean[] nodePropPrimary ) throws KettleException {
+                                             int[] nodePropIndexes, String[] nodePropNames, boolean[] nodePropPrimary, String propertySetId ) throws KettleException {
     GraphNodeData nodeData = new GraphNodeData();
+
+    // The property set ID is simply either "Source" or "Target"
+    //
+    nodeData.setPropertySetId( propertySetId );
+
 
     // Set the label(s)
     //
@@ -384,7 +393,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnection() );
         data.neoConnection.initializeVariablesFrom( this );
       } catch ( MetaStoreException e ) {
-        log.logError( "Could not load Neo4j connection '" + meta.getConnection() + "' from the metastore", e );
+        log.logError( "Could not gencsv Neo4j connection '" + meta.getConnection() + "' from the metastore", e );
         return false;
       }
 
