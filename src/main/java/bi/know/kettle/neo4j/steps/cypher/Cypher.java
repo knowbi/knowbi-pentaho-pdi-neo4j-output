@@ -145,7 +145,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
         // See if there's anything left in the UNWIND list...
         //
-        if (meta.isUsingUnwind()) {
+        if (meta.isUsingUnwind() && data.unwindList!=null) {
           if ( data.unwindList.size() > 0 ) {
             StatementResult result = writeUnwindList();
             writeResultRows( result, new Object[] {}, meta.isUsingUnwind() );
