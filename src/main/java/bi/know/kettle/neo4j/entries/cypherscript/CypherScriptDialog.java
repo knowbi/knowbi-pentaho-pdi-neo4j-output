@@ -188,7 +188,7 @@ public class CypherScriptDialog extends JobEntryDialog implements JobEntryDialog
     props.setLook( wlScript );
     FormData fdlCypher = new FormData();
     fdlCypher.left = new FormAttachment( 0, 0 );
-    fdlCypher.right = new FormAttachment( middle, -margin );
+    fdlCypher.right = new FormAttachment( 100, 0 );
     fdlCypher.top = new FormAttachment( wConnection, margin );
     wlScript.setLayoutData( fdlCypher );
     wScript = new TextVar( jobMeta, shell, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
