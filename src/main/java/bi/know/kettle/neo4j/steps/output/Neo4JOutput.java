@@ -34,6 +34,7 @@ import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -41,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 
 public class Neo4JOutput extends BaseNeoStep implements StepInterface {
@@ -943,26 +945,36 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
   private void createNodePropertyIndexes( Neo4JOutputMeta meta, Neo4JOutputData data, RowMetaInterface rowMeta, Object[] rowData )
     throws KettleException {
 
-    createIndexForNode( data, meta.getFromNodeLabels(), meta.getFromNodeProps(), meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), rowMeta,
+    createIndexForNode( data, meta.getFromNodeLabels(), meta.getFromNodeLabelValues(), meta.getFromNodeProps(), meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), rowMeta,
       rowData );
-    createIndexForNode( data, meta.getToNodeLabels(), meta.getToNodeProps(), meta.getToNodePropNames(), meta.getToNodePropPrimary(), rowMeta,
+    createIndexForNode( data, meta.getToNodeLabels(), meta.getToNodeLabelValues(), meta.getToNodeProps(), meta.getToNodePropNames(), meta.getToNodePropPrimary(), rowMeta,
       rowData );
 
     // TODO Check if we need indexes for relationships
 
   }
 
-  private void createIndexForNode( Neo4JOutputData data, String[] nodeLabels, String[] nodeProps, String[] nodePropNames, boolean[] nodePropPrimary,
+  private void createIndexForNode( Neo4JOutputData data, String[] nodeLabelFields, String[] nodeLabelValues, String[] nodeProps, String[] nodePropNames, boolean[] nodePropPrimary,
                                    RowMetaInterface rowMeta, Object[] rowData )
     throws KettleValueException {
 
+    // Which labels to index?
+    //
+    Set<String> labels = new HashSet<>();
+    labels.addAll( Arrays.asList(nodeLabelValues).stream().filter( s-> StringUtils.isNotEmpty( s ) ).collect( Collectors.toList()) );
+
+    for( String nodeLabelField :  nodeLabelFields ) {
+      if (StringUtils.isNotEmpty(nodeLabelField)) {
+        String label = rowMeta.getString( rowData, nodeLabelField, null );
+        if ( StringUtils.isNotEmpty( label ) ) {
+          labels.add( label );
+        }
+      }
+    }
+
     // Create a index on the primary fields of the node properties
     //
-    if ( nodeLabels.length > 0 ) {
-      String nodeLabelField = nodeLabels[ 0 ];
-
-      String nodeLabel = rowMeta.getString( rowData, nodeLabelField, null );
-
+    for (String label : labels) {
       List<String> primaryProperties = new ArrayList<>();
       for ( int f = 0; f < nodeProps.length; f++ ) {
         if ( nodePropPrimary[ f ] ) {
@@ -974,8 +986,8 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         }
       }
 
-      if ( nodeLabel != null && primaryProperties.size() > 0 ) {
-        NeoConnectionUtils.createNodeIndex( log, data.session, Collections.singletonList( nodeLabel ), primaryProperties );
+      if ( label != null && primaryProperties.size() > 0 ) {
+        NeoConnectionUtils.createNodeIndex( log, data.session, Collections.singletonList( label ), primaryProperties );
       }
     }
   }
