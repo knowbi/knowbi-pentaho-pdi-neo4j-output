@@ -631,7 +631,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     props.setLook( wlRelValue );
     FormData fdlRelValue = new FormData();
     fdlRelValue.left = new FormAttachment( 0, 0 );
-    fdlRelValue.top = new FormAttachment( lastControl, margin );
+    fdlRelValue.top = new FormAttachment( lastControl, margin*2  );
     wlRelValue.setLayoutData( fdlRelValue );
     wRelValue = new TextVar( transMeta, wRelationshipsComp, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wRelValue );
