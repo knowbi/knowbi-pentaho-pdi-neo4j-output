@@ -924,6 +924,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     input.setRelPropNames( relPropNames );
     input.setRelPropTypes( relPropTypes );
 
+    // Mark step as changed
     stepMeta.setChanged();
 
     dispose();
