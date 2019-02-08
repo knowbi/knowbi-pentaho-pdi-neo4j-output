@@ -81,7 +81,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
   private Label wlReturnGraphField;
   private TextVar wReturnGraphField;
 
-  private TextVar wCypher;
+  private Text wCypher;
 
   private TableView wParameters;
 
@@ -346,8 +346,8 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlCypher.right = new FormAttachment( middle, -margin );
     fdlCypher.top = new FormAttachment( lastControl, margin );
     wlCypher.setLayoutData( fdlCypher );
-    wCypher = new TextVar( transMeta, wComposite, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
-    wCypher.getTextWidget().setFont( GUIResource.getInstance().getFontFixed() );
+    wCypher = new Text( wComposite, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
+    wCypher.setFont( GUIResource.getInstance().getFontFixed() );
     props.setLook( wCypher );
     wCypher.addModifyListener( lsMod );
     FormData fdCypher = new FormData();
@@ -358,8 +358,6 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wCypher.setLayoutData( fdCypher );
     lastControl = wCypher;
 
-
-    
     
     // Some buttons
     wOK = new Button( wComposite, SWT.PUSH );
