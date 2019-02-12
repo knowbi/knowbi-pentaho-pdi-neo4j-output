@@ -84,6 +84,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       data.fromNodePropTypes = new GraphPropertyType[ meta.getFromNodeProps().length ];
       for ( int i = 0; i < meta.getFromNodeProps().length; i++ ) {
         data.fromNodePropIndexes[ i ] = data.outputRowMeta.indexOfValue( meta.getFromNodeProps()[ i ] );
+        if (data.fromNodePropIndexes[ i ]<0) {
+          throw new KettleException( "From node: Unable to find field '"+meta.getFromNodeProps()[i]+"' for property name '"+meta.getFromNodePropNames()[i]+"'" );
+        }
         data.fromNodePropTypes[ i ] = GraphPropertyType.parseCode( meta.getFromNodePropTypes()[ i ] );
       }
       data.fromNodeLabelIndexes = new int[ meta.getFromNodeLabels().length ];
@@ -127,6 +130,14 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       data.toUnwindList = new ArrayList<>();
       data.relUnwindList = new ArrayList<>();
 
+      data.dynamicFromLabels = determineDynamicLabels( meta.getFromNodeLabels() );
+      data.dynamicToLabels = determineDynamicLabels( meta.getFromNodeLabels() );
+      data.dynamicRelLabel = StringUtils.isNotEmpty( meta.getRelationship() );
+
+      data.previousFromLabelsClause = null;
+      data.previousToLabelsClause = null;
+      data.previousRelationshipLabel = null;
+
       // Create a session
       //
       if (!meta.isReturningGraph()) {
@@ -163,13 +174,15 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
           if ( meta.isUsingCreate() ) {
 
-            if ( data.fromLabelsClause == null ) {
+            if ( data.fromLabelsClause == null || data.dynamicFromLabels ) {
               data.fromLabelsClause = getLabels( "n", fromLabels );
             }
 
             createNode( getInputRowMeta(), row, data, data.fromNodePropIndexes, meta.getFromNodePropNames(),
-              data.fromNodePropTypes, data.fromLabelsClause, data.fromUnwindList );
+              data.fromNodePropTypes, data.fromLabelsClause, data.previousFromLabelsClause, data.dynamicFromLabels, data.fromUnwindList );
             updateUsageMap( fromLabels, GraphUsage.NODE_CREATE );
+
+            data.previousFromLabelsClause = data.fromLabelsClause;
 
           } else {
 
@@ -187,13 +200,15 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
           if ( meta.isUsingCreate() ) {
 
-            if ( data.toLabelsClause == null ) {
+            if ( data.toLabelsClause == null || data.dynamicFromLabels ) {
               data.toLabelsClause = getLabels( "n", toLabels );
             }
 
             createNode( getInputRowMeta(), row, data, data.toNodePropIndexes, meta.getToNodePropNames(), data.toNodePropTypes,
-              data.toLabelsClause, data.toUnwindList );
+              data.toLabelsClause, data.previousToLabelsClause, data.dynamicToLabels, data.toUnwindList );
             updateUsageMap( toLabels, GraphUsage.NODE_CREATE );
+
+            data.previousToLabelsClause = data.toLabelsClause;
 
           } else {
 
@@ -228,8 +243,10 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
           if ( meta.isOnlyCreatingRelationships() ) {
             // Use UNWIND statements to create relationships...
             //
-            createOnlyRelationship( getInputRowMeta(), row, meta, data, relationshipLabel );
+            createOnlyRelationship( getInputRowMeta(), row, meta, data, relationshipLabel, data.previousRelationshipLabel, data.dynamicRelLabel );
             updateUsageMap( Collections.singletonList( relationshipLabel ), GraphUsage.RELATIONSHIP_CREATE );
+
+            data.previousRelationshipLabel = relationshipLabel;
 
           } else {
             createRelationship( getInputRowMeta(), row, meta, data, relationshipLabel );
@@ -247,6 +264,15 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       putRow( data.outputRowMeta, row );
     }
     return true;
+  }
+
+  private boolean determineDynamicLabels( String[] nodeLabelFields ) {
+    for (String nodeLabelField : nodeLabelFields) {
+      if (StringUtils.isNotEmpty( nodeLabelField )) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private void outputGraphValue( RowMetaInterface rowMeta, Object[] row ) throws KettleException {
@@ -432,8 +458,14 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
   private void createNode( RowMetaInterface rowMeta, Object[] row, Neo4JOutputData data,
                            int[] nodePropIndexes, String[] nodePropNames,
-                           GraphPropertyType[] propertyTypes, String labelsClause,
+                           GraphPropertyType[] propertyTypes, String labelsClause, String previousLabelsClause, boolean dynamicLabels,
                            List<Map<String, Object>> unwindList ) throws KettleException {
+
+    if (previousLabelsClause!=null && !previousLabelsClause.equals( labelsClause )) {
+      // New set of labels: We need to end the unwind and start a new one.
+      //
+      createNodeEmptyUnwindList( data, unwindList, previousLabelsClause );
+    }
 
     // Let's use UNWIND by default for now
     //
@@ -466,9 +498,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     // See if it's time to push the collected data to the database
     //
     if ( unwindList.size() >= data.batchSize ) {
-
       createNodeEmptyUnwindList( data, unwindList, labelsClause );
-
     }
   }
 
@@ -780,9 +810,16 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     }
   }
 
-  private void createOnlyRelationship( RowMetaInterface rowMeta, Object[] rowData, Neo4JOutputMeta meta, Neo4JOutputData data, String relationshipLabel ) throws KettleException {
+  private void createOnlyRelationship( RowMetaInterface rowMeta, Object[] rowData, Neo4JOutputMeta meta, Neo4JOutputData data,
+                                       String relationshipLabel, String previousRelationshipLabel, boolean dynamicRelationships ) throws KettleException {
 
     try {
+
+      // If we have a different dynamic label, write the set to disk
+      //
+      if (dynamicRelationships && previousRelationshipLabel!=null && !previousRelationshipLabel.equals( previousRelationshipLabel )) {
+        emptyRelationshipsUnwindList();
+      }
 
       Map<String, Object> parameters = new HashMap<>();
       AtomicInteger paramNr = new AtomicInteger( 0 );

@@ -1,6 +1,7 @@
 package bi.know.kettle.neo4j.steps.output;
 
 import bi.know.kettle.neo4j.core.value.ValueMetaGraph;
+import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.widgets.Shell;
 import org.pentaho.di.core.CheckResult;
 import org.pentaho.di.core.CheckResultInterface;
@@ -523,6 +524,27 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
 
   public Object clone() {
     return super.clone();
+  }
+
+  protected boolean dynamicLabels(String[] nodeLabelsFields) {
+    for (String nodeLabelField : nodeLabelsFields) {
+      if ( StringUtils.isNotEmpty( nodeLabelField )) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean dynamicFromLabels() {
+    return dynamicLabels( fromNodeLabels );
+  }
+
+  public boolean dynamicToLabels() {
+    return dynamicLabels( toNodeLabels );
+  }
+
+  public boolean dynamicRelationshipLabel() {
+    return StringUtils.isNotEmpty( relationship );
   }
 
   /**

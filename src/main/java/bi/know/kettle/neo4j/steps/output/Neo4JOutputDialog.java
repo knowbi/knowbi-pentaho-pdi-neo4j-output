@@ -5,6 +5,8 @@ import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.WordUtils;
+import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.dialogs.MessageDialogWithToggle;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
 import org.eclipse.swt.custom.CTabFolder;
@@ -39,6 +41,7 @@ import org.pentaho.di.trans.step.BaseStepMeta;
 import org.pentaho.di.trans.step.StepDialogInterface;
 import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
+import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
@@ -927,7 +930,47 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     // Mark step as changed
     stepMeta.setChanged();
 
+    // Show some warnings if needed...
+    //
+    validateAndWarn(input);
+
+
     dispose();
+  }
+
+  public static final String STRING_DYNAMIC_LABELS_WARNING = "NEO4J_OUTPUT_SHOW_DYNAMIC_LABELS_WARNING";
+
+  private void validateAndWarn( Neo4JOutputMeta input ) {
+
+    StringBuffer message = new StringBuffer();
+
+    if (input.isUsingCreate() && input.dynamicFromLabels()) {
+      message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicFromLabels", Const.CR ));
+    }
+    if (input.isUsingCreate() && input.dynamicToLabels()) {
+      message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicToLabels", Const.CR ));
+    }
+    if (input.isOnlyCreatingRelationships() && input.dynamicRelationshipLabel()) {
+      message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicRelationshipLabel", Const.CR ));
+    }
+
+    if (message.length()>0 && "Y".equalsIgnoreCase( props.getCustomParameter( STRING_DYNAMIC_LABELS_WARNING, "Y" ))) {
+
+      MessageDialogWithToggle md =
+        new MessageDialogWithToggle( shell,
+          BaseMessages.getString( PKG, "Neo4JOutputDialog.DynamicLabelsWarning.DialogTitle" ), null,
+          message.toString() + Const.CR,
+          MessageDialog.WARNING,
+          new String[] { BaseMessages.getString( PKG, "Neo4JOutputDialog.DynamicLabelsWarning.Understood" ) },
+          0,
+          BaseMessages.getString( PKG, "Neo4JOutputDialog.DynamicLabelsWarning.HideNextTime" ), "N".equalsIgnoreCase(
+          props.getCustomParameter( STRING_DYNAMIC_LABELS_WARNING, "Y" ) ) );
+      MessageDialogWithToggle.setDefaultImage( GUIResource.getInstance().getImageSpoon() );
+      md.open();
+      props.setCustomParameter( STRING_DYNAMIC_LABELS_WARNING, md.getToggleState() ? "N" : "Y" );
+      props.saveProps();
+    }
+
   }
 
 
