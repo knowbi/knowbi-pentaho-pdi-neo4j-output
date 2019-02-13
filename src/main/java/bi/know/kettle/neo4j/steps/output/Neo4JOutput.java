@@ -228,29 +228,40 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
       try {
 
-        String relationshipLabel = null;
-        if ( data.relationshipIndex >= 0 ) {
-          relationshipLabel = getInputRowMeta().getString( row, data.relationshipIndex );
+        data.relationshipLabel = null;
+        if ( data.dynamicRelLabel ) {
+          data.relationshipLabel = getInputRowMeta().getString( row, data.relationshipIndex );
         }
-        if ( StringUtils.isEmpty( relationshipLabel ) && StringUtils.isNotEmpty( data.relationshipLabelValue ) ) {
-          relationshipLabel = data.relationshipLabelValue;
+        if ( StringUtils.isEmpty( data.relationshipLabel ) && StringUtils.isNotEmpty( data.relationshipLabelValue ) ) {
+          data.relationshipLabel = data.relationshipLabelValue;
         }
 
         // We only create a relationship if we have a label
         //
-        if ( StringUtils.isNotEmpty( relationshipLabel ) ) {
+        if ( StringUtils.isNotEmpty( data.relationshipLabel ) ) {
 
           if ( meta.isOnlyCreatingRelationships() ) {
             // Use UNWIND statements to create relationships...
             //
-            createOnlyRelationship( getInputRowMeta(), row, meta, data, relationshipLabel, data.previousRelationshipLabel, data.dynamicRelLabel );
-            updateUsageMap( Collections.singletonList( relationshipLabel ), GraphUsage.RELATIONSHIP_CREATE );
+            if (data.fromLabelsClause==null || data.dynamicFromLabels) {
+              data.fromLabels = getNodeLabels( meta.getFromNodeLabels(), data.fromLabelValues, getInputRowMeta(), row, data.fromNodeLabelIndexes );
+              data.fromLabelsClause = getLabels( "n", data.fromLabels );
+            }
+            if (data.toLabelsClause==null || data.dynamicToLabels) {
+              data.toLabels = getNodeLabels( meta.getToNodeLabels(), data.toLabelValues, getInputRowMeta(), row, data.toNodeLabelIndexes );
+              data.toLabelsClause = getLabels( "n", data.toLabels );
+            }
 
-            data.previousRelationshipLabel = relationshipLabel;
+            createOnlyRelationship( getInputRowMeta(), row, meta, data );
+            updateUsageMap( Collections.singletonList( data.relationshipLabel ), GraphUsage.RELATIONSHIP_CREATE );
+
+            data.previousFromLabelsClause = data.fromLabelsClause;
+            data.previousToLabelsClause = data.toLabelsClause;
+            data.previousRelationshipLabel = data.relationshipLabel;
 
           } else {
-            createRelationship( getInputRowMeta(), row, meta, data, relationshipLabel );
-            updateUsageMap( Collections.singletonList( relationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE );
+            createRelationship( getInputRowMeta(), row, meta, data, data.relationshipLabel );
+            updateUsageMap( Collections.singletonList( data.relationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE );
           }
 
         }
@@ -810,14 +821,17 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     }
   }
 
-  private void createOnlyRelationship( RowMetaInterface rowMeta, Object[] rowData, Neo4JOutputMeta meta, Neo4JOutputData data,
-                                       String relationshipLabel, String previousRelationshipLabel, boolean dynamicRelationships ) throws KettleException {
+  private void createOnlyRelationship( RowMetaInterface rowMeta, Object[] rowData, Neo4JOutputMeta meta, Neo4JOutputData data) throws KettleException {
 
     try {
 
-      // If we have a different dynamic label, write the set to disk
+      // If we have a different dynamic relationship label or different fromLabelsClause or different toLabelsClause
       //
-      if (dynamicRelationships && previousRelationshipLabel!=null && !previousRelationshipLabel.equals( previousRelationshipLabel )) {
+      boolean differentFromClause = data.dynamicFromLabels && data.previousFromLabelsClause!=null && !data.previousFromLabelsClause.equals(data.fromLabelsClause);
+      boolean differentToClause = data.dynamicToLabels && data.previousToLabelsClause!=null && !data.previousToLabelsClause.equals(data.toLabelsClause);
+      boolean differentRelationshipLabel = data.dynamicRelLabel && data.previousRelationshipLabel!=null && !data.previousRelationshipLabel.equals(data.relationshipLabel);
+
+      if (differentFromClause || differentToClause || differentRelationshipLabel ) {
         emptyRelationshipsUnwindList();
       }
 
@@ -907,31 +921,21 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     cypher.append( "UNWIND $props AS prop " );
     cypher.append( "MATCH " );
 
-    List<String> fromNodeLabels = getNodeLabels( meta.getFromNodeLabels(), data.fromLabelValues, null, null, null );
-    cypher.append( generateMatchClause( "from", "prop", fromNodeLabels, meta.getFromNodeProps(), meta.getFromNodePropNames(), data.fromNodePropTypes, meta.getFromNodePropPrimary(),
+    cypher.append( generateMatchClause( "from", "prop", data.fromLabels, meta.getFromNodeProps(), meta.getFromNodePropNames(), data.fromNodePropTypes, meta.getFromNodePropPrimary(),
       null, null,
       data.fromNodePropIndexes,
       null, paramNr
     ) );
     cypher.append( ", " );
 
-    List<String> toNodeLabels = getNodeLabels( meta.getToNodeLabels(), data.toLabelValues, null, null, null );
-
-    cypher.append( generateMatchClause( "to", "prop", toNodeLabels, meta.getToNodeProps(), meta.getToNodePropNames(), data.toNodePropTypes, meta.getToNodePropPrimary(),
+    cypher.append( generateMatchClause( "to", "prop", data.toLabels, meta.getToNodeProps(), meta.getToNodePropNames(), data.toNodePropTypes, meta.getToNodePropPrimary(),
       null, null,
       data.toNodePropIndexes,
       null, paramNr ) );
 
     cypher.append( Const.CR );
 
-    String relationshipLabel;
-    if ( StringUtils.isEmpty( meta.getRelationship() ) ) {
-      relationshipLabel = environmentSubstitute( meta.getRelationshipValue() );
-    } else {
-      throw new KettleException( "We need a static relationship label to create relationships" );
-    }
-
-    cypher.append( "CREATE (from)-[rel:`" + relationshipLabel + "`] -> (to)" );
+    cypher.append( "CREATE (from)-[rel:`" + data.relationshipLabel + "`] -> (to)" );
     cypher.append( Const.CR );
     if ( meta.getRelProps().length > 0 ) {
       cypher.append( "SET " );
