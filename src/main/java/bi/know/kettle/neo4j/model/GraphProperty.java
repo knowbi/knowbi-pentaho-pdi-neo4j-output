@@ -2,6 +2,8 @@ package bi.know.kettle.neo4j.model;
 
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 
+import java.util.Objects;
+
 public class GraphProperty {
 
   @MetaStoreAttribute
@@ -24,6 +26,21 @@ public class GraphProperty {
     this.description = description;
     this.type = type;
     this.primary = primary;
+  }
+
+  @Override public boolean equals( Object o ) {
+    if ( this == o ) {
+      return true;
+    }
+    if ( o == null || getClass() != o.getClass() ) {
+      return false;
+    }
+    GraphProperty that = (GraphProperty) o;
+    return Objects.equals( name, that.name );
+  }
+
+  @Override public int hashCode() {
+    return Objects.hash( name );
   }
 
   public String getName() {
