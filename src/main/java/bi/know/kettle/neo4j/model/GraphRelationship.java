@@ -71,6 +71,21 @@ public class GraphRelationship {
     setNodeTarget( graphRelationship.getNodeTarget() );
   }
 
+  /**
+   * Search for the property with the given name, case insensitive
+   *
+   * @param name the name of the property to look for
+   * @return the property or null if nothing could be found.
+   */
+  public GraphProperty findProperty( String name ) {
+    for ( GraphProperty property : properties ) {
+      if ( property.getName().equalsIgnoreCase( name ) ) {
+        return property;
+      }
+    }
+    return null;
+  }
+
   public String getName() {
     return name;
   }
@@ -118,5 +133,4 @@ public class GraphRelationship {
   public void setLabel( String label ) {
     this.label = label;
   }
-
 }

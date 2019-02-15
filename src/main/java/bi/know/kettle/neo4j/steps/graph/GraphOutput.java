@@ -166,6 +166,41 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         }
       }
 
+      // Index all the mapped relationship properties
+      // Relationship name --> Property --> field index
+      //
+      data.relationshipPropertyIndexMap = new HashMap<>();
+      for ( FieldModelMapping mapping : meta.getFieldModelMappings() ) {
+        if ( mapping.getTargetType().equals( ModelTargetType.Relationship ) ) {
+          String relationshipName = mapping.getTargetName();
+          GraphRelationship relationship = data.graphModel.findRelationship( relationshipName );
+          if ( relationship == null ) {
+            throw new KettleException( "Unable to find relationship '" + relationshipName + "' in the graph model" );
+          }
+          String propertyName = mapping.getTargetProperty();
+          GraphProperty graphProperty = relationship.findProperty( propertyName );
+          if ( graphProperty == null ) {
+            throw new KettleException( "Unable to find relationship property '" + relationshipName + "." + propertyName + "' in the graph model" );
+          }
+
+          String fieldName = mapping.getField();
+          int fieldIndex = getInputRowMeta().indexOfValue( fieldName );
+          if ( fieldIndex < 0 ) {
+            throw new KettleException( "Unable to find field to map to relationship property: " + relationshipName + "." + propertyName );
+          }
+          // Save the index...
+          //
+          Map<GraphProperty, Integer> propertyIndexMap = data.relationshipPropertyIndexMap.get( relationshipName );
+          if ( propertyIndexMap == null ) {
+            propertyIndexMap = new HashMap<>();
+            data.relationshipPropertyIndexMap.put( relationshipName, propertyIndexMap );
+          }
+          // Find the property in the graph model...
+          //
+          propertyIndexMap.put( graphProperty, fieldIndex );
+        }
+      }
+
       if ( !meta.isReturningGraph() ) {
 
         // Create a session
@@ -231,33 +266,34 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
     for ( int f = 0; f < meta.getFieldModelMappings().size(); f++ ) {
       FieldModelMapping fieldModelMapping = meta.getFieldModelMappings().get( f );
+      if ( fieldModelMapping.getTargetType() == ModelTargetType.Node ) {
+        // We pre-calculated the field indexes
+        //
+        int index = data.fieldIndexes[ f ];
 
-      // We pre-calculated the field indexes
-      //
-      int index = data.fieldIndexes[ f ];
-
-      // Determine the target property and type
-      //
-      GraphNode node = data.graphModel.findNode( fieldModelMapping.getTargetName() );
-      if ( node == null ) {
-        throw new KettleException( "Unable to find target node '" + fieldModelMapping.getTargetName() + "'" );
-      }
-      GraphProperty graphProperty = node.findProperty( fieldModelMapping.getTargetProperty() );
-      if ( graphProperty == null ) {
-        throw new KettleException(
-          "Unable to find target property '" + fieldModelMapping.getTargetProperty() + "' of node '" + fieldModelMapping.getTargetName() + "'" );
-      }
-
-      // See if this is a primary property...
-      //
-      if ( graphProperty.isPrimary() ) {
-
-        List<String> propertiesList = nodePropertiesMap.get( node );
-        if ( propertiesList == null ) {
-          propertiesList = new ArrayList<>();
-          nodePropertiesMap.put( node, propertiesList );
+        // Determine the target property and type
+        //
+        GraphNode node = data.graphModel.findNode( fieldModelMapping.getTargetName() );
+        if ( node == null ) {
+          throw new KettleException( "Unable to find target node '" + fieldModelMapping.getTargetName() + "'" );
         }
-        propertiesList.add( graphProperty.getName() );
+        GraphProperty graphProperty = node.findProperty( fieldModelMapping.getTargetProperty() );
+        if ( graphProperty == null ) {
+          throw new KettleException(
+            "Unable to find target property '" + fieldModelMapping.getTargetProperty() + "' of node '" + fieldModelMapping.getTargetName() + "'" );
+        }
+
+        // See if this is a primary property...
+        //
+        if ( graphProperty.isPrimary() ) {
+
+          List<String> propertiesList = nodePropertiesMap.get( node );
+          if ( propertiesList == null ) {
+            propertiesList = new ArrayList<>();
+            nodePropertiesMap.put( node, propertiesList );
+          }
+          propertiesList.add( graphProperty.getName() );
+        }
       }
     }
 
@@ -372,31 +408,33 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     for ( int f = 0; f < fieldModelMappings.size(); f++ ) {
       FieldModelMapping fieldModelMapping = fieldModelMappings.get( f );
 
-      // We pre-calculated the field indexes
-      //
-      int index = fieldIndexes[ f ];
+      if ( fieldModelMapping.getTargetType() == ModelTargetType.Node ) {
+        // We pre-calculated the field indexes
+        //
+        int index = fieldIndexes[ f ];
 
-      ValueMetaInterface valueMeta = rowMeta.getValueMeta( index );
-      Object valueData = row[ index ];
+        ValueMetaInterface valueMeta = rowMeta.getValueMeta( index );
+        Object valueData = row[ index ];
 
-      // Determine the target property and type
-      //
-      GraphNode node = graphModel.findNode( fieldModelMapping.getTargetName() );
-      if ( node == null ) {
-        throw new KettleException( "Unable to find target node '" + fieldModelMapping.getTargetName() + "'" );
+        // Determine the target property and type
+        //
+        GraphNode node = graphModel.findNode( fieldModelMapping.getTargetName() );
+        if ( node == null ) {
+          throw new KettleException( "Unable to find target node '" + fieldModelMapping.getTargetName() + "'" );
+        }
+        GraphProperty graphProperty = node.findProperty( fieldModelMapping.getTargetProperty() );
+        if ( graphProperty == null ) {
+          throw new KettleException(
+            "Unable to find target property '" + fieldModelMapping.getTargetProperty() + "' of node '" + fieldModelMapping.getTargetName() + "'" );
+        }
+        if ( !nodes.contains( node ) ) {
+          nodes.add( node );
+        }
+        nodeProperties.add( new NodeAndPropertyData( node, graphProperty, valueMeta, valueData, index ) );
       }
-      GraphProperty graphProperty = node.findProperty( fieldModelMapping.getTargetProperty() );
-      if ( graphProperty == null ) {
-        throw new KettleException(
-          "Unable to find target property '" + fieldModelMapping.getTargetProperty() + "' of node '" + fieldModelMapping.getTargetName() + "'" );
-      }
-      if ( !nodes.contains( node ) ) {
-        nodes.add( node );
-      }
-      nodeProperties.add( new NodeAndPropertyData( node, graphProperty, valueMeta, valueData, index ) );
     }
 
-    // Evaluate wether or not the node property is primary and null
+    // Evaluate whether or not the node property is primary and null
     // In that case, we remove these nodes from the lists...
     //
     Set<GraphNode> ignored = new HashSet<>();
@@ -481,9 +519,59 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         if ( nodeIndexMap.get( nodeSource ) != null && nodeIndexMap.get( nodeTarget ) != null ) {
           String sourceNodeName = "node" + nodeIndexMap.get( nodeSource );
           String targetNodeName = "node" + nodeIndexMap.get( nodeTarget );
+          String relationshipAlias = "rel" + relationshipIndex;
 
-          cypher.append( "MERGE(" + sourceNodeName + ")-[rel" + relationshipIndex + ":" + relationship.getLabel() + "]-(" + targetNodeName + ") " );
+          cypher.append( "MERGE(" + sourceNodeName + ")-[" + relationshipAlias + ":" + relationship.getLabel() + "]-(" + targetNodeName + ") " );
           cypher.append( Const.CR );
+
+          // Also add the optional property updates...
+          //
+          List<GraphProperty> relProps = new ArrayList<>();
+          List<Integer> relPropIndexes = new ArrayList<>();
+          Map<GraphProperty, Integer> propertyIndexMap = data.relationshipPropertyIndexMap.get( relationship.getName() );
+          if ( propertyIndexMap != null ) {
+            for ( GraphProperty relProp : propertyIndexMap.keySet() ) {
+              Integer relFieldIndex = propertyIndexMap.get( relProp );
+              if ( relFieldIndex != null ) {
+                relProps.add( relProp );
+                relPropIndexes.add( relFieldIndex );
+              }
+            }
+          }
+          if ( !relProps.isEmpty() ) {
+            // Add a set clause...
+            //
+            cypher.append( "SET " );
+            for ( int i = 0; i < relProps.size(); i++ ) {
+
+              parameterIndex.incrementAndGet();
+              String parameterName = "param" + parameterIndex;
+
+              if ( i > 0 ) {
+                cypher.append( ", " );
+              }
+              GraphProperty relProp = relProps.get( i );
+              int propFieldIndex = relPropIndexes.get( i );
+
+              ValueMetaInterface sourceFieldMeta = rowMeta.getValueMeta( propFieldIndex );
+              Object sourceFieldValue = row[ propFieldIndex ];
+              boolean isNull = sourceFieldMeta.isNull( sourceFieldValue );
+
+              cypher.append( relationshipAlias + "." + relProp.getName() );
+              cypher.append( " = " );
+              if ( isNull ) {
+                cypher.append( "NULL" );
+              } else {
+                Object neoValue = relProp.getType().convertFromKettle( sourceFieldMeta, sourceFieldValue );
+                parameters.put( parameterName, neoValue );
+                cypher.append( "{" + parameterName + "}" );
+
+                TargetParameter targetParameter = new TargetParameter( sourceFieldMeta.getName(), propFieldIndex, parameterName, relProp.getType() );
+                cypherParameters.getTargetParameters().add( targetParameter );
+              }
+            }
+            cypher.append( Const.CR );
+          }
 
           updateUsageMap( Arrays.asList( relationship.getLabel() ), GraphUsage.RELATIONSHIP_UPDATE );
         }
@@ -534,7 +622,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         nodeLabels += nodeLabel;
       }
 
-      String matchCypher = "";
+      StringBuilder matchCypher = new StringBuilder();
 
       String nodeAlias = "node" + nodeIndex;
 
@@ -576,18 +664,18 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
             // On match statement
             //
             if ( firstMatch ) {
-              matchCypher += "SET ";
+              matchCypher.append( "SET " );
             } else {
-              matchCypher += ", ";
+              matchCypher.append( ", " );
             }
 
             firstMatch = false;
 
-            matchCypher += nodeAlias + "." + napd.property.getName() + " = ";
+            matchCypher.append( nodeAlias + "." + napd.property.getName() + " = " );
             if ( isNull ) {
-              matchCypher += "NULL ";
+              matchCypher.append( "NULL " );
             } else {
-              matchCypher += "{" + parameterName + "} ";
+              matchCypher.append( "{" + parameterName + "} " );
             }
 
             if ( log.isDebug() ) {
@@ -607,9 +695,9 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
       }
       cypher.append( "}) " + Const.CR );
 
-      // Add an OM MATCH SET clause if there are any non-primary key fields to update
+      // Add a SET clause if there are any non-primary key fields to update
       //
-      if ( StringUtils.isNotEmpty( matchCypher ) ) {
+      if ( matchCypher.length()>0 ) {
         cypher.append( matchCypher );
       }
     }
@@ -798,6 +886,38 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
           // The property set ID is simply the name of the GraphRelationship (metadata)
           //
           relationshipData.setPropertySetId( relationship.getName() );
+
+          // Also add the optional properties...
+          //
+          List<GraphProperty> relProps = new ArrayList<>();
+          List<Integer> relPropIndexes = new ArrayList<>();
+          Map<GraphProperty, Integer> propertyIndexMap = data.relationshipPropertyIndexMap.get( relationship.getName() );
+          if ( propertyIndexMap != null ) {
+            for ( GraphProperty relProp : propertyIndexMap.keySet() ) {
+              Integer relFieldIndex = propertyIndexMap.get( relProp );
+              if ( relFieldIndex != null ) {
+                relProps.add( relProp );
+                relPropIndexes.add( relFieldIndex );
+              }
+            }
+          }
+          if ( !relProps.isEmpty() ) {
+            for ( int i = 0; i < relProps.size(); i++ ) {
+
+              GraphProperty relProp = relProps.get( i );
+              int propFieldIndex = relPropIndexes.get( i );
+
+              ValueMetaInterface sourceFieldMeta = rowMeta.getValueMeta( propFieldIndex );
+              Object sourceFieldValue = row[ propFieldIndex ];
+
+              String propId = relProp.getName();
+              GraphPropertyDataType relPropType = GraphPropertyDataType.getTypeFromKettle( sourceFieldMeta );
+              Object neoValue = relPropType.convertFromKettle( sourceFieldMeta, sourceFieldValue );
+              boolean primary = false; // TODO: implement this
+
+              relationshipData.getProperties().add( new GraphPropertyData( propId, neoValue, relPropType, primary ) );
+            }
+          }
 
           graphData.getRelationships().add( relationshipData );
         }

@@ -4,6 +4,7 @@ import bi.know.kettle.neo4j.model.GraphModel;
 import bi.know.kettle.neo4j.model.GraphModelUtils;
 import bi.know.kettle.neo4j.model.GraphNode;
 import bi.know.kettle.neo4j.model.GraphProperty;
+import bi.know.kettle.neo4j.model.GraphRelationship;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -26,6 +27,7 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.SourceToTargetMapping;
+import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.logging.LogChannel;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -43,6 +45,7 @@ import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -408,14 +411,21 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
       // Node properties
       //
       String separator = " . ";
-      List<String> nodeProperties = new ArrayList<>();
+      List<String> targetPropertiesList = new ArrayList<>();
       for ( GraphNode node : activeModel.getNodes() ) {
         for ( GraphProperty property : node.getProperties() ) {
           String combo = node.getName() + " . " + property.getName();
-          nodeProperties.add( combo );
+          targetPropertiesList.add( combo );
         }
       }
-      String[] targetProperties = nodeProperties.toArray( new String[ 0 ] );
+      for ( GraphRelationship relationship : activeModel.getRelationships() ) {
+        for ( GraphProperty property : relationship.getProperties() ) {
+          String combo = relationship.getName() + " . " + property.getName();
+          targetPropertiesList.add( combo );
+        }
+      }
+
+      String[] targetProperties = targetPropertiesList.toArray( new String[ 0 ] );
 
       // Preserve mappings...
       //
@@ -424,7 +434,9 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
         TableItem item = wFieldMappings.getNonEmpty( i );
         int sourceIndex = Const.indexOfString( item.getText( 1 ), inputFields );
         int targetIndex = Const.indexOfString( item.getText( 3 ) + separator + item.getText( 4 ), targetProperties );
-        mappings.add( new SourceToTargetMapping( sourceIndex, targetIndex ) );
+        if (sourceIndex>=0 && targetIndex>=0) {
+          mappings.add( new SourceToTargetMapping( sourceIndex, targetIndex ) );
+        }
       }
 
       EnterMappingDialog dialog = new EnterMappingDialog( shell, inputFields, targetProperties, mappings );
@@ -435,10 +447,19 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
           String field = mapping.getSourceString( inputFields );
           String target = mapping.getTargetString( targetProperties );
           int index = target.indexOf( separator );
-          String node = target.substring( 0, index );
+          String targetName = target.substring( 0, index );
           String property = target.substring( index + separator.length() );
 
-          wFieldMappings.add( field, "Node", node, property );
+          String targetType = null;
+          if (activeModel.findNode( targetName )!=null) {
+            targetType = "Node";
+          } else if (activeModel.findRelationship( targetName )!=null) {
+            targetType = "Relationship";
+          } else {
+            throw new KettleException( "Neither node nor transformation found for target '"+targetName+": internal error" );
+          }
+
+          wFieldMappings.add( field, targetType, targetName, property );
         }
         wFieldMappings.removeEmptyRows();
         wFieldMappings.setRowNums();
@@ -505,6 +526,10 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
         if ( activeModel != null ) {
           // Set combo boxes in the mappings...
           //
+          List<String> targetNames = new ArrayList<>(  );
+          targetNames.addAll( Arrays.asList(activeModel.getNodeNames()) );
+          targetNames.addAll( Arrays.asList(activeModel.getRelationshipNames()) );
+
           wFieldMappings.getColumns()[ 2 ].setComboValues( activeModel.getNodeNames() );
         }
       } else {
