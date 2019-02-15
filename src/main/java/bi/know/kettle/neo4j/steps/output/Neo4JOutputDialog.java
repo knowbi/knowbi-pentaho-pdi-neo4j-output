@@ -1,6 +1,7 @@
 package bi.know.kettle.neo4j.steps.output;
 
 
+import bi.know.kettle.neo4j.core.Neo4jDefaults;
 import bi.know.kettle.neo4j.model.GraphPropertyType;
 import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
@@ -47,6 +48,7 @@ import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
+import org.pentaho.metastore.persist.MetaStoreFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -941,18 +943,39 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
   public static final String STRING_DYNAMIC_LABELS_WARNING = "NEO4J_OUTPUT_SHOW_DYNAMIC_LABELS_WARNING";
 
   private void validateAndWarn( Neo4JOutputMeta input ) {
-
     StringBuffer message = new StringBuffer();
+
+    // Warn about running too many small UNWIND statements when using dynamic labels
+    //
     boolean dynamicFrom = input.dynamicFromLabels() && input.isUsingCreate();
     if ( dynamicFrom ) {
+      message.append( Const.CR );
       message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicFromLabels", Const.CR ));
     }
     boolean dynamicTo = input.dynamicToLabels() && input.isUsingCreate();
     if (dynamicTo) {
+      message.append( Const.CR );
       message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicToLabels", Const.CR ));
     }
     if (input.isOnlyCreatingRelationships() && input.isCreatingRelationships() && ( input.dynamicFromLabels() || input.dynamicToLabels()) ) {
+      message.append( Const.CR );
       message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicRelationshipLabel", Const.CR ));
+    }
+
+    // Verify that the defined connection is available
+    //
+    try {
+      MetaStoreFactory<NeoConnection> factory = new MetaStoreFactory<>( NeoConnection.class, metaStore, Neo4jDefaults.NAMESPACE );
+      NeoConnection connection = factory.loadElement( input.getConnection() );
+      if (connection==null) {
+        message.append( Const.CR );
+        message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.ReferencedNeo4jConnectionDoesntExist", input.getConnection(), Const.CR ));
+      }
+    } catch(Exception e) {
+      message.append( "There was an error verifying the existence of the used Neo4j connection")
+        .append( Const.CR )
+        .append( Const.getStackTracker( e ) )
+        .append( Const.CR );
     }
 
     if (message.length()>0 && "Y".equalsIgnoreCase( props.getCustomParameter( STRING_DYNAMIC_LABELS_WARNING, "Y" ))) {
