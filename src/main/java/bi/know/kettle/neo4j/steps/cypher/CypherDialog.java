@@ -389,11 +389,11 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
       };
 
     Label wlParameters = new Label( wComposite, SWT.LEFT );
-    wlParameters.setText( "Parameters" );
+    wlParameters.setText( "Parameters: (NOTE that parameters for labels are not supported)" );
     props.setLook( wlParameters );
     FormData fdlParameters = new FormData();
     fdlParameters.left = new FormAttachment( 0, 0 );
-    fdlParameters.right = new FormAttachment( middle, -margin );
+    fdlParameters.right = new FormAttachment( 100, 0 );
     fdlParameters.top = new FormAttachment( lastControl, margin );
     wlParameters.setLayoutData( fdlParameters );
 
