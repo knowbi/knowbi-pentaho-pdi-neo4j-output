@@ -365,7 +365,6 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     cypherParameters = new CypherParameters();
 
     // The strategy is to determine all the nodes involved and the properties to set.
-    // TODO: Later we'll add relationship properties
     // Then we can determine the relationships between the nodes
     //
     List<GraphNode> nodes = new ArrayList<>();
