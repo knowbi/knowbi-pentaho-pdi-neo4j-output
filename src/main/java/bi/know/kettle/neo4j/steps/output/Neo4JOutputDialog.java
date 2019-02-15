@@ -347,13 +347,13 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     props.setLook( wlReadOnlyFromNode );
     FormData fdlReadOnlyFromNodes = new FormData();
     fdlReadOnlyFromNodes.left = new FormAttachment( 0, 0 );
-    fdlReadOnlyFromNodes.right = new FormAttachment( middle, 0 );
+    fdlReadOnlyFromNodes.right = new FormAttachment( 70, 0 );
     fdlReadOnlyFromNodes.top = new FormAttachment( 0, margin * 3 );
     wlReadOnlyFromNode.setLayoutData( fdlReadOnlyFromNodes );
     wReadOnlyFromNode = new Button(wFromComp, SWT.CHECK);
     props.setLook( wReadOnlyFromNode );
     FormData fdReadOnlyFromNode = new FormData();
-    fdReadOnlyFromNode.left = new FormAttachment( middle, margin );
+    fdReadOnlyFromNode.left = new FormAttachment( 70, margin );
     fdReadOnlyFromNode.right = new FormAttachment( 100, 0 );
     fdReadOnlyFromNode.top = new FormAttachment( 0, margin * 3 );
     wReadOnlyFromNode.setLayoutData( fdReadOnlyFromNode );
@@ -482,14 +482,14 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     props.setLook( wlReadOnlyToNode );
     FormData fdlReadOnlyToNodes = new FormData();
     fdlReadOnlyToNodes.left = new FormAttachment( 0, 0 );
-    fdlReadOnlyToNodes.right = new FormAttachment( middle, 0 );
+    fdlReadOnlyToNodes.right = new FormAttachment( 70, 0 );
     fdlReadOnlyToNodes.top = new FormAttachment( 0, margin * 3 );
     wlReadOnlyToNode.setLayoutData( fdlReadOnlyToNodes );
     wReadOnlyToNode = new Button(wToComp, SWT.CHECK);
     props.setLook( wReadOnlyToNode );
     FormData fdReadOnlyToNode = new FormData();
     fdReadOnlyToNode.left = new FormAttachment( middle, margin );
-    fdReadOnlyToNode.right = new FormAttachment( 100, 0 );
+    fdReadOnlyToNode.right = new FormAttachment( 70, 0 );
     fdReadOnlyToNode.top = new FormAttachment( 0, margin * 3 );
     wReadOnlyToNode.setLayoutData( fdReadOnlyToNode );
     Control lastToControl = wReadOnlyToNode;
@@ -943,14 +943,15 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
   private void validateAndWarn( Neo4JOutputMeta input ) {
 
     StringBuffer message = new StringBuffer();
-
-    if (input.isUsingCreate() && input.dynamicFromLabels()) {
+    boolean dynamicFrom = input.dynamicFromLabels() && input.isUsingCreate();
+    if ( dynamicFrom ) {
       message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicFromLabels", Const.CR ));
     }
-    if (input.isUsingCreate() && input.dynamicToLabels()) {
+    boolean dynamicTo = input.dynamicToLabels() && input.isUsingCreate();
+    if (dynamicTo) {
       message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicToLabels", Const.CR ));
     }
-    if (input.isOnlyCreatingRelationships() && input.dynamicRelationshipLabel()) {
+    if (input.isOnlyCreatingRelationships() && input.isCreatingRelationships() && ( input.dynamicFromLabels() || input.dynamicToLabels()) ) {
       message.append( BaseMessages.getString( PKG, "Neo4JOutputDialog.Warning.SortDynamicRelationshipLabel", Const.CR ));
     }
 

@@ -547,6 +547,10 @@ public class Neo4JOutputMeta extends BaseStepMeta implements StepMetaInterface {
     return StringUtils.isNotEmpty( relationship );
   }
 
+  public boolean isCreatingRelationships() {
+    return StringUtils.isNotEmpty(relationship) || StringUtils.isNotEmpty( relationshipValue );
+  }
+
   /**
    * Gets connection
    *
