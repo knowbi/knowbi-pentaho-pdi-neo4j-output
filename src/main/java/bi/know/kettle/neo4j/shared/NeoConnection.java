@@ -125,7 +125,8 @@ public class NeoConnection extends Variables {
       Session session = driver.session();
       session.close();
     } catch ( Exception e ) {
-      throw new Exception( "Unable to connect to database '" + name + '"', e );
+
+      throw new Exception( "Unable to connect to database '" + name + "' : "+e.getMessage() , e );
     }
   }
 
