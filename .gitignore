@@ -10,3 +10,4 @@ target/
 .idea/compiler.xml
 .idea/encodings.xml
 .idea/vcs.xml
+src/main/java/*.png

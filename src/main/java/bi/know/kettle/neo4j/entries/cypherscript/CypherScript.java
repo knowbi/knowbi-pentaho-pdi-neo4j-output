@@ -113,7 +113,7 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
     } catch(Exception e) {
       result.setResult( false );
       result.increaseErrors( 1L );
-      throw new KettleException( "Unable to load or find connection with name '"+realConnectionName+"'", e);
+      throw new KettleException( "Unable to gencsv or find connection with name '"+realConnectionName+"'", e);
     }
 
     String realScript;

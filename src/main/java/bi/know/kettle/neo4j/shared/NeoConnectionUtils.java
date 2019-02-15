@@ -73,8 +73,8 @@ public class NeoConnectionUtils {
       if ( neoConnection == null ) {
         newConnection( shell, space, factory );
       } else {
-        NeoConnectionDialog NeoConnectionDialog = new NeoConnectionDialog( shell, neoConnection );
-        if ( NeoConnectionDialog.open() ) {
+        NeoConnectionDialog neoConnectionDialog = new NeoConnectionDialog( shell, neoConnection );
+        if ( neoConnectionDialog.open() ) {
           factory.saveElement( neoConnection );
         }
       }

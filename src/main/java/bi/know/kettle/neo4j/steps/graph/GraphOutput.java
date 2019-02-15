@@ -3,6 +3,11 @@ package bi.know.kettle.neo4j.steps.graph;
 
 import bi.know.kettle.neo4j.core.GraphUsage;
 import bi.know.kettle.neo4j.core.MetaStoreUtil;
+import bi.know.kettle.neo4j.core.data.GraphData;
+import bi.know.kettle.neo4j.core.data.GraphNodeData;
+import bi.know.kettle.neo4j.core.data.GraphPropertyData;
+import bi.know.kettle.neo4j.core.data.GraphPropertyDataType;
+import bi.know.kettle.neo4j.core.data.GraphRelationshipData;
 import bi.know.kettle.neo4j.model.GraphModel;
 import bi.know.kettle.neo4j.model.GraphModelUtils;
 import bi.know.kettle.neo4j.model.GraphNode;
@@ -18,13 +23,12 @@ import org.neo4j.driver.v1.summary.Notification;
 import org.neo4j.driver.v1.summary.ResultSummary;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.exception.KettleValueException;
+import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
-import org.pentaho.di.trans.step.BaseStep;
 import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
@@ -56,19 +60,31 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     meta = (GraphOutputMeta) smi;
     data = (GraphOutputData) sdi;
 
-    // Load some extra metadata...
-    //
-    if ( StringUtils.isEmpty(meta.getConnectionName()) ) {
-      log.logError( "You need to specify a Neo4j connection to use in this step" );
-      return false;
-    }
     try {
       // To correct lazy programmers who built certain PDI steps...
       //
       data.metaStore = MetaStoreUtil.findMetaStore( this );
 
-      data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
-      data.neoConnection.initializeVariablesFrom( this );
+      if ( !meta.isReturningGraph() ) {
+        // Verify some extra metadata...
+        //
+        if ( StringUtils.isEmpty( meta.getConnectionName() ) ) {
+          log.logError( "You need to specify a Neo4j connection to use in this step" );
+          return false;
+        }
+
+        data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
+        data.neoConnection.initializeVariablesFrom( this );
+
+        try {
+          data.driver = DriverSingleton.getDriver( log, data.neoConnection );
+        } catch ( Exception e ) {
+          log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
+          return false;
+        }
+
+        data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
+      }
 
       if ( StringUtils.isEmpty( meta.getModel() ) ) {
         logError( "No model name is specified" );
@@ -80,20 +96,12 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         return false;
       }
     } catch ( MetaStoreException e ) {
-      log.logError( "Could not load connection'" + meta.getConnectionName() + "' from the metastore", e );
+      log.logError( "Could not gencsv connection'" + meta.getConnectionName() + "' from the metastore", e );
       return false;
     }
 
-    data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
 
     data.nodeCount = countDistinctNodes( meta.getFieldModelMappings() );
-
-    try {
-      data.driver = DriverSingleton.getDriver( log, data.neoConnection );
-    } catch ( Exception e ) {
-      log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
-      return false;
-    }
 
     return super.init( smi, sdi );
   }
@@ -117,7 +125,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     if ( data.session != null ) {
       data.session.close();
     }
-    if (data.cypherMap!=null) {
+    if ( data.cypherMap != null ) {
       data.cypherMap.clear();
     }
 
@@ -158,38 +166,55 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         }
       }
 
-      // Create a session
-      //
-      data.session = data.driver.session();
+      if ( !meta.isReturningGraph() ) {
 
-      // See if we need to create indexes...
-      //
-      if ( meta.isCreatingIndexes() ) {
-        createNodePropertyIndexes( meta, data );
+        // Create a session
+        //
+        data.session = data.driver.session();
+
+        // See if we need to create indexes...
+        //
+        if ( meta.isCreatingIndexes() ) {
+          createNodePropertyIndexes( meta, data );
+        }
+
       }
 
       data.cypherMap = new HashMap<>();
     }
 
-    // Calculate cypher statement, parameters, ... based on field-model-mappings
-    //
-    Map<String, Object> parameters = new HashMap<>();
-    String cypher = getCypher( data.graphModel, meta.getFieldModelMappings(), data.nodeCount, row, getInputRowMeta(), data.fieldIndexes, parameters );
-    if ( log.isDebug() ) {
-      logDebug( "Parameters found : " + parameters.size() );
-      logDebug( "Merge statement : " + cypher );
-    }
+    if ( meta.isReturningGraph() ) {
 
-    boolean errors = executeStatement( data, cypher, parameters );
-    if (errors) {
-      // Stop processing on error
       //
-      setErrors( 1L );
-      setOutputDone();
-      return false;
-    }
+      GraphData graphData = getGraphData( data.graphModel, meta.getFieldModelMappings(), data.nodeCount, row, getInputRowMeta(), data.fieldIndexes );
 
-    putRow( getInputRowMeta(), row );
+      Object[] outputRowData = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
+      outputRowData[ getInputRowMeta().size() ] = graphData;
+
+      putRow( data.outputRowMeta, outputRowData );
+
+    } else {
+
+      // Calculate cypher statement, parameters, ... based on field-model-mappings
+      //
+      Map<String, Object> parameters = new HashMap<>();
+      String cypher = getCypher( data.graphModel, meta.getFieldModelMappings(), data.nodeCount, row, getInputRowMeta(), data.fieldIndexes, parameters );
+      if ( log.isDebug() ) {
+        logDebug( "Parameters found : " + parameters.size() );
+        logDebug( "Merge statement : " + cypher );
+      }
+
+      boolean errors = executeStatement( data, cypher, parameters );
+      if ( errors ) {
+        // Stop processing on error
+        //
+        setErrors( 1L );
+        setOutputDone();
+        return false;
+      }
+
+      putRow( getInputRowMeta(), row );
+    }
     return true;
   }
 
@@ -248,13 +273,13 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     boolean errors = false;
     if ( data.batchSize <= 1 ) {
       result = data.session.run( cypher, parameters );
-      errors = processSummary(result);
+      errors = processSummary( result );
     } else {
       if ( data.outputCount == 0 ) {
         data.transaction = data.session.beginTransaction();
       }
       result = data.transaction.run( cypher, parameters );
-      errors = processSummary(result);
+      errors = processSummary( result );
 
       data.outputCount++;
       incrementLinesOutput();
@@ -266,7 +291,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
       }
     }
 
-    if (errors) {
+    if ( errors ) {
       setErrors( 1L );
       stopAll();
       setOutputDone();
@@ -282,9 +307,9 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     boolean errors = false;
     ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {
-      log.logError( notification.title()+" ("+notification.severity()+")" );
-      log.logError(notification.code()+" : "+notification.description()+", position "+notification.position());
-      errors=true;
+      log.logError( notification.title() + " (" + notification.severity() + ")" );
+      log.logError( notification.code() + " : " + notification.description() + ", position " + notification.position() );
+      errors = true;
     }
     return errors;
   }
@@ -324,13 +349,13 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     // Basically this is determined by the bitmap of used fields being null or not null
     //
     StringBuffer pattern = new StringBuffer();
-    for (int index : data.fieldIndexes) {
+    for ( int index : data.fieldIndexes ) {
       boolean isNull = rowMeta.isNull( row, index );
-      pattern.append(isNull?'0':'1');
+      pattern.append( isNull ? '0' : '1' );
     }
-    CypherParameters cypherParameters = data.cypherMap.get(pattern.toString());
-    if (cypherParameters!=null) {
-      setParameters(rowMeta, row, parameters, cypherParameters);
+    CypherParameters cypherParameters = data.cypherMap.get( pattern.toString() );
+    if ( cypherParameters != null ) {
+      setParameters( rowMeta, row, parameters, cypherParameters );
 
       // That's it, return the cypher we previously calculated
       //
@@ -461,23 +486,23 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
           cypher.append( "MERGE(" + sourceNodeName + ")-[rel" + relationshipIndex + ":" + relationship.getLabel() + "]-(" + targetNodeName + ") " );
           cypher.append( Const.CR );
 
-          updateUsageMap( Arrays.asList(relationship.getLabel()), GraphUsage.RELATIONSHIP_UPDATE );
+          updateUsageMap( Arrays.asList( relationship.getLabel() ), GraphUsage.RELATIONSHIP_UPDATE );
         }
       }
       cypher.append( ";" + Const.CR );
     }
 
     cypherParameters.setCypher( cypher.toString() );
-    data.cypherMap.put(pattern.toString(), cypherParameters);
+    data.cypherMap.put( pattern.toString(), cypherParameters );
 
     return cypher.toString();
   }
 
   private void setParameters( RowMetaInterface rowMeta, Object[] row, Map<String, Object> parameters, CypherParameters cypherParameters ) throws KettleValueException {
-    for (TargetParameter targetParameter : cypherParameters.getTargetParameters()) {
+    for ( TargetParameter targetParameter : cypherParameters.getTargetParameters() ) {
       int fieldIndex = targetParameter.getInputFieldIndex();
       ValueMetaInterface valueMeta = rowMeta.getValueMeta( fieldIndex );
-      Object valueData = row[fieldIndex];
+      Object valueData = row[ fieldIndex ];
       String parameterName = targetParameter.getParameterName();
       GraphPropertyType parameterType = targetParameter.getParameterType();
 
@@ -485,7 +510,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
       //
       Object neoObject = parameterType.convertFromKettle( valueMeta, valueData );
 
-      parameters.put(parameterName, neoObject);
+      parameters.put( parameterName, neoObject );
     }
   }
 
@@ -494,7 +519,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
                               AtomicInteger parameterIndex, AtomicInteger nodeIndex,
                               Map<GraphNode, Integer> nodeIndexMap,
                               List<NodeAndPropertyData> nodeProperties, Map<String, Object> parameters,
-                              CypherParameters cypherParameters) throws KettleValueException {
+                              CypherParameters cypherParameters ) throws KettleValueException {
     if ( !ignored.contains( node ) && !handled.contains( node ) ) {
 
       // Don't update twice.
@@ -516,7 +541,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
       cypher.append( "MERGE (" + nodeAlias + nodeLabels + " { " );
 
-      updateUsageMap( node.getLabels(), GraphUsage. NODE_UPDATE );
+      updateUsageMap( node.getLabels(), GraphUsage.NODE_UPDATE );
 
       if ( log.isDebug() ) {
         logBasic( " - node merge : " + node.getName() );
@@ -592,7 +617,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
   }
 
   @Override public void batchComplete() {
-   wrapUpTransaction();
+    wrapUpTransaction();
   }
 
   private void wrapUpTransaction() {
@@ -602,32 +627,262 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
       // Force creation of a new transaction on the next batch of records
       //
-      data.outputCount=0;
+      data.outputCount = 0;
     }
   }
 
   /**
    * Update the usagemap.  Add all the labels to the node usage.
-   *  @param nodeLabels
+   *
+   * @param nodeLabels
    * @param usage
    */
   protected void updateUsageMap( List<String> nodeLabels, GraphUsage usage ) throws KettleValueException {
     Map<String, Set<String>> stepsMap = data.usageMap.get( usage.name() );
-    if (stepsMap==null) {
+    if ( stepsMap == null ) {
       stepsMap = new HashMap<>();
-      data.usageMap.put(usage.name(), stepsMap );
+      data.usageMap.put( usage.name(), stepsMap );
     }
 
     Set<String> labelSet = stepsMap.get( getStepname() );
-    if (labelSet==null) {
-      labelSet = new HashSet<>(  );
-      stepsMap.put(getStepname(), labelSet);
+    if ( labelSet == null ) {
+      labelSet = new HashSet<>();
+      stepsMap.put( getStepname(), labelSet );
     }
 
-    for ( String label: nodeLabels) {
+    for ( String label : nodeLabels ) {
       if ( StringUtils.isNotEmpty( label ) ) {
         labelSet.add( label );
       }
     }
   }
+
+
+  /**
+   * Generate the Cypher statement and parameters to use to update using a graph model, a field mapping and a row of data
+   *
+   * @param graphModel         The model to use
+   * @param fieldModelMappings The mappings
+   * @param nodeCount
+   * @param row                The input row
+   * @param rowMeta            the input row metadata
+   * @return The graph with nodes and relationships
+   */
+  protected GraphData getGraphData( GraphModel graphModel, List<FieldModelMapping> fieldModelMappings, int nodeCount, Object[] row,
+                                    RowMetaInterface rowMeta, int[] fieldIndexes ) throws KettleException {
+
+    GraphData graphData = new GraphData();
+    graphData.setSourceTransformationName( getTransMeta().getName() );
+    graphData.setSourceStepName( getStepMeta().getName() );
+
+    // The strategy is to determine all the nodes involved and the properties to set.
+    // Then we can determine the relationships between the nodes
+    //
+    List<GraphNode> nodes = new ArrayList<>();
+    List<NodeAndPropertyData> nodeProperties = new ArrayList<>();
+    for ( int f = 0; f < fieldModelMappings.size(); f++ ) {
+      FieldModelMapping fieldModelMapping = fieldModelMappings.get( f );
+
+      // We pre-calculated the field indexes
+      //
+      int index = fieldIndexes[ f ];
+
+      ValueMetaInterface valueMeta = rowMeta.getValueMeta( index );
+      Object valueData = row[ index ];
+
+      // Determine the target property and type
+      //
+      GraphNode node = graphModel.findNode( fieldModelMapping.getTargetName() );
+      if ( node == null ) {
+        throw new KettleException( "Unable to find target node '" + fieldModelMapping.getTargetName() + "'" );
+      }
+      GraphProperty graphProperty = node.findProperty( fieldModelMapping.getTargetProperty() );
+      if ( graphProperty == null ) {
+        throw new KettleException(
+          "Unable to find target property '" + fieldModelMapping.getTargetProperty() + "' of node '" + fieldModelMapping.getTargetName() + "'" );
+      }
+      if ( !nodes.contains( node ) ) {
+        nodes.add( node );
+      }
+      nodeProperties.add( new NodeAndPropertyData( node, graphProperty, valueMeta, valueData, index ) );
+    }
+
+    // Evaluate whether or not the node property is primary and null
+    // In that case, we remove these nodes from the lists...
+    //
+    Set<GraphNode> ignored = new HashSet<>();
+    for ( NodeAndPropertyData nodeProperty : nodeProperties ) {
+      if ( nodeProperty.property.isPrimary() ) {
+        // Null value?
+        //
+        if ( nodeProperty.sourceValueMeta.isNull( nodeProperty.sourceValueData ) ) {
+          if ( log.isDebug() ) {
+            logDebug( "Detected primary null property for node " + nodeProperty.node + " property " + nodeProperty.property + " value : "
+              + nodeProperty.sourceValueMeta.getString( nodeProperty.sourceValueData ) );
+          }
+
+          if ( !ignored.contains( nodeProperty.node ) ) {
+            ignored.add( nodeProperty.node );
+          }
+        }
+      }
+    }
+
+    // Now we'll see which relationships are involved between any 2 nodes.
+    // Then we can generate the cypher statement as well...
+    //
+    // v1.0 vanilla algorithm test
+    //
+    List<GraphRelationship> relationships = new ArrayList<>();
+    for ( int x = 0; x < nodes.size(); x++ ) {
+      for ( int y = 0; y < nodes.size(); y++ ) {
+        if ( x == y ) {
+          continue;
+        }
+        GraphNode sourceNode = nodes.get( x );
+        GraphNode targetNode = nodes.get( y );
+
+        GraphRelationship relationship = graphModel.findRelationship( sourceNode.getName(), targetNode.getName() );
+        if ( relationship != null ) {
+          if ( !relationships.contains( relationship ) ) {
+            // A new relationship we don't have yet.
+            //
+            relationships.add( relationship );
+          }
+        }
+      }
+    }
+
+    // Now we have a bunch of Node-Pairs to update...
+    //
+    AtomicInteger nodeIndex = new AtomicInteger( 0 );
+
+    Set<GraphNode> handled = new HashSet<>();
+    Map<GraphNode, Integer> nodeIndexMap = new HashMap<>();
+
+    // No relationships case...
+    //
+    if ( nodes.size() == 1 ) {
+      GraphNode node = nodes.get( 0 );
+
+      GraphNodeData nodeData = getGraphNodeData( node, handled, ignored, nodeIndex, nodeIndexMap, nodeProperties );
+      if ( nodeData != null ) {
+        graphData.getNodes().add( nodeData );
+      }
+    } else {
+      for ( GraphRelationship relationship : relationships ) {
+        GraphNode nodeSource = graphModel.findNode( relationship.getNodeSource() );
+        GraphNode nodeTarget = graphModel.findNode( relationship.getNodeTarget() );
+
+        for ( GraphNode node : new GraphNode[] { nodeSource, nodeTarget } ) {
+          GraphNodeData nodeData = getGraphNodeData( node, handled, ignored, nodeIndex, nodeIndexMap, nodeProperties );
+          if ( nodeData != null ) {
+            graphData.getNodes().add( nodeData );
+          }
+        }
+
+        // Now add the relationship...
+        //
+        if ( nodeIndexMap.get( nodeSource ) != null && nodeIndexMap.get( nodeTarget ) != null ) {
+
+          String sourceNodeId = getGraphNodeDataId( nodeSource, nodeProperties );
+          String targetNodeId = getGraphNodeDataId( nodeTarget, nodeProperties );
+
+          String id = sourceNodeId + " -> " + targetNodeId;
+
+          GraphRelationshipData relationshipData = new GraphRelationshipData();
+          relationshipData.setId( id );
+          relationshipData.setLabel( relationship.getLabel() );
+          relationshipData.setSourceNodeId( sourceNodeId );
+          relationshipData.setTargetNodeId( targetNodeId );
+
+          // The property set ID is simply the name of the GraphRelationship (metadata)
+          //
+          relationshipData.setPropertySetId( relationship.getName() );
+
+          graphData.getRelationships().add( relationshipData );
+        }
+      }
+    }
+
+    return graphData;
+  }
+
+  private GraphNodeData getGraphNodeData( GraphNode node, Set<GraphNode> handled, Set<GraphNode> ignored,
+                                          AtomicInteger nodeIndex, Map<GraphNode, Integer> nodeIndexMap,
+                                          List<NodeAndPropertyData> nodeProperties ) throws KettleValueException {
+    if ( !ignored.contains( node ) && !handled.contains( node ) ) {
+
+      GraphNodeData graphNodeData = new GraphNodeData();
+
+      // The property set ID is simply the name of the GraphNode (metadata)
+      //
+      graphNodeData.setPropertySetId( node.getName() );
+
+      // Don't update twice.
+      //
+      handled.add( node );
+      nodeIndexMap.put( node, nodeIndex.incrementAndGet() );
+
+      // Calculate the node labels
+      //
+      graphNodeData.getLabels().addAll( node.getLabels() );
+
+      // Look up the properties to update in the node
+      //
+      boolean firstPrimary = true;
+      boolean firstMatch = true;
+      for ( NodeAndPropertyData napd : nodeProperties ) {
+        if ( napd.node.equals( node ) ) {
+          // Handle the property
+          //
+          boolean isNull = napd.sourceValueMeta.isNull( napd.sourceValueData );
+
+          if ( napd.property.isPrimary() ) {
+
+            String oldId = graphNodeData.getId();
+            String propertyString = napd.sourceValueMeta.getString( napd.sourceValueData );
+            if ( oldId == null ) {
+              graphNodeData.setId( propertyString );
+            } else {
+              graphNodeData.setId( oldId + "-" + propertyString );
+            }
+          }
+
+          if ( !isNull ) {
+            GraphPropertyData propertyData = new GraphPropertyData();
+            propertyData.setId( napd.property.getName() );
+            GraphPropertyDataType type = GraphPropertyDataType.getTypeFromKettle( napd.sourceValueMeta );
+            propertyData.setType( type );
+            propertyData.setValue( type.convertFromKettle( napd.sourceValueMeta, napd.sourceValueData ) );
+            propertyData.setPrimary( napd.property.isPrimary() );
+
+            graphNodeData.getProperties().add( propertyData );
+          }
+        }
+      }
+      return graphNodeData;
+    }
+    return null;
+  }
+
+  public String getGraphNodeDataId( GraphNode node, List<NodeAndPropertyData> nodeProperties ) throws KettleValueException {
+
+    StringBuffer id = new StringBuffer();
+
+    for ( NodeAndPropertyData napd : nodeProperties ) {
+      if ( napd.node.equals( node ) ) {
+        if ( napd.property.isPrimary() ) {
+
+          String propertyString = napd.sourceValueMeta.getString( napd.sourceValueData );
+          if ( id.length() > 0 ) {
+            id.append( "-" );
+          }
+          id.append( propertyString );
+        }
+      }
+    }
+    return id.toString();
+  }
+
 }

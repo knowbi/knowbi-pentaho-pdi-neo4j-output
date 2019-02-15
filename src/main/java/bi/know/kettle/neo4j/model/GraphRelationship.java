@@ -1,5 +1,6 @@
 package bi.know.kettle.neo4j.model;
 
+import org.json.simple.JSONObject;
 import org.pentaho.metastore.persist.MetaStoreAttribute;
 
 import java.util.ArrayList;
@@ -117,6 +118,5 @@ public class GraphRelationship {
   public void setLabel( String label ) {
     this.label = label;
   }
-
 
 }

@@ -55,7 +55,7 @@ public class MetaStoreUtil {
 
     // Didn't find it anywhere in the tree above: lazy programmers!
     //
-    System.err.println("METASTORE PROBLEM: Local couldn't be found, force load local");
+    System.err.println("METASTORE PROBLEM: Local couldn't be found, force gencsv local");
 
     return MetaStoreConst.openLocalPentahoMetaStore();
   }

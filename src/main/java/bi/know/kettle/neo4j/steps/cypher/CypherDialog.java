@@ -77,8 +77,11 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
   private Button wUnwind;
   private Label wlUnwindMap;
   private TextVar wUnwindMap;
+  private Button wReturnGraph;
+  private Label wlReturnGraphField;
+  private TextVar wReturnGraphField;
 
-  private TextVar wCypher;
+  private Text wCypher;
 
   private TableView wParameters;
 
@@ -267,7 +270,6 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdUnwind.top = new FormAttachment( wlUnwind, 0, SWT.CENTER );
     wUnwind.setLayoutData( fdUnwind );
     lastControl = wUnwind;
-
     wUnwind.addSelectionListener( new SelectionAdapter() {
       @Override public void widgetSelected( SelectionEvent selectionEvent ) {
         enableFields();
@@ -293,6 +295,49 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wUnwindMap.setLayoutData( fdUnwindMap );
     lastControl = wUnwindMap;
 
+    Label wlReturnGraph = new Label( wComposite, SWT.RIGHT );
+    wlReturnGraph.setText( "Return graph data?" );
+    String returnGraphTooltipText = "Returns the whole result of a query as a Graph Kettle data type";
+    wlReturnGraph.setToolTipText( returnGraphTooltipText );
+    props.setLook( wlReturnGraph );
+    FormData fdlReturnGraph = new FormData();
+    fdlReturnGraph.left = new FormAttachment( 0, 0 );
+    fdlReturnGraph.right = new FormAttachment( middle, -margin );
+    fdlReturnGraph.top = new FormAttachment( lastControl, 2 * margin );
+    wlReturnGraph.setLayoutData( fdlReturnGraph );
+    wReturnGraph = new Button( wComposite, SWT.CHECK | SWT.BORDER );
+    wReturnGraph.setToolTipText( returnGraphTooltipText );
+    props.setLook( wReturnGraph );
+    FormData fdReturnGraph = new FormData();
+    fdReturnGraph.left = new FormAttachment( middle, 0 );
+    fdReturnGraph.right = new FormAttachment( 100, 0 );
+    fdReturnGraph.top = new FormAttachment( wlReturnGraph, 0, SWT.CENTER );
+    wReturnGraph.setLayoutData( fdReturnGraph );
+    lastControl = wReturnGraph;
+    wReturnGraph.addSelectionListener( new SelectionAdapter() {
+      @Override public void widgetSelected( SelectionEvent selectionEvent ) {
+        enableFields();
+      }
+    } );
+
+    wlReturnGraphField = new Label( wComposite, SWT.RIGHT );
+    wlReturnGraphField.setText( "Graph output field name" );
+    props.setLook( wlReturnGraphField );
+    FormData fdlReturnGraphField = new FormData();
+    fdlReturnGraphField.left = new FormAttachment( 0, 0 );
+    fdlReturnGraphField.right = new FormAttachment( middle, -margin );
+    fdlReturnGraphField.top = new FormAttachment( lastControl, 2 * margin );
+    wlReturnGraphField.setLayoutData( fdlReturnGraphField );
+    wReturnGraphField = new TextVar(transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wReturnGraphField );
+    wReturnGraphField.addModifyListener( lsMod );
+    FormData fdReturnGraphField = new FormData();
+    fdReturnGraphField.left = new FormAttachment( middle, 0 );
+    fdReturnGraphField.right = new FormAttachment( 100, 0 );
+    fdReturnGraphField.top = new FormAttachment( wlReturnGraphField, 0, SWT.CENTER );
+    wReturnGraphField.setLayoutData( fdReturnGraphField );
+    lastControl = wReturnGraphField;
+
     Label wlCypher = new Label( wComposite, SWT.LEFT );
     wlCypher.setText( "Cypher:" );
     props.setLook( wlCypher );
@@ -301,8 +346,8 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdlCypher.right = new FormAttachment( middle, -margin );
     fdlCypher.top = new FormAttachment( lastControl, margin );
     wlCypher.setLayoutData( fdlCypher );
-    wCypher = new TextVar( transMeta, wComposite, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
-    wCypher.getTextWidget().setFont( GUIResource.getInstance().getFontFixed() );
+    wCypher = new Text( wComposite, SWT.MULTI | SWT.LEFT | SWT.BORDER | SWT.H_SCROLL | SWT.V_SCROLL );
+    wCypher.setFont( GUIResource.getInstance().getFontFixed() );
     props.setLook( wCypher );
     wCypher.addModifyListener( lsMod );
     FormData fdCypher = new FormData();
@@ -312,6 +357,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdCypher.bottom = new FormAttachment( 60, 0 );
     wCypher.setLayoutData( fdCypher );
     lastControl = wCypher;
+
     
     // Some buttons
     wOK = new Button( wComposite, SWT.PUSH );
@@ -447,6 +493,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wCypherField.addSelectionListener( lsDef );
     wUnwind.addSelectionListener( lsDef );
     wUnwindMap.addSelectionListener( lsDef );
+    wReturnGraphField.addSelectionListener( lsDef );
 
     wNewConnection.addSelectionListener( new SelectionAdapter() {
       @Override public void widgetSelected( SelectionEvent selectionEvent ) {
@@ -492,6 +539,11 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
     wlUnwindMap.setEnabled( usingUnwind );
     wUnwindMap.setEnabled( usingUnwind );
+
+    boolean returningGraph = wReturnGraph.getSelection();
+
+    wlReturnGraphField.setEnabled( returningGraph );
+    wReturnGraphField.setEnabled( returningGraph);
   }
 
   private void cancel() {
@@ -515,6 +567,8 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
     wUnwind.setSelection( input.isUsingUnwind() );
     wUnwindMap.setText( Const.NVL( input.getUnwindMapName(), "" ) );
+    wReturnGraph.setSelection( input.isReturningGraph() );
+    wReturnGraphField.setText( Const.NVL( input.getReturnGraphField(), "" ) );
 
     // List of connections...
     //
@@ -572,6 +626,9 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
     meta.setUsingUnwind( wUnwind.getSelection() );
     meta.setUnwindMapName( wUnwindMap.getText() );
+
+    meta.setReturningGraph( wReturnGraph.getSelection() );
+    meta.setReturnGraphField( wReturnGraphField.getText() );
 
     List<ParameterMapping> mappings = new ArrayList<>();
     for ( int i = 0; i < wParameters.nrNonEmpty(); i++ ) {
