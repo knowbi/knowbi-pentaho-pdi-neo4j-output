@@ -25,6 +25,7 @@ import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
@@ -259,6 +260,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     fdOnlyCreateRelationships.right = new FormAttachment( 100, 0 );
     fdOnlyCreateRelationships.top = new FormAttachment( wlOnlyCreateRelationships, 0, SWT.CENTER );
     wOnlyCreateRelationships.setLayoutData( fdOnlyCreateRelationships );
+    wOnlyCreateRelationships.addListener( SWT.Selection, e->enableFields() );
     lastControl = wOnlyCreateRelationships;
 
     Label wlReturnGraph = new Label( shell, SWT.RIGHT );
@@ -344,18 +346,11 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
     // Read only "from" node?
     //
-    Label wlReadOnlyFromNode = new Label( wFromComp, SWT.RIGHT );
-    wlReadOnlyFromNode.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.LabelsField.ReadOnlyFromNode" ) );
-    props.setLook( wlReadOnlyFromNode );
-    FormData fdlReadOnlyFromNodes = new FormData();
-    fdlReadOnlyFromNodes.left = new FormAttachment( 0, 0 );
-    fdlReadOnlyFromNodes.right = new FormAttachment( 70, 0 );
-    fdlReadOnlyFromNodes.top = new FormAttachment( 0, margin * 3 );
-    wlReadOnlyFromNode.setLayoutData( fdlReadOnlyFromNodes );
     wReadOnlyFromNode = new Button(wFromComp, SWT.CHECK);
+    wReadOnlyFromNode.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.LabelsField.ReadOnlyFromNode" ) );
     props.setLook( wReadOnlyFromNode );
     FormData fdReadOnlyFromNode = new FormData();
-    fdReadOnlyFromNode.left = new FormAttachment( 70, margin );
+    fdReadOnlyFromNode.left = new FormAttachment( middle, margin );
     fdReadOnlyFromNode.right = new FormAttachment( 100, 0 );
     fdReadOnlyFromNode.top = new FormAttachment( 0, margin * 3 );
     wReadOnlyFromNode.setLayoutData( fdReadOnlyFromNode );
@@ -479,19 +474,12 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
     // Read only "to" node?
     //
-    Label wlReadOnlyToNode = new Label( wToComp, SWT.RIGHT );
-    wlReadOnlyToNode.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.LabelsField.ReadOnlyToNode" ) );
-    props.setLook( wlReadOnlyToNode );
-    FormData fdlReadOnlyToNodes = new FormData();
-    fdlReadOnlyToNodes.left = new FormAttachment( 0, 0 );
-    fdlReadOnlyToNodes.right = new FormAttachment( 70, 0 );
-    fdlReadOnlyToNodes.top = new FormAttachment( 0, margin * 3 );
-    wlReadOnlyToNode.setLayoutData( fdlReadOnlyToNodes );
     wReadOnlyToNode = new Button(wToComp, SWT.CHECK);
+    wReadOnlyToNode.setText( BaseMessages.getString( PKG, "Neo4JOutputDialog.LabelsField.ReadOnlyToNode" ) );
     props.setLook( wReadOnlyToNode );
     FormData fdReadOnlyToNode = new FormData();
     fdReadOnlyToNode.left = new FormAttachment( middle, margin );
-    fdReadOnlyToNode.right = new FormAttachment( 70, 0 );
+    fdReadOnlyToNode.right = new FormAttachment( 100, 0 );
     fdReadOnlyToNode.top = new FormAttachment( 0, margin * 3 );
     wReadOnlyToNode.setLayoutData( fdReadOnlyToNode );
     Control lastToControl = wReadOnlyToNode;
@@ -752,6 +740,11 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
 
     wlReturnGraphField.setEnabled( !toNeo );
     wReturnGraphField.setEnabled( !toNeo );
+
+    boolean onlyCreateRelationships = wOnlyCreateRelationships.getSelection();
+
+    wReadOnlyFromNode.setEnabled( !onlyCreateRelationships );
+    wReadOnlyToNode.setEnabled( !onlyCreateRelationships );
   }
 
   private void getData() {
