@@ -1,6 +1,8 @@
 package bi.know.kettle.neo4j.perspective;
 
 
+import bi.know.kettle.neo4j.model.GraphModelDialog;
+import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.browser.Browser;
@@ -17,9 +19,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.neo4j.kettle.core.Neo4jDefaults;
 import org.neo4j.kettle.model.GraphModel;
-import org.neo4j.kettle.model.GraphModelDialog;
 import org.neo4j.kettle.shared.NeoConnection;
-import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.EngineMetaInterface;
 import org.pentaho.di.core.logging.LogChannel;

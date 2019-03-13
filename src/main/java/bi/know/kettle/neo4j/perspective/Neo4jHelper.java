@@ -22,11 +22,11 @@
 
 package bi.know.kettle.neo4j.perspective;
 
+import bi.know.kettle.neo4j.model.GraphModelUtils;
+import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.neo4j.kettle.core.Neo4jDefaults;
 import org.neo4j.kettle.model.GraphModel;
-import org.neo4j.kettle.model.GraphModelUtils;
 import org.neo4j.kettle.shared.NeoConnection;
-import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.core.variables.Variables;
 import org.pentaho.di.ui.core.dialog.EnterSelectionDialog;
