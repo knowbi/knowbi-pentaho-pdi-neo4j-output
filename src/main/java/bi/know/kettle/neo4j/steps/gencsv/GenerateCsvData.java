@@ -45,6 +45,12 @@ public class GenerateCsvData extends BaseStepData implements StepDataInterface {
     setKey = setKey.replace( "*", "" );
     setKey = setKey.replace( ":", "" );
     setKey = setKey.replace( ";", "" );
+    setKey = setKey.replace( "[", "" );
+    setKey = setKey.replace( "]", "" );
+    setKey = setKey.replace( "$", "" );
+    setKey = setKey.replace( "/", "" );
+    setKey = setKey.replace( "{", "" );
+    setKey = setKey.replace( "}", "" );
 
     return setKey;
   }
