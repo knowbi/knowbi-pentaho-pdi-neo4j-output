@@ -1,12 +1,12 @@
 package bi.know.kettle.neo4j.steps.graph;
 
-import bi.know.kettle.neo4j.model.GraphModel;
-import bi.know.kettle.neo4j.model.GraphProperty;
-import bi.know.kettle.neo4j.shared.NeoConnection;
 import bi.know.kettle.neo4j.steps.BaseNeoStepData;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Transaction;
+import org.neo4j.kettle.model.GraphModel;
+import org.neo4j.kettle.model.GraphProperty;
+import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.metastore.api.IMetaStore;

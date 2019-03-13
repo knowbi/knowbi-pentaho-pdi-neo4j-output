@@ -1,13 +1,13 @@
 package bi.know.kettle.neo4j.entries.cypherscript;
 
-import bi.know.kettle.neo4j.core.MetaStoreUtil;
-import bi.know.kettle.neo4j.core.Neo4jDefaults;
-import bi.know.kettle.neo4j.shared.DriverSingleton;
-import bi.know.kettle.neo4j.shared.NeoConnection;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Transaction;
+import org.neo4j.kettle.core.MetaStoreUtil;
+import org.neo4j.kettle.core.Neo4jDefaults;
+import org.neo4j.kettle.shared.DriverSingleton;
+import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.cluster.SlaveServer;
 import org.pentaho.di.core.Result;
 import org.pentaho.di.core.annotations.JobEntry;
@@ -23,7 +23,6 @@ import org.pentaho.metastore.api.IMetaStore;
 import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.w3c.dom.Node;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @JobEntry(

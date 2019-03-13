@@ -1,8 +1,8 @@
 package bi.know.kettle.neo4j.steps.output;
 
-import bi.know.kettle.neo4j.core.value.ValueMetaGraph;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.widgets.Shell;
+import org.neo4j.kettle.core.value.ValueMetaGraph;
 import org.pentaho.di.core.CheckResult;
 import org.pentaho.di.core.CheckResultInterface;
 import org.pentaho.di.core.Const;

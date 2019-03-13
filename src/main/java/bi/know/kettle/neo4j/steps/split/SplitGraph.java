@@ -1,14 +1,11 @@
 package bi.know.kettle.neo4j.steps.split;
 
-import bi.know.kettle.neo4j.core.data.GraphData;
-import bi.know.kettle.neo4j.core.data.GraphNodeData;
-import bi.know.kettle.neo4j.core.data.GraphRelationshipData;
-import bi.know.kettle.neo4j.core.value.ValueMetaGraph;
-import bi.know.kettle.neo4j.steps.gencsv.StreamConsumer;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
+import org.neo4j.kettle.core.data.GraphData;
+import org.neo4j.kettle.core.data.GraphNodeData;
+import org.neo4j.kettle.core.data.GraphRelationshipData;
+import org.neo4j.kettle.core.value.ValueMetaGraph;
 import org.pentaho.di.core.exception.KettleException;
-import org.pentaho.di.core.logging.LogLevel;
 import org.pentaho.di.core.row.RowDataUtil;
 import org.pentaho.di.core.row.ValueMetaInterface;
 import org.pentaho.di.trans.Trans;
@@ -18,11 +15,6 @@ import org.pentaho.di.trans.step.StepDataInterface;
 import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class SplitGraph extends BaseStep implements StepInterface {
 
@@ -67,61 +59,61 @@ public class SplitGraph extends BaseStep implements StepInterface {
         throw new KettleException( "Unable to find graph field " + meta.getGraphField() + "' in the step input" );
       }
       ValueMetaInterface valueMeta = getInputRowMeta().getValueMeta( data.graphFieldIndex );
-      if (valueMeta.getType()!= ValueMetaGraph.TYPE_GRAPH ) {
+      if ( valueMeta.getType() != ValueMetaGraph.TYPE_GRAPH ) {
         throw new KettleException( "Please specify a Graph field to split" );
       }
 
       data.typeField = null;
-      if (StringUtils.isNotEmpty( meta.getTypeField() )) {
+      if ( StringUtils.isNotEmpty( meta.getTypeField() ) ) {
         data.typeField = environmentSubstitute( meta.getTypeField() );
       }
       data.idField = null;
-      if (StringUtils.isNotEmpty( meta.getIdField() )) {
+      if ( StringUtils.isNotEmpty( meta.getIdField() ) ) {
         data.idField = environmentSubstitute( meta.getIdField() );
       }
       data.propertySetField = null;
-      if (StringUtils.isNotEmpty( meta.getPropertySetField() )) {
+      if ( StringUtils.isNotEmpty( meta.getPropertySetField() ) ) {
         data.propertySetField = environmentSubstitute( meta.getPropertySetField() );
       }
     }
 
     ValueMetaGraph valueMeta = (ValueMetaGraph) getInputRowMeta().getValueMeta( data.graphFieldIndex );
-    Object valueData = row[data.graphFieldIndex];
+    Object valueData = row[ data.graphFieldIndex ];
     GraphData graphData = valueMeta.getGraphData( valueData );
 
     for ( GraphNodeData nodeData : graphData.getNodes() ) {
-      Object[] outputRowData = RowDataUtil.createResizedCopy(row, data.outputRowMeta.size());
+      Object[] outputRowData = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
       int index = getInputRowMeta().size();
       GraphData copy = graphData.createEmptyCopy();
       copy.getNodes().add( nodeData.clone() );
 
-      outputRowData[data.graphFieldIndex] = copy;
-      if (data.typeField!=null) {
+      outputRowData[ data.graphFieldIndex ] = copy;
+      if ( data.typeField != null ) {
         outputRowData[ index++ ] = "Node";
       }
-      if (data.idField!=null) {
+      if ( data.idField != null ) {
         outputRowData[ index++ ] = nodeData.getId();
       }
-      if (data.propertySetField!=null) {
+      if ( data.propertySetField != null ) {
         outputRowData[ index++ ] = nodeData.getPropertySetId();
       }
       putRow( data.outputRowMeta, outputRowData );
     }
 
     for ( GraphRelationshipData relationshipData : graphData.getRelationships() ) {
-      Object[] outputRowData = RowDataUtil.createResizedCopy(row, data.outputRowMeta.size());
+      Object[] outputRowData = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
       int index = getInputRowMeta().size();
       GraphData copy = graphData.createEmptyCopy();
       copy.getRelationships().add( relationshipData.clone() );
 
-      outputRowData[data.graphFieldIndex] = copy;
-      if (data.typeField!=null) {
+      outputRowData[ data.graphFieldIndex ] = copy;
+      if ( data.typeField != null ) {
         outputRowData[ index++ ] = "Relationship";
       }
-      if (data.idField!=null) {
+      if ( data.idField != null ) {
         outputRowData[ index++ ] = relationshipData.getId();
       }
-      if (data.propertySetField!=null) {
+      if ( data.propertySetField != null ) {
         outputRowData[ index++ ] = relationshipData.getPropertySetId();
       }
       putRow( data.outputRowMeta, outputRowData );

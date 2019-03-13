@@ -1,6 +1,6 @@
 package bi.know.kettle.neo4j.steps.gencsv;
 
-import bi.know.kettle.neo4j.core.data.GraphPropertyDataType;
+import org.neo4j.kettle.core.data.GraphPropertyDataType;
 
 import java.util.Objects;
 

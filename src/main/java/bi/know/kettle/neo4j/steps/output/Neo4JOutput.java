@@ -1,21 +1,21 @@
 package bi.know.kettle.neo4j.steps.output;
 
-import bi.know.kettle.neo4j.core.GraphUsage;
-import bi.know.kettle.neo4j.core.MetaStoreUtil;
-import bi.know.kettle.neo4j.core.data.GraphData;
-import bi.know.kettle.neo4j.core.data.GraphNodeData;
-import bi.know.kettle.neo4j.core.data.GraphPropertyData;
-import bi.know.kettle.neo4j.core.data.GraphPropertyDataType;
-import bi.know.kettle.neo4j.core.data.GraphRelationshipData;
-import bi.know.kettle.neo4j.model.GraphPropertyType;
-import bi.know.kettle.neo4j.shared.DriverSingleton;
-import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.summary.Notification;
 import org.neo4j.driver.v1.summary.ResultSummary;
+import org.neo4j.kettle.core.GraphUsage;
+import org.neo4j.kettle.core.MetaStoreUtil;
+import org.neo4j.kettle.core.data.GraphData;
+import org.neo4j.kettle.core.data.GraphNodeData;
+import org.neo4j.kettle.core.data.GraphPropertyData;
+import org.neo4j.kettle.core.data.GraphPropertyDataType;
+import org.neo4j.kettle.core.data.GraphRelationshipData;
+import org.neo4j.kettle.model.GraphPropertyType;
+import org.neo4j.kettle.shared.DriverSingleton;
+import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
@@ -84,8 +84,8 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       data.fromNodePropTypes = new GraphPropertyType[ meta.getFromNodeProps().length ];
       for ( int i = 0; i < meta.getFromNodeProps().length; i++ ) {
         data.fromNodePropIndexes[ i ] = data.outputRowMeta.indexOfValue( meta.getFromNodeProps()[ i ] );
-        if (data.fromNodePropIndexes[ i ]<0) {
-          throw new KettleException( "From node: Unable to find field '"+meta.getFromNodeProps()[i]+"' for property name '"+meta.getFromNodePropNames()[i]+"'" );
+        if ( data.fromNodePropIndexes[ i ] < 0 ) {
+          throw new KettleException( "From node: Unable to find field '" + meta.getFromNodeProps()[ i ] + "' for property name '" + meta.getFromNodePropNames()[ i ] + "'" );
         }
         data.fromNodePropTypes[ i ] = GraphPropertyType.parseCode( meta.getFromNodePropTypes()[ i ] );
       }
@@ -140,7 +140,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
       // Create a session
       //
-      if (!meta.isReturningGraph()) {
+      if ( !meta.isReturningGraph() ) {
         data.session = data.driver.session();
 
         // Create indexes for the primary properties of the From and To nodes
@@ -186,7 +186,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
           } else {
 
-            if (!meta.isReadOnlyFromNode()) {
+            if ( !meta.isReadOnlyFromNode() ) {
               mergeNode( getInputRowMeta(), row, data, fromLabels, data.fromNodePropIndexes, meta.getFromNodePropNames(),
                 data.fromNodePropTypes, meta.getFromNodePropPrimary() );
               updateUsageMap( fromLabels, GraphUsage.NODE_UPDATE );
@@ -212,7 +212,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
           } else {
 
-            if (!meta.isReadOnlyToNode()) {
+            if ( !meta.isReadOnlyToNode() ) {
               mergeNode( getInputRowMeta(), row, data, toLabels, data.toNodePropIndexes, meta.getToNodePropNames(), data.toNodePropTypes,
                 meta.getToNodePropPrimary() );
               updateUsageMap( toLabels, GraphUsage.NODE_UPDATE );
@@ -243,11 +243,11 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
           if ( meta.isOnlyCreatingRelationships() ) {
             // Use UNWIND statements to create relationships...
             //
-            if (data.fromLabelsClause==null || data.dynamicFromLabels) {
+            if ( data.fromLabelsClause == null || data.dynamicFromLabels ) {
               data.fromLabels = getNodeLabels( meta.getFromNodeLabels(), data.fromLabelValues, getInputRowMeta(), row, data.fromNodeLabelIndexes );
               data.fromLabelsClause = getLabels( "n", data.fromLabels );
             }
-            if (data.toLabelsClause==null || data.dynamicToLabels) {
+            if ( data.toLabelsClause == null || data.dynamicToLabels ) {
               data.toLabels = getNodeLabels( meta.getToNodeLabels(), data.toLabelValues, getInputRowMeta(), row, data.toNodeLabelIndexes );
               data.toLabelsClause = getLabels( "n", data.toLabels );
             }
@@ -278,8 +278,8 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
   }
 
   private boolean determineDynamicLabels( String[] nodeLabelFields ) {
-    for (String nodeLabelField : nodeLabelFields) {
-      if (StringUtils.isNotEmpty( nodeLabelField )) {
+    for ( String nodeLabelField : nodeLabelFields ) {
+      if ( StringUtils.isNotEmpty( nodeLabelField ) ) {
         return true;
       }
     }
@@ -308,7 +308,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       if ( meta.getToNodeProps().length > 0 ) {
         targetNodeData = createGraphNodeData( rowMeta, row, meta.getToNodeLabels(), data.toLabelValues, data.toNodeLabelIndexes,
           data.toNodePropIndexes, meta.getToNodePropNames(), meta.getToNodePropPrimary(), "to" );
-        if ( !meta.isOnlyCreatingRelationships()) {
+        if ( !meta.isOnlyCreatingRelationships() ) {
           graphData.getNodes().add( targetNodeData );
         }
       }
@@ -391,7 +391,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       String propertyName = nodePropNames[ i ];
       GraphPropertyDataType propertyType = GraphPropertyDataType.getTypeFromKettle( valueMeta );
       Object propertyNeoValue = propertyType.convertFromKettle( valueMeta, valueData );
-      boolean propertyPrimary = nodePropPrimary[i];
+      boolean propertyPrimary = nodePropPrimary[ i ];
 
       nodeData.getProperties().add( new GraphPropertyData( propertyName, propertyNeoValue, propertyType, propertyPrimary ) );
 
@@ -416,7 +416,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     meta = (Neo4JOutputMeta) smi;
     data = (Neo4JOutputData) sdi;
 
-    if (!meta.isReturningGraph()) {
+    if ( !meta.isReturningGraph() ) {
 
       // Connect to Neo4j using info metastore Neo4j Connection metadata
       //
@@ -472,7 +472,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
                            GraphPropertyType[] propertyTypes, String labelsClause, String previousLabelsClause, boolean dynamicLabels,
                            List<Map<String, Object>> unwindList ) throws KettleException {
 
-    if (previousLabelsClause!=null && !previousLabelsClause.equals( labelsClause )) {
+    if ( previousLabelsClause != null && !previousLabelsClause.equals( labelsClause ) ) {
       // New set of labels: We need to end the unwind and start a new one.
       //
       createNodeEmptyUnwindList( data, unwindList, previousLabelsClause );
@@ -821,17 +821,17 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     }
   }
 
-  private void createOnlyRelationship( RowMetaInterface rowMeta, Object[] rowData, Neo4JOutputMeta meta, Neo4JOutputData data) throws KettleException {
+  private void createOnlyRelationship( RowMetaInterface rowMeta, Object[] rowData, Neo4JOutputMeta meta, Neo4JOutputData data ) throws KettleException {
 
     try {
 
       // If we have a different dynamic relationship label or different fromLabelsClause or different toLabelsClause
       //
-      boolean differentFromClause = data.dynamicFromLabels && data.previousFromLabelsClause!=null && !data.previousFromLabelsClause.equals(data.fromLabelsClause);
-      boolean differentToClause = data.dynamicToLabels && data.previousToLabelsClause!=null && !data.previousToLabelsClause.equals(data.toLabelsClause);
-      boolean differentRelationshipLabel = data.dynamicRelLabel && data.previousRelationshipLabel!=null && !data.previousRelationshipLabel.equals(data.relationshipLabel);
+      boolean differentFromClause = data.dynamicFromLabels && data.previousFromLabelsClause != null && !data.previousFromLabelsClause.equals( data.fromLabelsClause );
+      boolean differentToClause = data.dynamicToLabels && data.previousToLabelsClause != null && !data.previousToLabelsClause.equals( data.toLabelsClause );
+      boolean differentRelationshipLabel = data.dynamicRelLabel && data.previousRelationshipLabel != null && !data.previousRelationshipLabel.equals( data.relationshipLabel );
 
-      if (differentFromClause || differentToClause || differentRelationshipLabel ) {
+      if ( differentFromClause || differentToClause || differentRelationshipLabel ) {
         emptyRelationshipsUnwindList();
       }
 
@@ -1002,10 +1002,10 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     // Which labels to index?
     //
     Set<String> labels = new HashSet<>();
-    labels.addAll( Arrays.asList(nodeLabelValues).stream().filter( s-> StringUtils.isNotEmpty( s ) ).collect( Collectors.toList()) );
+    labels.addAll( Arrays.asList( nodeLabelValues ).stream().filter( s -> StringUtils.isNotEmpty( s ) ).collect( Collectors.toList() ) );
 
-    for( String nodeLabelField :  nodeLabelFields ) {
-      if (StringUtils.isNotEmpty(nodeLabelField)) {
+    for ( String nodeLabelField : nodeLabelFields ) {
+      if ( StringUtils.isNotEmpty( nodeLabelField ) ) {
         String label = rowMeta.getString( rowData, nodeLabelField, null );
         if ( StringUtils.isNotEmpty( label ) ) {
           labels.add( label );
@@ -1015,7 +1015,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
     // Create a index on the primary fields of the node properties
     //
-    for (String label : labels) {
+    for ( String label : labels ) {
       List<String> primaryProperties = new ArrayList<>();
       for ( int f = 0; f < nodeProps.length; f++ ) {
         if ( nodePropPrimary[ f ] ) {

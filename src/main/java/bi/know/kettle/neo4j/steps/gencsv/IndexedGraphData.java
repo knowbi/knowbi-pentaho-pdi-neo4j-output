@@ -1,9 +1,10 @@
 package bi.know.kettle.neo4j.steps.gencsv;
 
-import bi.know.kettle.neo4j.core.data.GraphData;
-import bi.know.kettle.neo4j.core.data.GraphNodeData;
-import bi.know.kettle.neo4j.core.data.GraphPropertyData;
-import bi.know.kettle.neo4j.core.data.GraphRelationshipData;
+
+import org.neo4j.kettle.core.data.GraphData;
+import org.neo4j.kettle.core.data.GraphNodeData;
+import org.neo4j.kettle.core.data.GraphPropertyData;
+import org.neo4j.kettle.core.data.GraphRelationshipData;
 import org.pentaho.di.core.exception.KettleException;
 
 import java.util.ArrayList;

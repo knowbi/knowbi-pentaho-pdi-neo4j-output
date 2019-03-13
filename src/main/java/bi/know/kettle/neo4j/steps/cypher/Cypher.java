@@ -1,11 +1,6 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
 
-import bi.know.kettle.neo4j.core.MetaStoreUtil;
-import bi.know.kettle.neo4j.core.data.GraphData;
-import bi.know.kettle.neo4j.model.GraphPropertyType;
-import bi.know.kettle.neo4j.shared.DriverSingleton;
-import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
@@ -13,6 +8,11 @@ import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.exceptions.ServiceUnavailableException;
 import org.neo4j.driver.v1.summary.Notification;
 import org.neo4j.driver.v1.summary.ResultSummary;
+import org.neo4j.kettle.core.MetaStoreUtil;
+import org.neo4j.kettle.core.data.GraphData;
+import org.neo4j.kettle.model.GraphPropertyType;
+import org.neo4j.kettle.shared.DriverSingleton;
+import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;

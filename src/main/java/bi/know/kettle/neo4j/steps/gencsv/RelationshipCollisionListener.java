@@ -1,6 +1,6 @@
 package bi.know.kettle.neo4j.steps.gencsv;
 
-import bi.know.kettle.neo4j.core.data.GraphRelationshipData;
+import org.neo4j.kettle.core.data.GraphRelationshipData;
 import org.pentaho.di.core.exception.KettleException;
 
 public interface RelationshipCollisionListener {

@@ -1,8 +1,8 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
-import bi.know.kettle.neo4j.core.value.ValueMetaGraph;
-import bi.know.kettle.neo4j.model.GraphPropertyType;
 import org.apache.commons.lang.StringUtils;
+import org.neo4j.kettle.core.value.ValueMetaGraph;
+import org.neo4j.kettle.model.GraphPropertyType;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;

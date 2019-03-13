@@ -1,11 +1,6 @@
 package bi.know.kettle.neo4j.steps.output;
 
 
-import bi.know.kettle.neo4j.core.Neo4jDefaults;
-import bi.know.kettle.neo4j.model.GraphPropertyType;
-import bi.know.kettle.neo4j.shared.NeoConnection;
-import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
-import org.apache.commons.lang.WordUtils;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.MessageDialogWithToggle;
 import org.eclipse.swt.SWT;
@@ -29,6 +24,11 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
+import org.neo4j.kettle.core.Neo4jDefaults;
+import org.neo4j.kettle.core.Neo4jUtil;
+import org.neo4j.kettle.model.GraphPropertyType;
+import org.neo4j.kettle.shared.NeoConnection;
+import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Props;
 import org.pentaho.di.core.exception.KettleException;
@@ -1037,8 +1037,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     }
   }
 
-  private static final char[] delimitersLiteral = new char[] { ' ', '\t', ',', ';', '_', '-' };
-  private static final String[] delimitersRegex = new String[] { "\\s", "\\t", ",", ";", "_", "-" };
 
   public static boolean getPropertyNameTypePrimary( TableItem item, ValueMetaInterface valueMeta, int[] nameColumns, int[] typeColumns, int primaryColumn ) {
 
@@ -1048,7 +1046,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
       //   Text Area 1 --> textArea1
       //   My_Silly_Column --> mySillyColumn
       //
-      String propertyName = standardizePropertyName( valueMeta );
+      String propertyName = Neo4jUtil.standardizePropertyName( valueMeta );
 
       item.setText( nameColumn, propertyName );
     }
@@ -1063,18 +1061,6 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     }
 
     return true;
-  }
-
-  public static String standardizePropertyName( ValueMetaInterface valueMeta ) {
-    String propertyName = valueMeta.getName();
-    propertyName = WordUtils.capitalize( propertyName, delimitersLiteral );
-    for ( String delimiterRegex : delimitersRegex ) {
-      propertyName = propertyName.replaceAll( delimiterRegex, "" );
-    }
-    if ( propertyName.length() > 0 ) {
-      propertyName = propertyName.substring( 0, 1 ).toLowerCase() + propertyName.substring( 1 );
-    }
-    return propertyName;
   }
 
   private void newConnection() {

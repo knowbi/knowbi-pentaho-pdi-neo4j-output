@@ -1,6 +1,6 @@
 package bi.know.kettle.neo4j.steps;
 
-import bi.know.kettle.neo4j.core.Neo4jDefaults;
+import org.neo4j.kettle.core.Neo4jDefaults;
 import org.pentaho.di.trans.Trans;
 import org.pentaho.di.trans.TransMeta;
 import org.pentaho.di.trans.step.BaseStep;
