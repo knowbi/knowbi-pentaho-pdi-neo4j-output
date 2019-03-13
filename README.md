@@ -6,6 +6,8 @@ https://github.com/knowbi/knowbi-pentaho-pdi-neo4j-output/wiki
 
 # Building
 
+First build the (kettle-neo4j-core)[https://github.com/mattcasters/kettle-neo4j-core] library.
+
 You can use Maven to build this plugin
 
 mvn clean install
