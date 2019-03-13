@@ -1,5 +1,6 @@
 package bi.know.kettle.neo4j.entries.cypherscript;
 
+import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -17,7 +18,6 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 import org.neo4j.kettle.core.Neo4jDefaults;
 import org.neo4j.kettle.shared.NeoConnection;
-import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.util.Utils;
 import org.pentaho.di.i18n.BaseMessages;

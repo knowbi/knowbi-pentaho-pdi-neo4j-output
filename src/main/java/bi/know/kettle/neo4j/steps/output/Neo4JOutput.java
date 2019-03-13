@@ -1,5 +1,7 @@
 package bi.know.kettle.neo4j.steps.output;
 
+import bi.know.kettle.neo4j.shared.MetaStoreUtil;
+import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
@@ -7,7 +9,6 @@ import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.summary.Notification;
 import org.neo4j.driver.v1.summary.ResultSummary;
 import org.neo4j.kettle.core.GraphUsage;
-import org.neo4j.kettle.core.MetaStoreUtil;
 import org.neo4j.kettle.core.data.GraphData;
 import org.neo4j.kettle.core.data.GraphNodeData;
 import org.neo4j.kettle.core.data.GraphPropertyData;
@@ -15,7 +16,6 @@ import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.core.data.GraphRelationshipData;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.shared.DriverSingleton;
-import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;

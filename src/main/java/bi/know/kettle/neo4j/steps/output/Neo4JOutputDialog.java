@@ -1,6 +1,7 @@
 package bi.know.kettle.neo4j.steps.output;
 
 
+import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.dialogs.MessageDialogWithToggle;
 import org.eclipse.swt.SWT;
@@ -28,7 +29,6 @@ import org.neo4j.kettle.core.Neo4jDefaults;
 import org.neo4j.kettle.core.Neo4jUtil;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.shared.NeoConnection;
-import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.Props;
 import org.pentaho.di.core.exception.KettleException;

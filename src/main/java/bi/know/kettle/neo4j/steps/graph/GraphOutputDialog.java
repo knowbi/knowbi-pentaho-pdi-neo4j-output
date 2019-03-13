@@ -1,5 +1,7 @@
 package bi.know.kettle.neo4j.steps.graph;
 
+import bi.know.kettle.neo4j.model.GraphModelUtils;
+import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.CCombo;
@@ -19,12 +21,10 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.neo4j.kettle.model.GraphModel;
-import org.neo4j.kettle.model.GraphModelUtils;
 import org.neo4j.kettle.model.GraphNode;
 import org.neo4j.kettle.model.GraphProperty;
 import org.neo4j.kettle.model.GraphRelationship;
 import org.neo4j.kettle.shared.NeoConnection;
-import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.SourceToTargetMapping;
 import org.pentaho.di.core.exception.KettleException;
@@ -388,7 +388,6 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wlReturnGraphField.setEnabled( !toNeo );
     wReturnGraphField.setEnabled( !toNeo );
   }
-
 
   private void enterMapping() {
     // Map input field names to Node/Property values
