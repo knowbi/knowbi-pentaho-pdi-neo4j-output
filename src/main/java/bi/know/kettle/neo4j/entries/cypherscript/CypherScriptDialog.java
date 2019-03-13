@@ -1,8 +1,5 @@
 package bi.know.kettle.neo4j.entries.cypherscript;
 
-import bi.know.kettle.neo4j.core.Neo4jDefaults;
-import bi.know.kettle.neo4j.shared.NeoConnection;
-import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
@@ -18,6 +15,9 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.neo4j.kettle.core.Neo4jDefaults;
+import org.neo4j.kettle.shared.NeoConnection;
+import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.util.Utils;
 import org.pentaho.di.i18n.BaseMessages;
@@ -93,8 +93,8 @@ public class CypherScriptDialog extends JobEntryDialog implements JobEntryDialog
     try {
       List<String> names = connectionFactory.getElementNames();
       Collections.sort( names );
-      availableConnectionNames = names.toArray(new String[0]);
-    } catch( MetaStoreException e ) {
+      availableConnectionNames = names.toArray( new String[ 0 ] );
+    } catch ( MetaStoreException e ) {
       availableConnectionNames = new String[] {};
     }
 
@@ -161,7 +161,7 @@ public class CypherScriptDialog extends JobEntryDialog implements JobEntryDialog
     //
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
-    wOK.addListener( SWT.Selection, e   -> ok() );
+    wOK.addListener( SWT.Selection, e -> ok() );
     wCancel = new Button( shell, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
     wCancel.addListener( SWT.Selection, e -> cancel() );
@@ -172,14 +172,14 @@ public class CypherScriptDialog extends JobEntryDialog implements JobEntryDialog
     FormData fdlReplaceVariables = new FormData();
     fdlReplaceVariables.left = new FormAttachment( 0, 0 );
     fdlReplaceVariables.right = new FormAttachment( middle, -margin );
-    fdlReplaceVariables.bottom = new FormAttachment( wOK, -margin *2 );
+    fdlReplaceVariables.bottom = new FormAttachment( wOK, -margin * 2 );
     wlReplaceVariables.setLayoutData( fdlReplaceVariables );
-    wReplaceVariables = new Button(shell, SWT.CHECK | SWT.BORDER );
+    wReplaceVariables = new Button( shell, SWT.CHECK | SWT.BORDER );
     props.setLook( wReplaceVariables );
     FormData fdReplaceVariables = new FormData();
     fdReplaceVariables.left = new FormAttachment( middle, 0 );
     fdReplaceVariables.right = new FormAttachment( 100, 0 );
-    fdReplaceVariables.top = new FormAttachment( wlReplaceVariables, 0, SWT.CENTER);
+    fdReplaceVariables.top = new FormAttachment( wlReplaceVariables, 0, SWT.CENTER );
     wReplaceVariables.setLayoutData( fdReplaceVariables );
     lastControl = wReplaceVariables;
 
@@ -199,13 +199,13 @@ public class CypherScriptDialog extends JobEntryDialog implements JobEntryDialog
     fdCypher.left = new FormAttachment( 0, 0 );
     fdCypher.right = new FormAttachment( 100, 0 );
     fdCypher.top = new FormAttachment( wlScript, margin );
-    fdCypher.bottom = new FormAttachment( wReplaceVariables, -margin*2 );
+    fdCypher.bottom = new FormAttachment( wReplaceVariables, -margin * 2 );
     wScript.setLayoutData( fdCypher );
     lastControl = wScript;
 
     // Put these buttons at the bottom
     //
-    BaseStepDialog.positionBottomButtons(shell, new Button[] { wOK, wCancel, }, margin, null );
+    BaseStepDialog.positionBottomButtons( shell, new Button[] { wOK, wCancel, }, margin, null );
 
     // Detect X or ALT-F4 or something that kills this window...
     //
@@ -244,9 +244,9 @@ public class CypherScriptDialog extends JobEntryDialog implements JobEntryDialog
   }
 
   private void getData() {
-    wName.setText( Const.NVL(jobEntry.getName(), "") );
-    wConnection.setText( Const.NVL(jobEntry.getConnectionName(), ""));
-    wScript.setText(Const.NVL(jobEntry.getScript(), ""));
+    wName.setText( Const.NVL( jobEntry.getName(), "" ) );
+    wConnection.setText( Const.NVL( jobEntry.getConnectionName(), "" ) );
+    wScript.setText( Const.NVL( jobEntry.getScript(), "" ) );
     wReplaceVariables.setSelection( jobEntry.isReplacingVariables() );
   }
 

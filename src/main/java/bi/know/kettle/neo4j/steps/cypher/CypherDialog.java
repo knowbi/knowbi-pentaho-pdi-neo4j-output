@@ -1,8 +1,5 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
-import bi.know.kettle.neo4j.model.GraphPropertyType;
-import bi.know.kettle.neo4j.shared.NeoConnection;
-import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.output.Neo4JOutputDialog;
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
@@ -33,6 +30,9 @@ import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.types.Type;
 import org.neo4j.driver.v1.util.Pair;
+import org.neo4j.kettle.model.GraphPropertyType;
+import org.neo4j.kettle.shared.NeoConnection;
+import org.neo4j.kettle.shared.NeoConnectionUtils;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowMetaInterface;

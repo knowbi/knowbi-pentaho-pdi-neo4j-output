@@ -1,7 +1,7 @@
 package bi.know.kettle.neo4j.steps.graph;
 
 
-import bi.know.kettle.neo4j.core.value.ValueMetaGraph;
+import org.neo4j.kettle.core.value.ValueMetaGraph;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.annotations.Step;
 import org.pentaho.di.core.database.DatabaseMeta;

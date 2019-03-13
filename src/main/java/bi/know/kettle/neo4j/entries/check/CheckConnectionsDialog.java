@@ -1,12 +1,8 @@
 package bi.know.kettle.neo4j.entries.check;
 
-import bi.know.kettle.neo4j.core.Neo4jDefaults;
-import bi.know.kettle.neo4j.shared.NeoConnection;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
-import org.eclipse.swt.events.ShellAdapter;
-import org.eclipse.swt.events.ShellEvent;
 import org.eclipse.swt.layout.FormAttachment;
 import org.eclipse.swt.layout.FormData;
 import org.eclipse.swt.layout.FormLayout;
@@ -16,6 +12,8 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
+import org.neo4j.kettle.core.Neo4jDefaults;
+import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.util.Utils;
 import org.pentaho.di.i18n.BaseMessages;
@@ -122,25 +120,25 @@ public class CheckConnectionsDialog extends JobEntryDialog implements JobEntryDi
     //
     wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
-    wOK.addListener( SWT.Selection, e   -> ok() );
+    wOK.addListener( SWT.Selection, e -> ok() );
     wCancel = new Button( shell, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
     wCancel.addListener( SWT.Selection, e -> cancel() );
 
     // Put these buttons at the bottom
     //
-    BaseStepDialog.positionBottomButtons(shell, new Button[] { wOK, wCancel, }, margin, null );
+    BaseStepDialog.positionBottomButtons( shell, new Button[] { wOK, wCancel, }, margin, null );
 
     try {
       List<String> names = connectionFactory.getElementNames();
       Collections.sort( names );
-      availableConnectionNames = names.toArray(new String[0]);
-    } catch( MetaStoreException e ) {
+      availableConnectionNames = names.toArray( new String[ 0 ] );
+    } catch ( MetaStoreException e ) {
       availableConnectionNames = new String[] {};
     }
 
     ColumnInfo[] columns = new ColumnInfo[] {
-      new ColumnInfo("Connection name", ColumnInfo.COLUMN_TYPE_CCOMBO, availableConnectionNames, false),
+      new ColumnInfo( "Connection name", ColumnInfo.COLUMN_TYPE_CCOMBO, availableConnectionNames, false ),
     };
     wConnections = new TableView( jobEntry, shell, SWT.BORDER | SWT.FULL_SELECTION | SWT.MULTI, columns,
       jobEntry.getConnectionNames().size(), false, lsMod, props );
@@ -148,7 +146,7 @@ public class CheckConnectionsDialog extends JobEntryDialog implements JobEntryDi
     fdConnections.left = new FormAttachment( 0, 0 );
     fdConnections.top = new FormAttachment( wName, margin );
     fdConnections.right = new FormAttachment( 100, 0 );
-    fdConnections.bottom = new FormAttachment( wOK, -margin*2 );
+    fdConnections.bottom = new FormAttachment( wOK, -margin * 2 );
     wConnections.setLayoutData( fdConnections );
 
     // Detect X or ALT-F4 or something that kills this window...
@@ -177,7 +175,7 @@ public class CheckConnectionsDialog extends JobEntryDialog implements JobEntryDi
   }
 
   private void getData() {
-    wName.setText( Const.NVL(jobEntry.getName(), "") );
+    wName.setText( Const.NVL( jobEntry.getName(), "" ) );
     wConnections.removeAll();
     for ( int i = 0; i < jobEntry.getConnectionNames().size(); i++ ) {
       wConnections.add( Const.NVL( jobEntry.getConnectionNames().get( i ), "" ) );

@@ -1,6 +1,6 @@
 package bi.know.kettle.neo4j.steps.graph;
 
-import bi.know.kettle.neo4j.model.GraphPropertyType;
+import org.neo4j.kettle.model.GraphPropertyType;
 
 public class TargetParameter {
   private String inputField;
