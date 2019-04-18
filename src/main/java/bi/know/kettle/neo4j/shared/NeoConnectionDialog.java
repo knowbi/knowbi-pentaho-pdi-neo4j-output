@@ -24,6 +24,7 @@ import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.gui.WindowProperty;
+import org.pentaho.di.ui.core.widget.CheckBoxVar;
 import org.pentaho.di.ui.core.widget.PasswordTextVar;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
@@ -52,7 +53,8 @@ public class NeoConnectionDialog {
   private TextVar wPolicy;
   private TextVar wUsername;
   private TextVar wPassword;
-  private Button wRouting, wEncryption;
+  private CheckBoxVar wRouting;
+  private Button wEncryption;
 
   Control lastControl;
 
@@ -236,7 +238,7 @@ public class NeoConnectionDialog {
     fdlRouting.left = new FormAttachment( 0, 0 );
     fdlRouting.right = new FormAttachment( middle, -margin );
     wlRouting.setLayoutData( fdlRouting );
-    wRouting = new Button( shell, SWT.CHECK );
+    wRouting = new CheckBoxVar( neoConnection, shell, SWT.CHECK );
     props.setLook( wRouting );
     FormData fdRouting = new FormData();
     fdRouting.top = new FormAttachment( wlRouting, 0, SWT.CENTER );
@@ -466,6 +468,7 @@ public class NeoConnectionDialog {
     wBoltPort.setText( Const.NVL( neoConnection.getBoltPort(), "" ) );
     wBrowserPort.setText( Const.NVL( neoConnection.getBrowserPort(), "" ) );
     wRouting.setSelection( neoConnection.isRouting() );
+    wRouting.setVariableName( Const.NVL(neoConnection.getRoutingVariable(), "") );
     wPolicy.setText( Const.NVL( neoConnection.getRoutingPolicy(), "" ) );
     wUsername.setText( Const.NVL( neoConnection.getUsername(), "" ) );
     wPassword.setText( Const.NVL( neoConnection.getPassword(), "" ) );
@@ -506,6 +509,7 @@ public class NeoConnectionDialog {
     neo.setBoltPort( wBoltPort.getText() );
     neo.setBrowserPort( wBrowserPort.getText() );
     neo.setRouting( wRouting.getSelection() );
+    neo.setRoutingVariable( wRouting.getVariableName() );
     neo.setRoutingPolicy( wPolicy.getText() );
     neo.setUsername( wUsername.getText() );
     neo.setPassword( wPassword.getText() );
