@@ -69,9 +69,8 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
   private Text wStepname;
 
   private CCombo wConnection;
-
   private TextVar wBatchSize;
-
+  private Button wReadOnly;
   private Button wCypherFromField;
   private CCombo wCypherField;
   private Button wUnwind;
@@ -211,6 +210,23 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdBatchSize.top = new FormAttachment( wlBatchSize, 0, SWT.CENTER );
     wBatchSize.setLayoutData( fdBatchSize );
     lastControl = wBatchSize;
+
+    Label wlReadOnly = new Label( wComposite, SWT.RIGHT );
+    wlReadOnly.setText( "Read only statement? " );
+    props.setLook( wlReadOnly );
+    FormData fdlReadOnly = new FormData();
+    fdlReadOnly.left = new FormAttachment( 0, 0 );
+    fdlReadOnly.right = new FormAttachment( middle, -margin );
+    fdlReadOnly.top = new FormAttachment( lastControl, 2 * margin );
+    wlReadOnly.setLayoutData( fdlReadOnly );
+    wReadOnly = new Button( wComposite, SWT.CHECK | SWT.BORDER );
+    props.setLook( wReadOnly );
+    FormData fdReadOnly = new FormData();
+    fdReadOnly.left = new FormAttachment( middle, 0 );
+    fdReadOnly.right = new FormAttachment( 100, 0 );
+    fdReadOnly.top = new FormAttachment( wlReadOnly, 0, SWT.CENTER );
+    wReadOnly.setLayoutData( fdReadOnly );
+    lastControl = wReadOnly;
 
     Label wlCypherFromField = new Label( wComposite, SWT.RIGHT );
     wlCypherFromField.setText( "Get Cypher from input field? " );
@@ -489,6 +505,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wConnection.addSelectionListener( lsDef );
     wStepname.addSelectionListener( lsDef );
     wBatchSize.addSelectionListener( lsDef );
+    wReadOnly.addSelectionListener( lsDef );
     wCypherFromField.addSelectionListener( lsDef );
     wCypherField.addSelectionListener( lsDef );
     wUnwind.addSelectionListener( lsDef );
@@ -557,6 +574,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wStepname.setText( Const.NVL( stepname, "" ) );
     wConnection.setText( Const.NVL( input.getConnectionName(), "" ) );
 
+    wReadOnly.setSelection( input.isReadOnly() );
     wCypherFromField.setSelection( input.isCypherFromField() );
     wCypherField.setText( Const.NVL( input.getCypherField(), "" ) );
     try {
@@ -621,6 +639,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     meta.setBatchSize( wBatchSize.getText() );
     meta.setCypher( wCypher.getText() );
 
+    meta.setReadOnly( wReadOnly.getSelection() );
     meta.setCypherFromField( wCypherFromField.getSelection() );
     meta.setCypherField( wCypherField.getText() );
 

@@ -6,6 +6,7 @@ import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.exceptions.ServiceUnavailableException;
 import org.neo4j.driver.v1.summary.Notification;
@@ -260,7 +261,11 @@ public class Cypher extends BaseStep implements StepInterface {
       if ( data.outputCount == 0 ) {
         data.transaction = data.session.beginTransaction();
       }
-      result = data.transaction.run( data.cypher, parameters );
+      if (meta.isReadOnly()) {
+        result = data.session.readTransaction( tx-> tx.run(data.cypher, parameters) );
+      } else {
+        result = data.session.writeTransaction( tx-> tx.run(data.cypher, parameters) );
+      }
       data.outputCount++;
       incrementLinesOutput();
 
@@ -278,13 +283,21 @@ public class Cypher extends BaseStep implements StepInterface {
     unwindMap.put(data.unwindMapName, data.unwindList);
     StatementResult result;
     try {
-      result = data.session.run( data.cypher, unwindMap );
+      if (meta.isReadOnly()) {
+        result = data.session.readTransaction( tx-> tx.run(data.cypher, unwindMap) );
+      } else {
+        result = data.session.writeTransaction( tx-> tx.run(data.cypher, unwindMap) );
+      }
     } catch(ServiceUnavailableException e) {
       // retry once after reconnecting.
       // This can fix certain time-out issues
       //
       reconnect();
-      result = data.session.run( data.cypher, unwindMap );
+      if (meta.isReadOnly()) {
+        result = data.session.readTransaction( tx-> tx.run(data.cypher, unwindMap) );
+      } else {
+        result = data.session.writeTransaction( tx-> tx.run(data.cypher, unwindMap) );
+      }
     }
     setLinesOutput( getLinesOutput()+data.unwindList.size() );
     data.unwindList.clear();
