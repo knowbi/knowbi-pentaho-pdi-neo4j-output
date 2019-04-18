@@ -6,7 +6,6 @@ import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
-import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.exceptions.ServiceUnavailableException;
 import org.neo4j.driver.v1.summary.Notification;
@@ -278,26 +277,34 @@ public class Cypher extends BaseStep implements StepInterface {
     return result;
   }
 
-  private StatementResult writeUnwindList() {
+  private StatementResult writeUnwindList() throws KettleException {
     HashMap<String, Object> unwindMap = new HashMap<>();
     unwindMap.put(data.unwindMapName, data.unwindList);
     StatementResult result;
     try {
-      if (meta.isReadOnly()) {
-        result = data.session.readTransaction( tx-> tx.run(data.cypher, unwindMap) );
-      } else {
-        result = data.session.writeTransaction( tx-> tx.run(data.cypher, unwindMap) );
+      try {
+        if ( meta.isReadOnly() ) {
+          result = data.session.readTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+        } else {
+          result = data.session.writeTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+        }
+      } catch ( ServiceUnavailableException e ) {
+        // retry once after reconnecting.
+        // This can fix certain time-out issues
+        //
+        reconnect();
+        if ( meta.isReadOnly() ) {
+          result = data.session.readTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+        } else {
+          result = data.session.writeTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+        }
       }
-    } catch(ServiceUnavailableException e) {
-      // retry once after reconnecting.
-      // This can fix certain time-out issues
-      //
-      reconnect();
-      if (meta.isReadOnly()) {
-        result = data.session.readTransaction( tx-> tx.run(data.cypher, unwindMap) );
-      } else {
-        result = data.session.writeTransaction( tx-> tx.run(data.cypher, unwindMap) );
-      }
+    } catch(Exception e) {
+      data.session.close();
+      stopAll();
+      setErrors(1L);
+      setOutputDone();
+      throw new KettleException( "Unexpected error writing unwind list to Neo4j", e );
     }
     setLinesOutput( getLinesOutput()+data.unwindList.size() );
     data.unwindList.clear();
@@ -437,8 +444,17 @@ public class Cypher extends BaseStep implements StepInterface {
     // At the end of each batch, do a commit.
     //
     if ( data.outputCount > 0 ) {
-      data.transaction.success();
-      data.transaction.close();
+
+      // With UNWIND we don't have to end a transaction
+      //
+      if (data.transaction!=null) {
+        if ( getErrors() == 0 ) {
+          data.transaction.success();
+        } else {
+          data.transaction.failure();
+        }
+        data.transaction.close();
+      }
       data.outputCount=0;
     }
   }
