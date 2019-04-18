@@ -476,7 +476,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdReturns.left = new FormAttachment( 0, 0 );
     fdReturns.right = new FormAttachment( wbGetReturnFields, 0 );
     fdReturns.top = new FormAttachment( wlReturns, margin );
-    fdReturns.bottom = new FormAttachment( wOK, -2 * margin );
+    fdReturns.bottom = new FormAttachment( wlReturns, 300+margin);
     wReturns.setLayoutData( fdReturns );
     // lastControl = wReturns;
 
