@@ -27,6 +27,7 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.neo4j.kettle.core.Neo4jDefaults;
 import org.neo4j.kettle.core.Neo4jUtil;
+import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.Const;
@@ -48,7 +49,6 @@ import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
-import org.pentaho.metastore.persist.MetaStoreFactory;
 
 import java.util.Collections;
 import java.util.List;
@@ -697,6 +697,8 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
     };
 
     wStepname.addSelectionListener( lsDef );
+    wConnection.addSelectionListener( lsDef );
+    wBatchSize.addSelectionListener( lsDef );
 
     // Detect X or ALT-F4 or something that kills this window...
     shell.addShellListener( new ShellAdapter() {

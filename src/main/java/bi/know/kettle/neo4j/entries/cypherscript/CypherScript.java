@@ -6,6 +6,7 @@ import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Transaction;
 import org.neo4j.kettle.core.Neo4jDefaults;
+import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.neo4j.kettle.shared.DriverSingleton;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.cluster.SlaveServer;
@@ -20,7 +21,6 @@ import org.pentaho.di.job.entry.JobEntryInterface;
 import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.w3c.dom.Node;
 
 import java.util.List;

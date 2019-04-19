@@ -20,6 +20,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
+import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.neo4j.kettle.model.GraphModel;
 import org.neo4j.kettle.model.GraphNode;
 import org.neo4j.kettle.model.GraphProperty;
@@ -42,7 +43,6 @@ import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
-import org.pentaho.metastore.persist.MetaStoreFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;

@@ -18,7 +18,7 @@ import org.pentaho.di.job.entry.JobEntryInterface;
 import org.pentaho.di.repository.ObjectId;
 import org.pentaho.di.repository.Repository;
 import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.persist.MetaStoreFactory;
+import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.w3c.dom.Node;
 
 import java.util.ArrayList;

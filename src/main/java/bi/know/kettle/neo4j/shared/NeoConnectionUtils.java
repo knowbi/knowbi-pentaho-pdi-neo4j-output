@@ -6,13 +6,13 @@ import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.kettle.core.Neo4jDefaults;
+import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.logging.LogChannelInterface;
 import org.pentaho.di.core.variables.VariableSpace;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.persist.MetaStoreFactory;
 
 import java.util.List;
 

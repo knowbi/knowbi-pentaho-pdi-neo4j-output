@@ -47,6 +47,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   public static final String CONNECTION = "connection";
   public static final String CYPHER = "cypher";
   public static final String BATCH_SIZE = "batch_size";
+  public static final String READ_ONLY = "read_only";
   public static final String CYPHER_FROM_FIELD = "cypher_from_field";
   public static final String CYPHER_FIELD = "cypher_field";
   public static final String UNWIND = "unwind";
@@ -77,6 +78,9 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
 
   @Injection( name = BATCH_SIZE )
   private String batchSize;
+
+  @Injection( name = READ_ONLY )
+  private boolean readOnly;
 
   @Injection( name = CYPHER_FROM_FIELD )
   private boolean cypherFromField;
@@ -160,6 +164,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     xml.append( XMLHandler.addTagValue( CONNECTION, connectionName ) );
     xml.append( XMLHandler.addTagValue( CYPHER, cypher ) );
     xml.append( XMLHandler.addTagValue( BATCH_SIZE, batchSize ) );
+    xml.append( XMLHandler.addTagValue( READ_ONLY, readOnly ) );
     xml.append( XMLHandler.addTagValue( CYPHER_FROM_FIELD, cypherFromField ) );
     xml.append( XMLHandler.addTagValue( CYPHER_FIELD, cypherField ) );
     xml.append( XMLHandler.addTagValue( UNWIND, usingUnwind ) );
@@ -194,6 +199,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     connectionName = XMLHandler.getTagValue( stepnode, CONNECTION );
     cypher = XMLHandler.getTagValue( stepnode, CYPHER );
     batchSize = XMLHandler.getTagValue( stepnode, BATCH_SIZE );
+    readOnly = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, READ_ONLY ) );
     cypherFromField = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, CYPHER_FROM_FIELD ) );
     cypherField = XMLHandler.getTagValue( stepnode, CYPHER_FIELD );
     usingUnwind = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, UNWIND ) );
@@ -234,6 +240,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     rep.saveStepAttribute( transformationId, stepId, CONNECTION, connectionName );
     rep.saveStepAttribute( transformationId, stepId, CYPHER, cypher );
     rep.saveStepAttribute( transformationId, stepId, BATCH_SIZE, batchSize );
+    rep.saveStepAttribute( transformationId, stepId, READ_ONLY, readOnly );
     rep.saveStepAttribute( transformationId, stepId, CYPHER_FROM_FIELD, cypherFromField );
     rep.saveStepAttribute( transformationId, stepId, CYPHER_FIELD, cypherField );
     rep.saveStepAttribute( transformationId, stepId, UNWIND, usingUnwind );
@@ -258,6 +265,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     connectionName = rep.getStepAttributeString( stepId, CONNECTION );
     cypher = rep.getStepAttributeString( stepId, CYPHER );
     batchSize = rep.getStepAttributeString( stepId, BATCH_SIZE );
+    readOnly = rep.getStepAttributeBoolean( stepId, READ_ONLY );
     cypherFromField = rep.getStepAttributeBoolean( stepId, CYPHER_FROM_FIELD );
     cypherField = rep.getStepAttributeString( stepId, CYPHER_FIELD );
     usingUnwind = rep.getStepAttributeBoolean( stepId, UNWIND );
@@ -348,6 +356,22 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
    */
   public void setCypherFromField( boolean cypherFromField ) {
     this.cypherFromField = cypherFromField;
+  }
+
+  /**
+   * Gets readOnly
+   *
+   * @return value of readOnly
+   */
+  public boolean isReadOnly() {
+    return readOnly;
+  }
+
+  /**
+   * @param readOnly The readOnly to set
+   */
+  public void setReadOnly( boolean readOnly ) {
+    this.readOnly = readOnly;
   }
 
   /**

@@ -5,12 +5,12 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
 import org.neo4j.kettle.core.Neo4jDefaults;
+import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.neo4j.kettle.model.GraphModel;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.metastore.api.IMetaStore;
-import org.pentaho.metastore.persist.MetaStoreFactory;
 
 public class GraphModelUtils {
   private static Class<?> PKG = GraphModelUtils.class; // for i18n purposes, needed by Translator2!!

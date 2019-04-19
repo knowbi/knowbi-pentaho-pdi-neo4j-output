@@ -25,6 +25,7 @@ package bi.know.kettle.neo4j.perspective;
 import bi.know.kettle.neo4j.model.GraphModelUtils;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.neo4j.kettle.core.Neo4jDefaults;
+import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.neo4j.kettle.model.GraphModel;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.variables.VariableSpace;
@@ -34,7 +35,6 @@ import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.spoon.ISpoonMenuController;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.spoon.dialog.MetaStoreExplorerDialog;
-import org.pentaho.metastore.persist.MetaStoreFactory;
 import org.pentaho.ui.xul.dom.Document;
 import org.pentaho.ui.xul.impl.AbstractXulEventHandler;
 

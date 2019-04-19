@@ -440,7 +440,7 @@ public class GraphModelDialog extends Dialog {
     FormData fdModelDescription = new FormData();
     fdModelDescription.left = new FormAttachment( middle, margin );
     fdModelDescription.right = new FormAttachment( 100, 0 );
-    fdModelDescription.top = new FormAttachment( lastControl, 0, SWT.CENTER );
+    fdModelDescription.top = new FormAttachment( wlModelDescription, 0, SWT.CENTER );
     wModelDescription.setLayoutData( fdModelDescription );
     lastControl = wModelDescription;
 
