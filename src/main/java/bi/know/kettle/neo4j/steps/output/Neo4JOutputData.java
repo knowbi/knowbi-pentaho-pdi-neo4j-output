@@ -23,7 +23,6 @@ public class Neo4JOutputData extends BaseNeoStepData implements StepDataInterfac
   public String url;
   public Driver driver;
   public Session session;
-  public Transaction transaction;
 
   public long batchSize;
   public long outputCount;
@@ -38,13 +37,10 @@ public class Neo4JOutputData extends BaseNeoStepData implements StepDataInterfac
   public GraphPropertyType[] toNodePropTypes;
   public GraphPropertyType[] relPropTypes;
 
-  public List<Map<String, Object>> fromUnwindList;
+  public List<Map<String, Object>> unwindList;
+
   public String fromLabelsClause;
-  public List<Map<String, Object>> toUnwindList;
   public String toLabelsClause;
-
-  public List<Map<String, Object>> relUnwindList;
-
   public String[] fromLabelValues;
   public String[] toLabelValues;
   public String relationshipLabelValue;
@@ -60,4 +56,11 @@ public class Neo4JOutputData extends BaseNeoStepData implements StepDataInterfac
   public String relationshipLabel;
   public List<String> fromLabels;
   public List<String> toLabels;
+
+
+  public OperationType fromOperationType;
+  public OperationType toOperationType;
+  public OperationType relOperationType;
+
+  public String cypher;
 }
