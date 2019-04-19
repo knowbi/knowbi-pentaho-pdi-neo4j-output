@@ -30,4 +30,6 @@ public class CypherData extends BaseStepData implements StepDataInterface {
 
   public String unwindMapName;
   public List<Map<String, Object>> unwindList;
+
+  public List<CypherStatement> cypherStatements;
 }

@@ -6,6 +6,8 @@ import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.StatementResult;
+import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.v1.TransactionWork;
 import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.exceptions.ServiceUnavailableException;
 import org.neo4j.driver.v1.summary.Notification;
@@ -59,7 +61,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
     // Connect to Neo4j
     //
-    if ( StringUtils.isEmpty(meta.getConnectionName()) ) {
+    if ( StringUtils.isEmpty( meta.getConnectionName() ) ) {
       log.logError( "You need to specify a Neo4j connection to use in this step" );
       return false;
     }
@@ -118,7 +120,7 @@ public class Cypher extends BaseStep implements StepInterface {
     // Let's give the server a breath of fresh air.
     try {
       Thread.sleep( 30000 );
-    } catch(InterruptedException e) {
+    } catch ( InterruptedException e ) {
       // ignore sleep interrupted.
     }
 
@@ -145,7 +147,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
         // See if there's anything left in the UNWIND list...
         //
-        if (meta.isUsingUnwind() && data.unwindList!=null) {
+        if ( meta.isUsingUnwind() && data.unwindList != null ) {
           if ( data.unwindList.size() > 0 ) {
             StatementResult result = writeUnwindList();
             writeResultRows( result, new Object[] {}, meta.isUsingUnwind() );
@@ -192,6 +194,8 @@ public class Cypher extends BaseStep implements StepInterface {
 
       data.unwindList = new ArrayList<>();
       data.unwindMapName = environmentSubstitute( meta.getUnwindMapName() );
+
+      data.cypherStatements = new ArrayList<>();
     }
 
     if ( meta.isCypherFromField() ) {
@@ -213,34 +217,27 @@ public class Cypher extends BaseStep implements StepInterface {
       parameters.put( mapping.getParameter(), neoValue );
     }
 
-    StatementResult result;
-
-    if (meta.isUsingUnwind()) {
-      data.unwindList.add(parameters);
+    if ( meta.isUsingUnwind() ) {
+      data.unwindList.add( parameters );
       data.outputCount++;
 
       if ( data.outputCount >= data.batchSize ) {
-        result = writeUnwindList();
-      } else {
-        // We don't have any result rows, we only get them when the UNWIND statement runs
-        result = null;
+        writeUnwindList();
       }
     } else {
 
       // Execute the cypher with all the parameters...
       //
       try {
-        result = runCypherStatement( parameters );
-      } catch( ServiceUnavailableException e ){
+        runCypherStatement( row, data.cypher, parameters );
+      } catch ( ServiceUnavailableException e ) {
         // retry once after reconnecting.
         // This can fix certain time-out issues
         //
         reconnect();
-        result = runCypherStatement( parameters );
+        runCypherStatement( row, data.cypher, parameters );
       }
     }
-
-    writeResultRows(result, row, meta.isUsingUnwind());
 
     // Only keep executing if we have input rows...
     //
@@ -252,34 +249,66 @@ public class Cypher extends BaseStep implements StepInterface {
     }
   }
 
-  private StatementResult runCypherStatement( Map<String, Object> parameters ) {
-    StatementResult result;
-    if ( data.batchSize <= 1 ) {
-      result = data.session.run( data.cypher, parameters );
-    } else {
-      if ( data.outputCount == 0 ) {
-        data.transaction = data.session.beginTransaction();
-      }
-      if (meta.isReadOnly()) {
-        result = data.session.readTransaction( tx-> tx.run(data.cypher, parameters) );
-      } else {
-        result = data.session.writeTransaction( tx-> tx.run(data.cypher, parameters) );
-      }
-      data.outputCount++;
-      incrementLinesOutput();
+  private void runCypherStatement( Object[] row, String cypher, Map<String, Object> parameters ) throws KettleException {
 
-      if ( data.outputCount >= data.batchSize ) {
-        data.transaction.success();
-        data.transaction.close();
-        data.outputCount = 0;
+    data.cypherStatements.add( new CypherStatement( row, cypher, parameters ) );
+
+    if ( data.cypherStatements.size() >= data.batchSize ) {
+      // Execute all the statements in there in one transaction...
+      //
+      TransactionWork<Integer> transactionWork = transaction -> {
+
+        for ( CypherStatement cypherStatement : data.cypherStatements ) {
+          StatementResult result = transaction.run( cypherStatement.getCypher(), cypherStatement.getParameters() );
+          try {
+            List<Object[]> resultRows = writeResultRows( result, cypherStatement.getRow(), false );
+            // Remember the results for when the whole batch is processed.
+            // Only then we'll forward the results.
+            //
+            cypherStatement.setResultRows( resultRows );
+          } catch(Exception e) {
+            throw new RuntimeException( "Error parsing result of cypher statement '"+cypherStatement.getCypher()+"'", e );
+          }
+        }
+
+        return data.cypherStatements.size();
+      };
+
+      try {
+        int nrProcessed;
+        if ( meta.isReadOnly() ) {
+          nrProcessed = data.session.readTransaction( transactionWork );
+          setLinesInput( getLinesInput() + data.cypherStatements.size() );
+        } else {
+          nrProcessed = data.session.writeTransaction( transactionWork );
+          setLinesOutput( getLinesOutput() + data.cypherStatements.size() );
+        }
+
+        if (log.isDebug()) {
+          logDebug( "Processed "+nrProcessed+" statements" );
+        }
+
+        // Forward all rows from the batch of records...
+        //
+        for (CypherStatement cypherStatement : data.cypherStatements) {
+          for (Object[] resultRow : cypherStatement.getResultRows()) {
+            putRow( data.outputRowMeta, resultRow );
+          }
+        }
+
+        // Clear out the batch of statements.
+        //
+        data.cypherStatements.clear();
+
+      } catch ( Exception e ) {
+        throw new KettleException( "Unable to execute batch of cypher statements ("+data.cypherStatements.size()+")", e );
       }
     }
-    return result;
   }
 
   private StatementResult writeUnwindList() throws KettleException {
     HashMap<String, Object> unwindMap = new HashMap<>();
-    unwindMap.put(data.unwindMapName, data.unwindList);
+    unwindMap.put( data.unwindMapName, data.unwindList );
     StatementResult result;
     try {
       try {
@@ -299,42 +328,42 @@ public class Cypher extends BaseStep implements StepInterface {
           result = data.session.writeTransaction( tx -> tx.run( data.cypher, unwindMap ) );
         }
       }
-    } catch(Exception e) {
+    } catch ( Exception e ) {
       data.session.close();
       stopAll();
-      setErrors(1L);
+      setErrors( 1L );
       setOutputDone();
       throw new KettleException( "Unexpected error writing unwind list to Neo4j", e );
     }
-    setLinesOutput( getLinesOutput()+data.unwindList.size() );
+    setLinesOutput( getLinesOutput() + data.unwindList.size() );
     data.unwindList.clear();
     data.outputCount = 0;
     return result;
   }
 
-  private void writeResultRows( StatementResult result, Object[] row, boolean unwind ) throws KettleException {
-    int rowsWritten = 0;
+  private List<Object[]> writeResultRows( StatementResult result, Object[] row, boolean unwind ) throws KettleException {
+    List<Object[]> resultRows = new ArrayList<>();
 
-    if (result!=null) {
+    if ( result != null ) {
 
-      if (meta.isReturningGraph()) {
+      if ( meta.isReturningGraph() ) {
 
         GraphData graphData = new GraphData( result );
         graphData.setSourceTransformationName( getTransMeta().getName() );
         graphData.setSourceStepName( getStepname() );
-        
+
         // Create output row
         Object[] outputRowData;
-        if (unwind) {
+        if ( unwind ) {
           outputRowData = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
         } else {
           outputRowData = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
         }
         int index = data.hasInput && !unwind ? getInputRowMeta().size() : 0;
 
-        outputRowData[index] = graphData;
-        putRow(data.outputRowMeta, outputRowData);
-        rowsWritten++;
+        outputRowData[ index ] = graphData;
+
+        resultRows.add(outputRowData);
 
       } else {
 
@@ -395,41 +424,37 @@ public class Cypher extends BaseStep implements StepInterface {
 
           // Pass the rows to the next steps
           //
-          putRow( data.outputRowMeta, outputRow );
-          rowsWritten++;
+          resultRows.add(outputRow);
         }
       }
 
       // Now that all result rows are consumed we can evaluate the result summary.
       //
-      if (processSummary( result )) {
+      if ( processSummary( result ) ) {
         setErrors( 1L );
         stopAll();
         setOutputDone();
         throw new KettleException( "Error found in executing cypher statement" );
       }
 
-
-      if ( data.hasInput && rowsWritten == 0 ) {
-        // At least pass input row
-
-        // Create output row
-        Object[] outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
-
-        // Pass the rows to the next steps
+      if ( data.hasInput && resultRows.size() == 0 ) {
+        // At least pass a copy of the input row
         //
-        putRow( data.outputRowMeta, outputRow );
+        Object[] outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
+        resultRows.add(outputRow);
       }
     }
+
+    return resultRows;
   }
 
   private boolean processSummary( StatementResult result ) {
     boolean error = false;
     ResultSummary summary = result.summary();
     for ( Notification notification : summary.notifications() ) {
-      log.logError( notification.title()+" ("+notification.severity()+")" );
-      log.logError(notification.code()+" : "+notification.description()+", position "+notification.position());
-      error=true;
+      log.logError( notification.title() + " (" + notification.severity() + ")" );
+      log.logError( notification.code() + " : " + notification.description() + ", position " + notification.position() );
+      error = true;
     }
     return error;
   }
@@ -447,7 +472,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
       // With UNWIND we don't have to end a transaction
       //
-      if (data.transaction!=null) {
+      if ( data.transaction != null ) {
         if ( getErrors() == 0 ) {
           data.transaction.success();
         } else {
@@ -455,7 +480,7 @@ public class Cypher extends BaseStep implements StepInterface {
         }
         data.transaction.close();
       }
-      data.outputCount=0;
+      data.outputCount = 0;
     }
   }
 }
