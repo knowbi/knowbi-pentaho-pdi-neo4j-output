@@ -29,7 +29,7 @@ import org.pentaho.di.ui.job.entry.JobEntryDialog;
 import org.pentaho.di.ui.spoon.Spoon;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
-import org.pentaho.metastore.persist.MetaStoreFactory;
+import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
