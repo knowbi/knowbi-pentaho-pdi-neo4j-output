@@ -244,14 +244,8 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       GraphPropertyType propertyType = propertyTypes[ i ];
       Object neoValue = propertyType.convertFromKettle( valueMeta, valueData );
 
-      String propName;
-      if ( StringUtils.isNotEmpty( nodePropNames[ i ] ) ) {
-        propName = nodePropNames[ i ];
-      } else {
-        propName = valueMeta.getName(); // Take the name from the input field.
-      }
-
-      rowMap.put( alias + "_" + propName, neoValue );
+      String propName = "p"+nodePropIndexes[i];
+      rowMap.put( propName, neoValue );
     }
   }
 
@@ -275,11 +269,11 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( "CREATE( " )
             .append( data.fromLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), "f" ) )
+            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" ) )
             .append( ") " )
             .append( Const.CR )
           ;
-          String setClause = getSetClause( false, "f", meta.getFromNodePropNames(), meta.getFromNodePropPrimary() );
+          String setClause = getSetClause( false, "f", meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes );
           if ( StringUtils.isNotEmpty( setClause ) ) {
             cypher
               .append( setClause )
@@ -293,11 +287,11 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( "MERGE( " )
             .append( data.fromLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), "f" ) )
+            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" ) )
             .append( ") " )
             .append( Const.CR )
           ;
-          setClause = getSetClause( false, "f", meta.getFromNodePropNames(), meta.getFromNodePropPrimary() );
+          setClause = getSetClause( false, "f", meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes );
           if ( StringUtils.isNotEmpty( setClause ) ) {
             cypher
               .append( setClause )
@@ -311,7 +305,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( "MATCH( " )
             .append( data.fromLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), "f" ) )
+            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" ) )
             .append( ") " )
             .append( Const.CR )
           ;
@@ -331,11 +325,11 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( "CREATE( " )
             .append( data.toLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), "t" ) )
+            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes, "t" ) )
             .append( ") " )
             .append( Const.CR )
           ;
-          String setClause = getSetClause( false, "t", meta.getToNodePropNames(), meta.getToNodePropPrimary() );
+          String setClause = getSetClause( false, "t", meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes );
           if ( StringUtils.isNotEmpty( setClause ) ) {
             cypher
               .append( setClause )
@@ -349,11 +343,11 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( "MERGE( " )
             .append( data.toLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), "t" ) )
+            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes, "t" ) )
             .append( ") " )
             .append( Const.CR )
           ;
-          setClause = getSetClause( false, "t", meta.getToNodePropNames(), meta.getToNodePropPrimary() );
+          setClause = getSetClause( false, "t", meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes );
           if ( StringUtils.isNotEmpty( setClause ) ) {
             cypher
               .append( setClause )
@@ -367,7 +361,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( "MATCH( " )
             .append( data.toLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), "t" ) )
+            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(),data.toNodePropIndexes,  "t" ) )
             .append( ") " )
             .append( Const.CR )
           ;
@@ -389,7 +383,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( data.relationshipLabel )
             .append( "]->(t) " )
             .append( Const.CR )
-            .append( getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ] ) )
+            .append( getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ], data.relPropIndexes ) )
             .append( Const.CR )
           ;
           updateUsageMap( Arrays.asList( data.relationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE);
@@ -402,7 +396,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( data.relationshipLabel )
             .append( "]->(t) " )
             .append( Const.CR )
-            .append( getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ] ) )
+            .append( getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ], data.relPropIndexes ) )
             .append( Const.CR )
           ;
           updateUsageMap( Arrays.asList( data.relationshipLabel ), GraphUsage.RELATIONSHIP_CREATE);
@@ -414,7 +408,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
     // OK now we have the cypher statement, we can execute it...
     //
-    if ( isDebug() ) {
+    if ( log.isDebug() ) {
       logDebug( "Running Cypher: " + data.cypher );
       logDebug( "properties list size : " + data.unwindList.size() );
     }
@@ -431,7 +425,8 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     data.unwindList.clear();
   }
 
-  private String getMatchClause( String[] propertyNames, boolean[] propertyPrimary, String alias ) {
+
+  private String getMatchClause( String[] propertyNames, boolean[] propertyPrimary, int[] nodePropIndexes, String alias ) {
     StringBuilder clause = new StringBuilder();
 
     for ( int i = 0; i < propertyNames.length; i++ ) {
@@ -441,10 +436,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         }
         clause
           .append( propertyNames[ i ] )
-          .append( ": pr." )
-          .append( alias )
-          .append( "_" )
-          .append( propertyNames[ i ] );
+          .append( ": pr.p" )
+          .append( nodePropIndexes[i] )
+        ;
       }
     }
 
@@ -455,7 +449,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     }
   }
 
-  private String getSetClause( boolean allProperties, String alias, String[] propertyNames, boolean[] propertyPrimary ) {
+  private String getSetClause( boolean allProperties, String alias, String[] propertyNames, boolean[] propertyPrimary, int[] nodePropIndexes ) {
     StringBuilder clause = new StringBuilder();
 
     for ( int i = 0; i < propertyNames.length; i++ ) {
@@ -467,10 +461,8 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
           .append( alias )
           .append( "." )
           .append( propertyNames[ i ] )
-          .append( "= pr." )
-          .append( alias )
-          .append( "_" )
-          .append( propertyNames[ i ] )
+          .append( "= pr.p" )
+          .append( nodePropIndexes[i])
         ;
       }
     }
