@@ -309,7 +309,7 @@ public class Cypher extends BaseStep implements StepInterface {
   private StatementResult writeUnwindList() throws KettleException {
     HashMap<String, Object> unwindMap = new HashMap<>();
     unwindMap.put( data.unwindMapName, data.unwindList );
-    StatementResult result;
+    StatementResult result = null;
     try {
       try {
         if ( meta.isReadOnly() ) {
@@ -326,6 +326,13 @@ public class Cypher extends BaseStep implements StepInterface {
           result = data.session.readTransaction( tx -> tx.run( data.cypher, unwindMap ) );
         } else {
           result = data.session.writeTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+        }
+      }
+
+      if (result!=null) {
+        List<Object[]> resultRows = writeResultRows( result, new Object[ 0 ], true );
+        for (Object[] resultRow : resultRows) {
+          putRow(data.outputRowMeta, resultRow);
         }
       }
     } catch ( Exception e ) {
