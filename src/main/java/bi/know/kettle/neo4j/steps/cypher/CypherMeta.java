@@ -60,6 +60,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   public static final String PARAMETER = "parameter";
   public static final String FIELD = "field";
   public static final String TYPE = "type";
+  public static final String SOURCE_TYPE = "source_type";
   public static final String RETURNS = "returns";
   public static final String RETURN = "return";
   public static final String NAME = "name";
@@ -69,6 +70,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
 
   public static final String RETURN_NAME = "return_name";
   public static final String RETURN_TYPE = "return_type";
+  public static final String RETURN_SOURCE_TYPE = "return_source_type";
 
   @Injection( name = CONNECTION )
   private String connectionName;
@@ -187,6 +189,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
       xml.append( XMLHandler.openTag( RETURN ) );
       xml.append( XMLHandler.addTagValue( NAME, returnValue.getName() ) );
       xml.append( XMLHandler.addTagValue( TYPE, returnValue.getType() ) );
+      xml.append( XMLHandler.addTagValue( SOURCE_TYPE, returnValue.getSourceType() ) );
       xml.append( XMLHandler.closeTag( RETURN ) );
     }
     xml.append( XMLHandler.closeTag( RETURNS ) );
@@ -230,7 +233,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     for ( Node returnNode : returnNodes ) {
       String name = XMLHandler.getTagValue( returnNode, NAME );
       String type = XMLHandler.getTagValue( returnNode, TYPE );
-      returnValues.add( new ReturnValue( name, type ) );
+      String sourceType = XMLHandler.getTagValue( returnNode, SOURCE_TYPE );
+      returnValues.add( new ReturnValue( name, type, sourceType ) );
     }
 
     super.loadXML( stepnode, databases, metaStore );
@@ -258,6 +262,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
       ReturnValue returnValue = returnValues.get( i );
       rep.saveStepAttribute( transformationId, stepId, i, RETURN_NAME, returnValue.getName() );
       rep.saveStepAttribute( transformationId, stepId, i, RETURN_TYPE, returnValue.getType() );
+      rep.saveStepAttribute( transformationId, stepId, i, RETURN_SOURCE_TYPE, returnValue.getSourceType() );
     }
   }
 
@@ -289,7 +294,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     for ( int i = 0; i < nrReturns; i++ ) {
       String name = rep.getStepAttributeString( stepId, i, RETURN_NAME );
       String type = rep.getStepAttributeString( stepId, i, RETURN_TYPE );
-      returnValues.add( new ReturnValue( name, type ) );
+      String sourceType = rep.getStepAttributeString( stepId, i, RETURN_SOURCE_TYPE );
+      returnValues.add( new ReturnValue( name, type, sourceType ) );
     }
 
   }

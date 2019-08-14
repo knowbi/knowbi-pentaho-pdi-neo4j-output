@@ -31,11 +31,13 @@ import org.neo4j.driver.v1.Transaction;
 import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.types.Type;
 import org.neo4j.driver.v1.util.Pair;
+import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleStepException;
 import org.pentaho.di.core.row.RowMetaInterface;
+import org.pentaho.di.core.row.ValueMeta;
 import org.pentaho.di.core.row.value.ValueMetaFactory;
 import org.pentaho.di.i18n.BaseMessages;
 import org.pentaho.di.trans.Trans;
@@ -450,6 +452,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
       new ColumnInfo[] {
         new ColumnInfo( "Field name", ColumnInfo.COLUMN_TYPE_TEXT, false ),
         new ColumnInfo( "Return type", ColumnInfo.COLUMN_TYPE_CCOMBO, ValueMetaFactory.getAllValueMetaNames(), false ),
+        new ColumnInfo( "Source type", ColumnInfo.COLUMN_TYPE_CCOMBO, GraphPropertyDataType.getNames(), false ),
       };
 
     Label wlReturns = new Label( wComposite, SWT.LEFT );
@@ -617,6 +620,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
       TableItem item = wReturns.table.getItem( i );
       item.setText( 1, Const.NVL( returnValue.getName(), "" ) );
       item.setText( 2, Const.NVL( returnValue.getType(), "" ) );
+      item.setText( 3, Const.NVL( returnValue.getSourceType(), "" ) );
     }
     wReturns.removeEmptyRows();
     wReturns.setRowNums();
@@ -659,7 +663,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     List<ReturnValue> returnValues = new ArrayList<>();
     for ( int i = 0; i < wReturns.nrNonEmpty(); i++ ) {
       TableItem item = wReturns.getNonEmpty( i );
-      returnValues.add( new ReturnValue( item.getText( 1 ), item.getText( 2 ) ) );
+      returnValues.add( new ReturnValue( item.getText( 1 ), item.getText( 2 ), item.getText( 3 ) ) );
     }
     meta.setReturnValues( returnValues );
   }
@@ -738,19 +742,14 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
           Value returnValue = fieldPair.value();
           Type valueType = returnValue.type();
 
-          GraphPropertyType type = null;
-          for (GraphPropertyType gpType : GraphPropertyType.values()) {
-            if (valueType.name().equalsIgnoreCase( gpType.name() )) {
-              type = gpType;
-            }
-          }
-          if (type==null) {
-            type = GraphPropertyType.String;
-          }
+          String typeName = valueType.name().replaceAll( "_", "" );
+          GraphPropertyDataType type = GraphPropertyDataType.parseCode( typeName );
+          int kettleType = type.getKettleType();
 
           TableItem item = new TableItem(wReturns.table, SWT.NONE);
           item.setText( 1, returnField );
-          item.setText( 2, type.name() );
+          item.setText( 2, ValueMetaFactory.getValueMetaName( kettleType ));
+          item.setText( 3, type.name() );
         }
       }
       wReturns.removeEmptyRows();
