@@ -115,13 +115,13 @@
 		<dependency>
 			<groupId>kettle-neo4j</groupId>
 			<artifactId>kettle-neo4j-core</artifactId>
-			<version>1.0.0</version>
+			<version>1.0.1</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.neo4j.driver</groupId>
 		  <artifactId>neo4j-java-driver</artifactId>
-			<version>1.7.0</version>
+			<version>1.7.5</version>
 		</dependency>
 
 		<dependency>

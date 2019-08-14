@@ -13,6 +13,7 @@ import org.neo4j.driver.v1.exceptions.ServiceUnavailableException;
 import org.neo4j.driver.v1.summary.Notification;
 import org.neo4j.driver.v1.summary.ResultSummary;
 import org.neo4j.kettle.core.data.GraphData;
+import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.shared.DriverSingleton;
 import org.pentaho.di.core.Const;
@@ -217,6 +218,17 @@ public class Cypher extends BaseStep implements StepInterface {
       parameters.put( mapping.getParameter(), neoValue );
     }
 
+    // Create a map between the return value and the source type so we can do the appropriate mapping later...
+    //
+    data.returnSourceTypeMap = new HashMap<>(  );
+    for (ReturnValue returnValue : meta.getReturnValues()) {
+      if (StringUtils.isNotEmpty( returnValue.getSourceType() )) {
+        String name = returnValue.getName();
+        GraphPropertyDataType type = GraphPropertyDataType.parseCode( returnValue.getSourceType() );
+        data.returnSourceTypeMap.put(name, type);
+      }
+    }
+
     if ( meta.isUsingUnwind() ) {
       data.unwindList.add( parameters );
       data.outputCount++;
@@ -250,59 +262,67 @@ public class Cypher extends BaseStep implements StepInterface {
   }
 
   private void runCypherStatement( Object[] row, String cypher, Map<String, Object> parameters ) throws KettleException {
-
     data.cypherStatements.add( new CypherStatement( row, cypher, parameters ) );
+    if ( data.cypherStatements.size() >= data.batchSize) {
+      runCypherStatementsBatch();
+    }
+  }
 
-    if ( data.cypherStatements.size() >= data.batchSize ) {
-      // Execute all the statements in there in one transaction...
-      //
-      TransactionWork<Integer> transactionWork = transaction -> {
+  private void runCypherStatementsBatch() throws KettleException {
 
-        for ( CypherStatement cypherStatement : data.cypherStatements ) {
-          StatementResult result = transaction.run( cypherStatement.getCypher(), cypherStatement.getParameters() );
-          try {
-            List<Object[]> resultRows = writeResultRows( result, cypherStatement.getRow(), false );
-            // Remember the results for when the whole batch is processed.
-            // Only then we'll forward the results.
-            //
-            cypherStatement.setResultRows( resultRows );
-          } catch(Exception e) {
-            throw new RuntimeException( "Error parsing result of cypher statement '"+cypherStatement.getCypher()+"'", e );
-          }
+    if (data.cypherStatements.size()==0) {
+      // Nothing to see here, move along
+      return;
+    }
+
+    // Execute all the statements in there in one transaction...
+    //
+    TransactionWork<Integer> transactionWork = transaction -> {
+
+      for ( CypherStatement cypherStatement : data.cypherStatements ) {
+        StatementResult result = transaction.run( cypherStatement.getCypher(), cypherStatement.getParameters() );
+        try {
+          List<Object[]> resultRows = writeResultRows( result, cypherStatement.getRow(), false );
+          // Remember the results for when the whole batch is processed.
+          // Only then we'll forward the results.
+          //
+          cypherStatement.setResultRows( resultRows );
+        } catch(Exception e) {
+          throw new RuntimeException( "Error parsing result of cypher statement '"+cypherStatement.getCypher()+"'", e );
         }
-
-        return data.cypherStatements.size();
-      };
-
-      try {
-        int nrProcessed;
-        if ( meta.isReadOnly() ) {
-          nrProcessed = data.session.readTransaction( transactionWork );
-          setLinesInput( getLinesInput() + data.cypherStatements.size() );
-        } else {
-          nrProcessed = data.session.writeTransaction( transactionWork );
-          setLinesOutput( getLinesOutput() + data.cypherStatements.size() );
-        }
-
-        if (log.isDebug()) {
-          logDebug( "Processed "+nrProcessed+" statements" );
-        }
-
-        // Forward all rows from the batch of records...
-        //
-        for (CypherStatement cypherStatement : data.cypherStatements) {
-          for (Object[] resultRow : cypherStatement.getResultRows()) {
-            putRow( data.outputRowMeta, resultRow );
-          }
-        }
-
-        // Clear out the batch of statements.
-        //
-        data.cypherStatements.clear();
-
-      } catch ( Exception e ) {
-        throw new KettleException( "Unable to execute batch of cypher statements ("+data.cypherStatements.size()+")", e );
       }
+
+      return data.cypherStatements.size();
+    };
+
+    try {
+      int nrProcessed;
+      if ( meta.isReadOnly() ) {
+        nrProcessed = data.session.readTransaction( transactionWork );
+        setLinesInput( getLinesInput() + data.cypherStatements.size() );
+      } else {
+        nrProcessed = data.session.writeTransaction( transactionWork );
+        setLinesOutput( getLinesOutput() + data.cypherStatements.size() );
+      }
+
+      if (log.isDebug()) {
+        logDebug( "Processed "+nrProcessed+" statements" );
+      }
+
+      // Forward all rows from the batch of records...
+      //
+      for (CypherStatement cypherStatement : data.cypherStatements) {
+        for (Object[] resultRow : cypherStatement.getResultRows()) {
+          putRow( data.outputRowMeta, resultRow );
+        }
+      }
+
+      // Clear out the batch of statements.
+      //
+      data.cypherStatements.clear();
+
+    } catch ( Exception e ) {
+      throw new KettleException( "Unable to execute batch of cypher statements ("+data.cypherStatements.size()+")", e );
     }
   }
 
@@ -392,7 +412,7 @@ public class Cypher extends BaseStep implements StepInterface {
             Value recordValue = record.get( returnValue.getName() );
             ValueMetaInterface targetValueMeta = data.outputRowMeta.getValueMeta( index );
             Object value = null;
-            if ( recordValue != null ) {
+            if ( recordValue != null && !recordValue.isNull()) {
               try {
                 switch ( targetValueMeta.getType() ) {
                   case ValueMetaInterface.TYPE_STRING:
@@ -411,8 +431,27 @@ public class Cypher extends BaseStep implements StepInterface {
                     value = new BigDecimal( recordValue.asString() );
                     break;
                   case ValueMetaInterface.TYPE_DATE:
-                    LocalDate localDate = recordValue.asLocalDate();
-                    value = java.sql.Date.valueOf( localDate );
+                    GraphPropertyDataType type = data.returnSourceTypeMap.get( returnValue.getName() );
+                    if (type!=null) {
+                     // Standard...
+                     switch(type) {
+                       case LocalDateTime: {
+                         LocalDateTime localDateTime = recordValue.asLocalDateTime();
+                         value = java.sql.Date.valueOf( localDateTime.toLocalDate() );
+                         break;
+                       }
+                       case Date: {
+                         LocalDate localDate = recordValue.asLocalDate();
+                         value = java.sql.Date.valueOf( localDate );
+                         break;
+                       }
+                       default:
+                         throw new KettleException( "Conversion from Neo4j daa type "+type.name()+" to a Kettle Date isn't supported yet" );
+                     }
+                    } else {
+                      LocalDate localDate = recordValue.asLocalDate();
+                      value = java.sql.Date.valueOf( localDate );
+                    }
                     break;
                   case ValueMetaInterface.TYPE_TIMESTAMP:
                     LocalDateTime localDateTime = recordValue.asLocalDateTime();
@@ -468,11 +507,26 @@ public class Cypher extends BaseStep implements StepInterface {
 
   @Override public void batchComplete() {
 
-    wrapUpTransaction();
+    try {
+      wrapUpTransaction();
+    } catch(Exception e) {
+      setErrors( getErrors()+1 );
+      stopAll();
+      throw new RuntimeException( "Unable to complete batch of records", e );
+    }
 
   }
 
   private void wrapUpTransaction() {
+
+    try {
+      runCypherStatementsBatch();
+    } catch(Exception e) {
+      setErrors( getErrors()+1 );
+      stopAll();
+      throw new RuntimeException( "Unable to run batch of cypher statements", e );
+    }
+
     // At the end of each batch, do a commit.
     //
     if ( data.outputCount > 0 ) {

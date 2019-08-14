@@ -3,6 +3,7 @@ package bi.know.kettle.neo4j.steps.cypher;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Transaction;
+import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.BaseStepData;
@@ -32,4 +33,6 @@ public class CypherData extends BaseStepData implements StepDataInterface {
   public List<Map<String, Object>> unwindList;
 
   public List<CypherStatement> cypherStatements;
+
+  public Map<String, GraphPropertyDataType> returnSourceTypeMap;
 }
