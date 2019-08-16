@@ -270,7 +270,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
   private void runCypherStatementsBatch() throws KettleException {
 
-    if (data.cypherStatements.size()==0) {
+    if (data.cypherStatements==null || data.cypherStatements.size()==0) {
       // Nothing to see here, move along
       return;
     }
