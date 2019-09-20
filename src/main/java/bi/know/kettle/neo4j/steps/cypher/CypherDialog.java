@@ -73,6 +73,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
   private CCombo wConnection;
   private TextVar wBatchSize;
   private Button wReadOnly;
+  private Button wRetry;
   private Button wCypherFromField;
   private CCombo wCypherField;
   private Button wUnwind;
@@ -229,6 +230,24 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdReadOnly.top = new FormAttachment( wlReadOnly, 0, SWT.CENTER );
     wReadOnly.setLayoutData( fdReadOnly );
     lastControl = wReadOnly;
+
+    Label wlRetry = new Label( wComposite, SWT.RIGHT );
+    wlRetry.setText( "Retry connecting after disconnection? " );
+    props.setLook( wlRetry );
+    FormData fdlRetry = new FormData();
+    fdlRetry.left = new FormAttachment( 0, 0 );
+    fdlRetry.right = new FormAttachment( middle, -margin );
+    fdlRetry.top = new FormAttachment( lastControl, 2 * margin );
+    wlRetry.setLayoutData( fdlRetry );
+    wRetry = new Button( wComposite, SWT.CHECK | SWT.BORDER );
+    props.setLook( wRetry );
+    FormData fdRetry = new FormData();
+    fdRetry.left = new FormAttachment( middle, 0 );
+    fdRetry.right = new FormAttachment( 100, 0 );
+    fdRetry.top = new FormAttachment( wlRetry, 0, SWT.CENTER );
+    wRetry.setLayoutData( fdRetry );
+    lastControl = wRetry;
+
 
     Label wlCypherFromField = new Label( wComposite, SWT.RIGHT );
     wlCypherFromField.setText( "Get Cypher from input field? " );
@@ -509,6 +528,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wStepname.addSelectionListener( lsDef );
     wBatchSize.addSelectionListener( lsDef );
     wReadOnly.addSelectionListener( lsDef );
+    wRetry.addSelectionListener( lsDef );
     wCypherFromField.addSelectionListener( lsDef );
     wCypherField.addSelectionListener( lsDef );
     wUnwind.addSelectionListener( lsDef );
@@ -578,6 +598,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     wConnection.setText( Const.NVL( input.getConnectionName(), "" ) );
 
     wReadOnly.setSelection( input.isReadOnly() );
+    wRetry.setSelection( input.isRetrying() );
     wCypherFromField.setSelection( input.isCypherFromField() );
     wCypherField.setText( Const.NVL( input.getCypherField(), "" ) );
     try {
@@ -644,6 +665,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     meta.setCypher( wCypher.getText() );
 
     meta.setReadOnly( wReadOnly.getSelection() );
+    meta.setRetrying( wRetry.getSelection() );
     meta.setCypherFromField( wCypherFromField.getSelection() );
     meta.setCypherField( wCypherField.getText() );
 

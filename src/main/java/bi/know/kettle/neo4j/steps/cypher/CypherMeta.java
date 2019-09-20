@@ -48,6 +48,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   public static final String CYPHER = "cypher";
   public static final String BATCH_SIZE = "batch_size";
   public static final String READ_ONLY = "read_only";
+  public static final String RETRY = "retry";
   public static final String CYPHER_FROM_FIELD = "cypher_from_field";
   public static final String CYPHER_FIELD = "cypher_field";
   public static final String UNWIND = "unwind";
@@ -84,6 +85,9 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   @Injection( name = READ_ONLY )
   private boolean readOnly;
 
+  @Injection( name = RETRY )
+  private boolean retrying;
+
   @Injection( name = CYPHER_FROM_FIELD )
   private boolean cypherFromField;
 
@@ -115,7 +119,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
   }
 
   @Override public void setDefault() {
-
+    retrying = true;
   }
 
   @Override public StepInterface getStep( StepMeta stepMeta, StepDataInterface stepDataInterface, int i, TransMeta transMeta, Trans trans ) {
@@ -167,6 +171,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     xml.append( XMLHandler.addTagValue( CYPHER, cypher ) );
     xml.append( XMLHandler.addTagValue( BATCH_SIZE, batchSize ) );
     xml.append( XMLHandler.addTagValue( READ_ONLY, readOnly ) );
+    xml.append( XMLHandler.addTagValue( RETRY, retrying ) );
     xml.append( XMLHandler.addTagValue( CYPHER_FROM_FIELD, cypherFromField ) );
     xml.append( XMLHandler.addTagValue( CYPHER_FIELD, cypherField ) );
     xml.append( XMLHandler.addTagValue( UNWIND, usingUnwind ) );
@@ -203,6 +208,8 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     cypher = XMLHandler.getTagValue( stepnode, CYPHER );
     batchSize = XMLHandler.getTagValue( stepnode, BATCH_SIZE );
     readOnly = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, READ_ONLY ) );
+    String retryString = XMLHandler.getTagValue( stepnode, RETRY );
+    retrying = StringUtils.isEmpty( retryString ) || "Y".equalsIgnoreCase( retryString );
     cypherFromField = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, CYPHER_FROM_FIELD ) );
     cypherField = XMLHandler.getTagValue( stepnode, CYPHER_FIELD );
     usingUnwind = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, UNWIND ) );
@@ -245,6 +252,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     rep.saveStepAttribute( transformationId, stepId, CYPHER, cypher );
     rep.saveStepAttribute( transformationId, stepId, BATCH_SIZE, batchSize );
     rep.saveStepAttribute( transformationId, stepId, READ_ONLY, readOnly );
+    rep.saveStepAttribute( transformationId, stepId, 0, RETRY, retrying );
     rep.saveStepAttribute( transformationId, stepId, CYPHER_FROM_FIELD, cypherFromField );
     rep.saveStepAttribute( transformationId, stepId, CYPHER_FIELD, cypherField );
     rep.saveStepAttribute( transformationId, stepId, UNWIND, usingUnwind );
@@ -271,6 +279,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     cypher = rep.getStepAttributeString( stepId, CYPHER );
     batchSize = rep.getStepAttributeString( stepId, BATCH_SIZE );
     readOnly = rep.getStepAttributeBoolean( stepId, READ_ONLY );
+    retrying = rep.getStepAttributeBoolean( stepId, 0, RETRY, true );
     cypherFromField = rep.getStepAttributeBoolean( stepId, CYPHER_FROM_FIELD );
     cypherField = rep.getStepAttributeString( stepId, CYPHER_FIELD );
     usingUnwind = rep.getStepAttributeBoolean( stepId, UNWIND );
@@ -378,6 +387,22 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
    */
   public void setReadOnly( boolean readOnly ) {
     this.readOnly = readOnly;
+  }
+
+  /**
+   * Gets retrying
+   *
+   * @return value of retrying
+   */
+  public boolean isRetrying() {
+    return retrying;
+  }
+
+  /**
+   * @param retrying The retrying to set
+   */
+  public void setRetrying( boolean retrying ) {
+    this.retrying = retrying;
   }
 
   /**
