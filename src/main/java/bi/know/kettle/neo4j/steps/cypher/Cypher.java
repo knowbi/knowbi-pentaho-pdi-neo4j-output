@@ -246,8 +246,12 @@ public class Cypher extends BaseStep implements StepInterface {
         // retry once after reconnecting.
         // This can fix certain time-out issues
         //
-        reconnect();
-        runCypherStatement( row, data.cypher, parameters );
+        if (meta.isRetrying()) {
+          reconnect();
+          runCypherStatement( row, data.cypher, parameters );
+        } else {
+          throw e;
+        }
       }
     }
 
@@ -341,11 +345,15 @@ public class Cypher extends BaseStep implements StepInterface {
         // retry once after reconnecting.
         // This can fix certain time-out issues
         //
-        reconnect();
-        if ( meta.isReadOnly() ) {
-          result = data.session.readTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+        if (meta.isRetrying()) {
+          reconnect();
+          if ( meta.isReadOnly() ) {
+            result = data.session.readTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+          } else {
+            result = data.session.writeTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+          }
         } else {
-          result = data.session.writeTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+          throw e;
         }
       }
 
