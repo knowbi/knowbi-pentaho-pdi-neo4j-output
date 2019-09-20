@@ -107,7 +107,7 @@ public class Neo4jPerspective extends AbstractXulEventHandler implements SpoonPe
       connectionFactory = new MetaStoreFactory<>( NeoConnection.class, Spoon.getInstance().getMetaStore(), Neo4jDefaults.NAMESPACE );
       modelsFactory = new MetaStoreFactory<>( GraphModel.class, Spoon.getInstance().getMetaStore(), Neo4jDefaults.NAMESPACE );
 
-      addAdminTab();
+      // addAdminTab();
 
       /*
        * To make compatible with webSpoon
@@ -128,6 +128,9 @@ public class Neo4jPerspective extends AbstractXulEventHandler implements SpoonPe
   private void addAdminTab() throws Exception {
 
     final XulTabAndPanel tabAndPanel = createTab();
+    if (tabAndPanel==null) {
+      return; // some error occurred
+    }
     tabAndPanel.tab.setLabel( "Admin" );
 
     PropsUI props = PropsUI.getInstance();

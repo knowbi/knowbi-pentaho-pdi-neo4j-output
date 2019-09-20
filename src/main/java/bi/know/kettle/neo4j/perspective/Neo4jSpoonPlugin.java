@@ -34,10 +34,10 @@ public class Neo4jSpoonPlugin implements SpoonPluginInterface, SpoonLifecycleLis
   private static final Class<?> PKG = Neo4jSpoonPlugin.class;
   private ResourceBundle resourceBundle = new XulSpoonResourceBundle( PKG );
 
-  private Neo4jPerspective perspective;
+  // private Neo4jPerspective perspective;
 
   public Neo4jSpoonPlugin() throws XulException {
-    this.perspective = new Neo4jPerspective();
+    // this.perspective = new Neo4jPerspective();
   }
 
   @Override
@@ -62,7 +62,8 @@ public class Neo4jSpoonPlugin implements SpoonPluginInterface, SpoonLifecycleLis
 
   @Override
   public SpoonPerspective getPerspective() {
-    return perspective;
+    // return perspective;
+    return null;
   }
 
 }
