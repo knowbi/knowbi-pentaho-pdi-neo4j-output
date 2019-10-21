@@ -125,7 +125,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       data.unwindList = new ArrayList<>();
 
       data.dynamicFromLabels = determineDynamicLabels( meta.getFromNodeLabels() );
-      data.dynamicToLabels = determineDynamicLabels( meta.getFromNodeLabels() );
+      data.dynamicToLabels = determineDynamicLabels( meta.getToNodeLabels() );
       data.dynamicRelLabel = StringUtils.isNotEmpty( meta.getRelationship() );
 
       data.previousFromLabelsClause = null;
