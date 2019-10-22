@@ -153,6 +153,12 @@ public class Cypher extends BaseStep implements StepInterface {
             StatementResult result = writeUnwindList();
             writeResultRows( result, new Object[] {}, meta.isUsingUnwind() );
           }
+        } else {
+          // See if there are statements left to execute...
+          //
+          if (data.cypherStatements!=null && data.cypherStatements.size()>0) {
+            runCypherStatementsBatch();
+          }
         }
 
         // Signal next step(s) we're done processing
