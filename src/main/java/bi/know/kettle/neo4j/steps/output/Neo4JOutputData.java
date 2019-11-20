@@ -47,16 +47,18 @@ public class Neo4JOutputData extends BaseNeoStepData implements StepDataInterfac
 
   public String previousFromLabelsClause;
   public String previousToLabelsClause;
-  public String previousRelationshipLabel;
 
   public IMetaStore metaStore;
   public boolean dynamicFromLabels;
   public boolean dynamicToLabels;
   public boolean dynamicRelLabel;
-  public String relationshipLabel;
-  public List<String> fromLabels;
-  public List<String> toLabels;
 
+  public List<String> previousFromLabels;
+  public List<String> fromLabels;
+  public List<String> previousToLabels;
+  public List<String> toLabels;
+  public String previousRelationshipLabel;
+  public String relationshipLabel;
 
   public OperationType fromOperationType;
   public OperationType toOperationType;

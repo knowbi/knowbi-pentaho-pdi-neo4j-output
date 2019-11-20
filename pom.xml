@@ -4,7 +4,7 @@
 
   <groupId>bi.know.kettle.neo4j.output</groupId>
   <artifactId>Neo4JOutput</artifactId>
-  <version>4.1.2</version>
+  <version>4.1.3</version>
   <packaging>jar</packaging>
 
   <name>Neo4JOutput</name>
