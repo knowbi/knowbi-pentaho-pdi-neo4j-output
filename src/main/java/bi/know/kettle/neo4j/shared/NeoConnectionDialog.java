@@ -2,6 +2,8 @@ package bi.know.kettle.neo4j.shared;
 
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.events.ModifyEvent;
+import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
@@ -16,6 +18,7 @@ import org.eclipse.swt.widgets.Group;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
+import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.Const;
@@ -25,7 +28,9 @@ import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.gui.WindowProperty;
 import org.pentaho.di.ui.core.widget.CheckBoxVar;
+import org.pentaho.di.ui.core.widget.ColumnInfo;
 import org.pentaho.di.ui.core.widget.PasswordTextVar;
+import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.trans.step.BaseStepDialog;
 
@@ -47,13 +52,21 @@ public class NeoConnectionDialog {
   // Connection properties
   //
   private Text wName;
+  private Label wlServer;
   private TextVar wServer;
+  private Label wlDatabaseName;
+  private TextVar wDatabaseName;
+  private Label wlBoltPort;
   private TextVar wBoltPort;
+  private Label wlBrowserPort;
   private TextVar wBrowserPort;
+  private Label wlPolicy;
   private TextVar wPolicy;
   private TextVar wUsername;
   private TextVar wPassword;
+  private Label wlRouting;
   private CheckBoxVar wRouting;
+  private Label wlEncryption;
   private Button wEncryption;
 
   Control lastControl;
@@ -64,14 +77,17 @@ public class NeoConnectionDialog {
   private int margin;
 
   private boolean ok;
-  private Label wlPolicy;
-  
+
+  private Group gAdvanced;
   private TextVar wConnectionLivenessCheckTimeout;
   private TextVar wMaxConnectionLifetime;
   private TextVar wMaxConnectionPoolSize;
   private TextVar wConnectionAcquisitionTimeout;
   private TextVar wConnectionTimeout;
   private TextVar wMaxTransactionRetryTime;
+
+  private TableView wUrls;
+  private Button wOK;
 
   public NeoConnectionDialog( Shell parent, NeoConnection neoConnection ) {
     this.parent = parent;
@@ -96,25 +112,25 @@ public class NeoConnectionDialog {
     shell.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.Shell.Title" ) );
     shell.setLayout( formLayout );
 
-    addFormWidgets();
-
     // Buttons
-    Button wOK = new Button( shell, SWT.PUSH );
+    wOK = new Button( shell, SWT.PUSH );
     wOK.setText( BaseMessages.getString( PKG, "System.Button.OK" ) );
+    wOK.addListener( SWT.Selection, e -> ok() );
 
     Button wTest = new Button( shell, SWT.PUSH );
     wTest.setText( BaseMessages.getString( PKG, "System.Button.Test" ) );
+    wTest.addListener( SWT.Selection, e -> test() );
 
     Button wCancel = new Button( shell, SWT.PUSH );
     wCancel.setText( BaseMessages.getString( PKG, "System.Button.Cancel" ) );
+    wCancel.addListener( SWT.Selection, e -> cancel() );
 
     Button[] buttons = new Button[] { wOK, wTest, wCancel };
     BaseStepDialog.positionBottomButtons( shell, buttons, margin, lastControl );
 
-    // Add listeners
-    wOK.addListener( SWT.Selection, e -> ok() );
-    wTest.addListener( SWT.Selection, e -> test() );
-    wCancel.addListener( SWT.Selection, e -> cancel() );
+    // Add the form widgets...
+    //
+    addFormWidgets();
 
     SelectionAdapter selAdapter = new SelectionAdapter() {
       public void widgetDefaultSelected( SelectionEvent e ) {
@@ -124,6 +140,7 @@ public class NeoConnectionDialog {
     wUsername.addSelectionListener( selAdapter );
     wPassword.addSelectionListener( selAdapter );
     wServer.addSelectionListener( selAdapter );
+    wDatabaseName.addSelectionListener( selAdapter );
     wBoltPort.addSelectionListener( selAdapter );
     wBrowserPort.addSelectionListener( selAdapter );
     wPolicy.addSelectionListener( selAdapter );
@@ -176,7 +193,7 @@ public class NeoConnectionDialog {
     lastControl = wName;
 
     // The server
-    Label wlServer = new Label( shell, SWT.RIGHT );
+    wlServer = new Label( shell, SWT.RIGHT );
     props.setLook( wlServer );
     wlServer.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.Server.Label" ) );
     FormData fdlServer = new FormData();
@@ -193,8 +210,26 @@ public class NeoConnectionDialog {
     wServer.setLayoutData( fdServer );
     lastControl = wServer;
 
+    // The DatabaseName
+    wlDatabaseName = new Label( shell, SWT.RIGHT );
+    props.setLook( wlDatabaseName );
+    wlDatabaseName.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.DatabaseName.Label" ) );
+    FormData fdlDatabaseName = new FormData();
+    fdlDatabaseName.top = new FormAttachment( lastControl, margin );
+    fdlDatabaseName.left = new FormAttachment( 0, 0 ); // First one in the left top corner
+    fdlDatabaseName.right = new FormAttachment( middle, -margin );
+    wlDatabaseName.setLayoutData( fdlDatabaseName );
+    wDatabaseName = new TextVar( neoConnection, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    props.setLook( wDatabaseName );
+    FormData fdDatabaseName = new FormData();
+    fdDatabaseName.top = new FormAttachment( wlDatabaseName, 0, SWT.CENTER );
+    fdDatabaseName.left = new FormAttachment( middle, 0 ); // To the right of the label
+    fdDatabaseName.right = new FormAttachment( 95, 0 );
+    wDatabaseName.setLayoutData( fdDatabaseName );
+    lastControl = wDatabaseName;
+
     //Bolt port?
-    Label wlBoltPort = new Label( shell, SWT.RIGHT );
+    wlBoltPort = new Label( shell, SWT.RIGHT );
     props.setLook( wlBoltPort );
     wlBoltPort.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.BoltPort.Label" ) );
     FormData fdlBoltPort = new FormData();
@@ -212,7 +247,7 @@ public class NeoConnectionDialog {
     lastControl = wBoltPort;
 
     //Browser port?
-    Label wlBrowserPort = new Label( shell, SWT.RIGHT );
+    wlBrowserPort = new Label( shell, SWT.RIGHT );
     props.setLook( wlBrowserPort );
     wlBrowserPort.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.BrowserPort.Label" ) );
     FormData fdlBrowserPort = new FormData();
@@ -230,7 +265,7 @@ public class NeoConnectionDialog {
     lastControl = wBrowserPort;
 
     // Https
-    Label wlRouting = new Label( shell, SWT.RIGHT );
+    wlRouting = new Label( shell, SWT.RIGHT );
     wlRouting.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.Routing.Label" ) );
     props.setLook( wlRouting );
     FormData fdlRouting = new FormData();
@@ -309,7 +344,7 @@ public class NeoConnectionDialog {
     lastControl = wPassword;
 
     // Encryption?
-    Label wlEncryption = new Label( shell, SWT.RIGHT );
+    wlEncryption = new Label( shell, SWT.RIGHT );
     wlEncryption.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.Encryption.Label" ) );
     props.setLook( wlEncryption );
     FormData fdlEncryption = new FormData();
@@ -326,7 +361,7 @@ public class NeoConnectionDialog {
     wEncryption.setLayoutData( fdEncryption );
     lastControl = wEncryption;
 
-    Group gAdvanced = new Group(shell, SWT.SHADOW_ETCHED_IN);
+    gAdvanced = new Group(shell, SWT.SHADOW_ETCHED_IN);
     props.setLook( gAdvanced );
     FormLayout advancedLayout = new FormLayout();
     advancedLayout.marginTop = margin;
@@ -444,17 +479,66 @@ public class NeoConnectionDialog {
 
     // End of Advanced group
     //
-    FormData fdAdvanced = new FormData();
-    fdAdvanced.left = new FormAttachment( 0, 0 );
-    fdAdvanced.right = new FormAttachment( 100, 0 );
-    fdAdvanced.top = new FormAttachment( lastControl, margin*2 );
-    gAdvanced.setLayoutData( fdAdvanced );
+    FormData fdgAdvanced = new FormData();
+    fdgAdvanced.left = new FormAttachment( 0, 0 );
+    fdgAdvanced.right = new FormAttachment( 100, 0 );
+    fdgAdvanced.top = new FormAttachment( lastControl, margin*2 );
+    gAdvanced.setLayoutData( fdgAdvanced );
     lastControl = gAdvanced;
+
+    // The URLs group...
+    //
+    Group gUrls = new Group(shell, SWT.SHADOW_ETCHED_IN);
+    props.setLook( gUrls );
+    FormLayout urlsLayout = new FormLayout();
+    urlsLayout.marginTop = margin;
+    urlsLayout.marginBottom = margin;
+    gUrls.setLayout( urlsLayout );
+    gUrls.setText("Manual URLs");
+
+    // URLs
+    wUrls = new TableView( neoConnection, gUrls, SWT.NONE, new ColumnInfo[] {
+        new ColumnInfo( BaseMessages.getString( PKG, "NeoConnectionDialog.URLColumn.Label" ), ColumnInfo.COLUMN_TYPE_TEXT )
+      },
+      neoConnection.getManualUrls().size(),
+      null,
+      props
+    );
+    wUrls.table.addListener( SWT.Selection, e->{enableFields();} );
+    wUrls.table.addListener( SWT.MouseDown, e->{enableFields();} );
+    wUrls.table.addListener( SWT.MouseUp, e->{enableFields();} );
+    wUrls.table.addListener( SWT.FocusIn, e->{enableFields();} );
+    wUrls.table.addListener( SWT.FocusOut, e->{enableFields();} );
+    wUrls.addModifyListener( e->{enableFields();} );
+
+    FormData fdUrls = new FormData();
+    fdUrls.top = new FormAttachment( 0, 0 );
+    fdUrls.left = new FormAttachment( 0, 0 );
+    fdUrls.right = new FormAttachment( 100, 0 );
+    fdUrls.bottom = new FormAttachment( 100, 0 );
+    wUrls.setLayoutData( fdUrls );
+
+    // End of Advanced group
+    //
+    FormData fdgUrls = new FormData();
+    fdgUrls.left = new FormAttachment( 0, 0 );
+    fdgUrls.right = new FormAttachment( 100, 0 );
+    fdgUrls.top = new FormAttachment( lastControl, margin*2 );
+    fdgUrls.bottom = new FormAttachment( wOK, -margin*2 );
+    gUrls.setLayoutData( fdgUrls );
+    lastControl = gUrls;
   }
 
   private void enableFields() {
     wlPolicy.setEnabled( wRouting.getSelection() );
     wPolicy.setEnabled( wRouting.getSelection() );
+
+    boolean hasNoUrls = wUrls.nrNonEmpty()==0;
+    for (Control control : new Control[] {
+      wlServer, wServer, wlDatabaseName, wDatabaseName, wlBoltPort, wBoltPort, wlRouting, wRouting, wlPolicy, wPolicy, wlEncryption, wEncryption, gAdvanced}
+      ) {
+      control.setEnabled( hasNoUrls );
+    }
   }
 
   public void dispose() {
@@ -465,6 +549,7 @@ public class NeoConnectionDialog {
   public void getData() {
     wName.setText( Const.NVL( neoConnection.getName(), "" ) );
     wServer.setText( Const.NVL( neoConnection.getServer(), "" ) );
+    wDatabaseName.setText( Const.NVL( neoConnection.getDatabaseName(), "" ) );
     wBoltPort.setText( Const.NVL( neoConnection.getBoltPort(), "" ) );
     wBrowserPort.setText( Const.NVL( neoConnection.getBrowserPort(), "" ) );
     wRouting.setSelection( neoConnection.isRouting() );
@@ -479,7 +564,13 @@ public class NeoConnectionDialog {
     wConnectionAcquisitionTimeout.setText( Const.NVL(neoConnection.getConnectionAcquisitionTimeout(), "") );
     wConnectionTimeout.setText( Const.NVL(neoConnection.getConnectionTimeout(), "") );
     wMaxTransactionRetryTime.setText( Const.NVL(neoConnection.getMaxTransactionRetryTime(), "") );
-    
+    for (int i=0;i<neoConnection.getManualUrls().size();i++) {
+      TableItem item = wUrls.table.getItem( i );
+      item.setText(1, Const.NVL(neoConnection.getManualUrls().get( i ), ""));
+    }
+    wUrls.setRowNums();
+    wUrls.optWidth( true );
+
     enableFields();
     wName.setFocus();
   }
@@ -506,6 +597,7 @@ public class NeoConnectionDialog {
   private void getInfo( NeoConnection neo ) {
     neo.setName( wName.getText() );
     neo.setServer( wServer.getText() );
+    neo.setDatabaseName( wDatabaseName.getText() );
     neo.setBoltPort( wBoltPort.getText() );
     neo.setBrowserPort( wBrowserPort.getText() );
     neo.setRouting( wRouting.getSelection() );
@@ -521,6 +613,12 @@ public class NeoConnectionDialog {
     neo.setConnectionAcquisitionTimeout( wConnectionAcquisitionTimeout.getText() );
     neo.setConnectionTimeout( wConnectionTimeout.getText() );
     neo.setMaxTransactionRetryTime( wMaxTransactionRetryTime.getText() );
+
+    neo.getManualUrls().clear();
+    for (int i=0;i<wUrls.nrNonEmpty();i++){
+      TableItem item = wUrls.getNonEmpty( i );
+      neo.getManualUrls().add(item.getText( 1 ));
+    }
   }
 
   public void test() {

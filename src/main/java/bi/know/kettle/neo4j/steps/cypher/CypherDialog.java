@@ -23,14 +23,14 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Record;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.StatementResult;
-import org.neo4j.driver.v1.Transaction;
-import org.neo4j.driver.v1.Value;
-import org.neo4j.driver.v1.types.Type;
-import org.neo4j.driver.v1.util.Pair;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.StatementResult;
+import org.neo4j.driver.Transaction;
+import org.neo4j.driver.Value;
+import org.neo4j.driver.types.Type;
+import org.neo4j.driver.util.Pair;
 import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.shared.NeoConnection;
@@ -781,7 +781,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
       new ErrorDialog( shell, "Error", "Error getting return values from Cypher statement", e );
     } finally {
       if (transaction!=null) {
-        transaction.failure();
+        transaction.rollback();
         transaction.close();
       }
       if (session!=null) {
