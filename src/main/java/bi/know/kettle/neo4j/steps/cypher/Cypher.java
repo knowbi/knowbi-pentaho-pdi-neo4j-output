@@ -5,8 +5,7 @@ import bi.know.kettle.neo4j.shared.MetaStoreUtil;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.neo4j.driver.Record;
-import org.neo4j.driver.StatementResult;
-import org.neo4j.driver.Transaction;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.TransactionWork;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.exceptions.ServiceUnavailableException;
@@ -108,8 +107,7 @@ public class Cypher extends BaseStep implements StepInterface {
   }
 
   private void createDriverSession() {
-    data.driver = DriverSingleton.getDriver( log, data.neoConnection );
-    data.session = data.driver.session();
+    data.session = data.neoConnection.getSession(log);
   }
 
   private void reconnect() {
@@ -150,7 +148,7 @@ public class Cypher extends BaseStep implements StepInterface {
         //
         if ( meta.isUsingUnwind() && data.unwindList != null ) {
           if ( data.unwindList.size() > 0 ) {
-            StatementResult result = writeUnwindList();
+            Result result = writeUnwindList();
             writeResultRows( result, new Object[] {}, meta.isUsingUnwind() );
           }
         } else {
@@ -258,6 +256,10 @@ public class Cypher extends BaseStep implements StepInterface {
         } else {
           throw e;
         }
+      } catch(KettleException e) {
+        setErrors( 1 );
+        stopAll();
+        throw e;
       }
     }
 
@@ -290,7 +292,7 @@ public class Cypher extends BaseStep implements StepInterface {
     TransactionWork<Integer> transactionWork = transaction -> {
 
       for ( CypherStatement cypherStatement : data.cypherStatements ) {
-        StatementResult result = transaction.run( cypherStatement.getCypher(), cypherStatement.getParameters() );
+        Result result = transaction.run( cypherStatement.getCypher(), cypherStatement.getParameters() );
         try {
           List<Object[]> resultRows = writeResultRows( result, cypherStatement.getRow(), false );
           // Remember the results for when the whole batch is processed.
@@ -336,10 +338,10 @@ public class Cypher extends BaseStep implements StepInterface {
     }
   }
 
-  private StatementResult writeUnwindList() throws KettleException {
+  private Result writeUnwindList() throws KettleException {
     HashMap<String, Object> unwindMap = new HashMap<>();
     unwindMap.put( data.unwindMapName, data.unwindList );
-    StatementResult result = null;
+    Result result = null;
     try {
       try {
         if ( meta.isReadOnly() ) {
@@ -382,7 +384,7 @@ public class Cypher extends BaseStep implements StepInterface {
     return result;
   }
 
-  private List<Object[]> writeResultRows( StatementResult result, Object[] row, boolean unwind ) throws KettleException {
+  private List<Object[]> writeResultRows( Result result, Object[] row, boolean unwind ) throws KettleException {
     List<Object[]> resultRows = new ArrayList<>();
 
     if ( result != null ) {
@@ -508,7 +510,7 @@ public class Cypher extends BaseStep implements StepInterface {
     return resultRows;
   }
 
-  private boolean processSummary( StatementResult result ) {
+  private boolean processSummary( Result result ) {
     boolean error = false;
     ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {
@@ -533,12 +535,14 @@ public class Cypher extends BaseStep implements StepInterface {
 
   private void wrapUpTransaction() {
 
-    try {
-      runCypherStatementsBatch();
-    } catch(Exception e) {
-      setErrors( getErrors()+1 );
-      stopAll();
-      throw new RuntimeException( "Unable to run batch of cypher statements", e );
+    if (!isStopped()) {
+      try {
+        runCypherStatementsBatch();
+      } catch ( Exception e ) {
+        setErrors( getErrors() + 1 );
+        stopAll();
+        throw new RuntimeException( "Unable to run batch of cypher statements", e );
+      }
     }
 
     // At the end of each batch, do a commit.

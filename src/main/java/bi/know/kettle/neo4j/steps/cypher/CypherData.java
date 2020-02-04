@@ -18,7 +18,6 @@ public class CypherData extends BaseStepData implements StepDataInterface {
   public RowMetaInterface outputRowMeta;
   public NeoConnection neoConnection;
   public String url;
-  public Driver driver;
   public Session session;
   public int[] fieldIndexes;
   public String cypher;

@@ -5,7 +5,7 @@ import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
-import org.neo4j.driver.StatementResult;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.summary.Notification;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.kettle.core.GraphUsage;
@@ -169,7 +169,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       if ( meta.isReturningGraph() ) {
         log.logBasic( "Writing to output graph field, not to Neo4j" );
       } else {
-        data.session = data.driver.session();
+        data.session = data.neoConnection.getSession( log );
 
         // Create indexes for the primary properties of the From and To nodes
         //
@@ -258,19 +258,22 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     if ( data.cypher == null || changedLabel ) {
 
       StringBuilder cypher = new StringBuilder();
-      cypher.append( "UNWIND $props AS pr " ).append( Const.CR );
+      cypher.append( "UNWIND $props as pr " ).append( Const.CR );
 
       // The cypher for the 'from' node:
       //
+      boolean takePreviousFrom = data.dynamicFromLabels && changedLabel &&  data.previousFromLabelsClause!=null;
+      String fromLabelClause = takePreviousFrom ? data.previousFromLabelsClause : data.fromLabelsClause;
+      String fromMatchClause = getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" );
       switch ( data.fromOperationType ) {
         case NONE:
           break;
         case CREATE:
           cypher
             .append( "CREATE( " )
-            .append( data.previousFromLabelsClause )
+            .append( fromLabelClause )
             .append( " " )
-            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" ) )
+            .append( fromMatchClause )
             .append( ") " )
             .append( Const.CR )
           ;
@@ -286,9 +289,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         case MERGE:
           cypher
             .append( "MERGE( " )
-            .append( data.previousFromLabelsClause )
+            .append( fromLabelClause )
             .append( " " )
-            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" ) )
+            .append( fromMatchClause )
             .append( ") " )
             .append( Const.CR )
           ;
@@ -304,9 +307,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         case MATCH:
           cypher
             .append( "MATCH( " )
-            .append( data.previousFromLabelsClause )
+            .append( fromLabelClause )
             .append( " " )
-            .append( getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" ) )
+            .append( fromMatchClause )
             .append( ") " )
             .append( Const.CR )
           ;
@@ -318,15 +321,18 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
       // The cypher for the 'to' node:
       //
+      boolean takePreviousTo = data.dynamicToLabels && changedLabel;
+      String toLabelsClause = takePreviousTo ? data.previousToLabelsClause : data.toLabelsClause;
+      String toMatchClause = getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes, "f" );
       switch ( data.toOperationType ) {
         case NONE:
           break;
         case CREATE:
           cypher
             .append( "CREATE( " )
-            .append( data.previousToLabelsClause )
+            .append( toLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes, "t" ) )
+            .append( toMatchClause )
             .append( ") " )
             .append( Const.CR )
           ;
@@ -342,9 +348,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         case MERGE:
           cypher
             .append( "MERGE( " )
-            .append( data.previousToLabelsClause )
+            .append( toLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes, "t" ) )
+            .append( toMatchClause )
             .append( ") " )
             .append( Const.CR )
           ;
@@ -360,9 +366,9 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         case MATCH:
           cypher
             .append( "MATCH( " )
-            .append( data.previousToLabelsClause )
+            .append( toLabelsClause )
             .append( " " )
-            .append( getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes, "t" ) )
+            .append( toMatchClause )
             .append( ") " )
             .append( Const.CR )
           ;
@@ -374,6 +380,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
       // The cypher for the relationship:
       //
+      String relationshipSetClause = getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ], data.relPropIndexes );
       switch ( data.relOperationType ) {
         case NONE:
           break;
@@ -384,7 +391,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( data.previousRelationshipLabel )
             .append( "]->(t) " )
             .append( Const.CR )
-            .append( getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ], data.relPropIndexes ) )
+            .append( relationshipSetClause )
             .append( Const.CR )
           ;
           updateUsageMap( Arrays.asList( data.previousRelationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE );
@@ -416,7 +423,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
     // Run it always without beginTransaction()...
     //
-    StatementResult result = data.session.writeTransaction( tx -> tx.run( data.cypher, properties ) );
+    Result result = data.session.writeTransaction( tx -> tx.run( data.cypher, properties ) );
     processSummary( result );
 
     setLinesOutput( getLinesOutput() + data.unwindList.size() );
@@ -680,13 +687,6 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       }
 
       data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
-
-      try {
-        data.driver = DriverSingleton.getDriver( log, data.neoConnection );
-      } catch ( Exception e ) {
-        log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
-        return false;
-      }
     }
 
     return super.init( smi, sdi );
@@ -695,12 +695,14 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
   public void dispose( StepMetaInterface smi, StepDataInterface sdi ) {
     data = (Neo4JOutputData) sdi;
 
-    try {
-      wrapUpTransaction();
-    } catch ( KettleException e ) {
-      logError( "Error wrapping up transaction", e );
-      setErrors( 1L );
-      stopAll();
+    if (!isStopped()) {
+      try {
+        wrapUpTransaction();
+      } catch ( KettleException e ) {
+        logError( "Error wrapping up transaction", e );
+        setErrors( 1L );
+        stopAll();
+      }
     }
 
     if ( data.session != null ) {
@@ -724,7 +726,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     return labels.toString();
   }
 
-  private void processSummary( StatementResult result ) throws KettleException {
+  private void processSummary( Result result ) throws KettleException {
     boolean error = false;
     ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {
@@ -766,7 +768,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         String parameterName = "param" + paramNr.incrementAndGet();
 
         if ( mapName == null ) {
-          matchClause += propName + " : {" + parameterName + "}";
+          matchClause += propName + " : $" + parameterName;
         } else {
           matchClause += propName + " : " + mapName + "." + parameterName;
         }
@@ -876,8 +878,10 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
   private void wrapUpTransaction() throws KettleException {
 
-    if ( data.unwindList != null && data.unwindList.size() > 0 ) {
-      emptyUnwindList( true ); // true: force re-creation of cypher statement
+    if (!isStopped()) {
+      if ( data.unwindList != null && data.unwindList.size() > 0 ) {
+        emptyUnwindList( true ); // force write!
+      }
     }
 
     // Allow gc

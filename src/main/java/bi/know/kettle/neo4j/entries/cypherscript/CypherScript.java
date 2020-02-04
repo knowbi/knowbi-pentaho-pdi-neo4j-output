@@ -126,7 +126,6 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
     //
     connection.initializeVariablesFrom( this );
 
-    Driver driver = null;
     Session session = null;
     Transaction transaction = null;
     int nrExecuted = 0;
@@ -134,8 +133,7 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
 
       // Connect to the database
       //
-      driver = DriverSingleton.getDriver( log, connection );
-      session = driver.session();
+      session = connection.getSession(log);
       transaction = session.beginTransaction();
 
       // Split the script into parts : semi-colon at the start of a separate line

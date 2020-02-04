@@ -5,7 +5,7 @@ import bi.know.kettle.neo4j.shared.MetaStoreUtil;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringUtils;
-import org.neo4j.driver.StatementResult;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.summary.Notification;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.kettle.core.GraphUsage;
@@ -75,11 +75,13 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
         data.neoConnection.initializeVariablesFrom( this );
 
-        try {
-          data.driver = DriverSingleton.getDriver( log, data.neoConnection );
-        } catch ( Exception e ) {
-          log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
-          return false;
+        if (!meta.isReturningGraph()) {
+          try {
+            data.session = data.neoConnection.getSession( log );
+          } catch ( Exception e ) {
+            log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
+            return false;
+          }
         }
 
         data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
@@ -202,10 +204,6 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
       if ( !meta.isReturningGraph() ) {
 
-        // Create a session
-        //
-        data.session = data.driver.session();
-
         // See if we need to create indexes...
         //
         if ( meta.isCreatingIndexes() ) {
@@ -304,7 +302,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
   }
 
   private boolean executeStatement( GraphOutputData data, String cypher, Map<String, Object> parameters ) {
-    StatementResult result;
+    Result result;
     boolean errors = false;
     if ( data.batchSize <= 1 ) {
       result = data.session.run( cypher, parameters );
@@ -338,7 +336,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     return errors;
   }
 
-  private boolean processSummary( StatementResult result ) {
+  private boolean processSummary( Result result ) {
     boolean errors = false;
     ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {
@@ -563,7 +561,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
               } else {
                 Object neoValue = relProp.getType().convertFromKettle( sourceFieldMeta, sourceFieldValue );
                 parameters.put( parameterName, neoValue );
-                cypher.append( "{" + parameterName + "}" );
+                cypher.append( "$" + parameterName );
 
                 TargetParameter targetParameter = new TargetParameter( sourceFieldMeta.getName(), propFieldIndex, parameterName, relProp.getType() );
                 cypherParameters.getTargetParameters().add( targetParameter );
@@ -650,7 +648,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
             if ( !firstPrimary ) {
               cypher.append( ", " );
             }
-            cypher.append( napd.property.getName() + " : {" + parameterName + "} " );
+            cypher.append( napd.property.getName() + " : $" + parameterName + " " );
 
             firstPrimary = false;
 
@@ -674,7 +672,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
             if ( isNull ) {
               matchCypher.append( "NULL " );
             } else {
-              matchCypher.append( "{" + parameterName + "} " );
+              matchCypher.append( "$" + parameterName + " " );
             }
 
             if ( log.isDebug() ) {
