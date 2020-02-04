@@ -25,8 +25,8 @@ import org.eclipse.swt.widgets.TableItem;
 import org.eclipse.swt.widgets.Text;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Record;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.Session;
-import org.neo4j.driver.StatementResult;
 import org.neo4j.driver.Transaction;
 import org.neo4j.driver.Value;
 import org.neo4j.driver.types.Type;
@@ -752,7 +752,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
         parameters.put(transMeta.environmentSubstitute(mapping.getParameter()), "");
       }
       String cypher = transMeta.environmentSubstitute( wCypher.getText() );
-      StatementResult result = transaction.run( cypher, parameters );
+      Result result = transaction.run( cypher, parameters );
 
       // Evaluate the result
       //
