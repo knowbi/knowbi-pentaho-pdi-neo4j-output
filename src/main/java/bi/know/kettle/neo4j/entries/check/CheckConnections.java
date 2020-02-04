@@ -121,8 +121,7 @@ public class CheckConnections extends JobEntryBase implements JobEntryInterface 
         }
         connection.initializeVariablesFrom( this );
 
-        Driver driver = DriverSingleton.getDriver( log, connection );
-        Session session = driver.session();
+        Session session = connection.getSession( log );
         session.close();
 
       } catch ( Exception e ) {

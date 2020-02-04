@@ -107,8 +107,7 @@ public class Cypher extends BaseStep implements StepInterface {
   }
 
   private void createDriverSession() {
-    data.driver = DriverSingleton.getDriver( log, data.neoConnection );
-    data.session = data.driver.session();
+    data.session = data.neoConnection.getSession(log);
   }
 
   private void reconnect() {
@@ -257,6 +256,10 @@ public class Cypher extends BaseStep implements StepInterface {
         } else {
           throw e;
         }
+      } catch(KettleException e) {
+        setErrors( 1 );
+        stopAll();
+        throw e;
       }
     }
 
@@ -532,12 +535,14 @@ public class Cypher extends BaseStep implements StepInterface {
 
   private void wrapUpTransaction() {
 
-    try {
-      runCypherStatementsBatch();
-    } catch(Exception e) {
-      setErrors( getErrors()+1 );
-      stopAll();
-      throw new RuntimeException( "Unable to run batch of cypher statements", e );
+    if (!isStopped()) {
+      try {
+        runCypherStatementsBatch();
+      } catch ( Exception e ) {
+        setErrors( getErrors() + 1 );
+        stopAll();
+        throw new RuntimeException( "Unable to run batch of cypher statements", e );
+      }
     }
 
     // At the end of each batch, do a commit.
