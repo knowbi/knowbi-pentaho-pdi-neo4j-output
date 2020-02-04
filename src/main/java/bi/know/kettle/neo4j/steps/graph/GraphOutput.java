@@ -5,9 +5,9 @@ import bi.know.kettle.neo4j.shared.MetaStoreUtil;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringUtils;
-import org.neo4j.driver.v1.StatementResult;
-import org.neo4j.driver.v1.summary.Notification;
-import org.neo4j.driver.v1.summary.ResultSummary;
+import org.neo4j.driver.StatementResult;
+import org.neo4j.driver.summary.Notification;
+import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.kettle.core.GraphUsage;
 import org.neo4j.kettle.core.data.GraphData;
 import org.neo4j.kettle.core.data.GraphNodeData;
@@ -320,7 +320,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
       incrementLinesOutput();
 
       if ( !errors && data.outputCount >= data.batchSize ) {
-        data.transaction.success();
+        data.transaction.commit();
         data.transaction.close();
         data.outputCount = 0;
       }
@@ -708,7 +708,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
   private void wrapUpTransaction() {
     if ( data.outputCount > 0 ) {
-      data.transaction.success();
+      data.transaction.commit();
       data.transaction.close();
 
       // Force creation of a new transaction on the next batch of records

@@ -4,14 +4,14 @@ package bi.know.kettle.neo4j.steps.cypher;
 import bi.know.kettle.neo4j.shared.MetaStoreUtil;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.neo4j.driver.v1.Record;
-import org.neo4j.driver.v1.StatementResult;
-import org.neo4j.driver.v1.Transaction;
-import org.neo4j.driver.v1.TransactionWork;
-import org.neo4j.driver.v1.Value;
-import org.neo4j.driver.v1.exceptions.ServiceUnavailableException;
-import org.neo4j.driver.v1.summary.Notification;
-import org.neo4j.driver.v1.summary.ResultSummary;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.StatementResult;
+import org.neo4j.driver.Transaction;
+import org.neo4j.driver.TransactionWork;
+import org.neo4j.driver.Value;
+import org.neo4j.driver.exceptions.ServiceUnavailableException;
+import org.neo4j.driver.summary.Notification;
+import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.kettle.core.data.GraphData;
 import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.model.GraphPropertyType;
@@ -510,7 +510,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
   private boolean processSummary( StatementResult result ) {
     boolean error = false;
-    ResultSummary summary = result.summary();
+    ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {
       log.logError( notification.title() + " (" + notification.severity() + ")" );
       log.logError( notification.code() + " : " + notification.description() + ", position " + notification.position() );
@@ -549,9 +549,9 @@ public class Cypher extends BaseStep implements StepInterface {
       //
       if ( data.transaction != null ) {
         if ( getErrors() == 0 ) {
-          data.transaction.success();
+          data.transaction.commit();
         } else {
-          data.transaction.failure();
+          data.transaction.rollback();
         }
         data.transaction.close();
       }
