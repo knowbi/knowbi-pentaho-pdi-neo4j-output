@@ -19,7 +19,6 @@ public class GraphOutputData extends BaseNeoStepData implements StepDataInterfac
   public RowMetaInterface outputRowMeta;
   public NeoConnection neoConnection;
   public String url;
-  public Driver driver;
   public Session session;
   public int[] fieldIndexes;
   public long batchSize;
