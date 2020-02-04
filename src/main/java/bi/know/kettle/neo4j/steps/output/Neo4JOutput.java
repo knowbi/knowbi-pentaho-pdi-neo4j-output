@@ -5,7 +5,7 @@ import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringEscapeUtils;
 import org.apache.commons.lang.StringUtils;
-import org.neo4j.driver.StatementResult;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.summary.Notification;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.kettle.core.GraphUsage;
@@ -413,7 +413,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
     // Run it always without beginTransaction()...
     //
-    StatementResult result = data.session.writeTransaction( tx -> tx.run( data.cypher, properties ) );
+    Result result = data.session.writeTransaction( tx -> tx.run( data.cypher, properties ) );
     processSummary( result );
 
     setLinesOutput( getLinesOutput() + data.unwindList.size() );
@@ -721,7 +721,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     return labels.toString();
   }
 
-  private void processSummary( StatementResult result ) throws KettleException {
+  private void processSummary( Result result ) throws KettleException {
     boolean error = false;
     ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {

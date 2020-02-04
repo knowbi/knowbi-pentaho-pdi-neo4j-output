@@ -5,7 +5,7 @@ import bi.know.kettle.neo4j.shared.MetaStoreUtil;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringUtils;
-import org.neo4j.driver.StatementResult;
+import org.neo4j.driver.Result;
 import org.neo4j.driver.summary.Notification;
 import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.kettle.core.GraphUsage;
@@ -304,7 +304,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
   }
 
   private boolean executeStatement( GraphOutputData data, String cypher, Map<String, Object> parameters ) {
-    StatementResult result;
+    Result result;
     boolean errors = false;
     if ( data.batchSize <= 1 ) {
       result = data.session.run( cypher, parameters );
@@ -338,7 +338,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     return errors;
   }
 
-  private boolean processSummary( StatementResult result ) {
+  private boolean processSummary( Result result ) {
     boolean errors = false;
     ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {
