@@ -30,4 +30,5 @@ public class GraphOutputData extends BaseNeoStepData implements StepDataInterfac
   public IMetaStore metaStore;
   public Map<String, CypherParameters> cypherMap;
   public HashMap<String, Map<GraphProperty, Integer>> relationshipPropertyIndexMap;
+  public boolean version4;
 }
