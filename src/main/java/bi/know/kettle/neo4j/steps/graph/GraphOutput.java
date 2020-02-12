@@ -19,7 +19,6 @@ import org.neo4j.kettle.model.GraphNode;
 import org.neo4j.kettle.model.GraphProperty;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.model.GraphRelationship;
-import org.neo4j.kettle.shared.DriverSingleton;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleValueException;
@@ -75,9 +74,10 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
         data.neoConnection.initializeVariablesFrom( this );
 
-        if (!meta.isReturningGraph()) {
+        if ( !meta.isReturningGraph() ) {
           try {
             data.session = data.neoConnection.getSession( log );
+            data.version4 = data.neoConnection.getDriver( log ).supportsMultiDb();
           } catch ( Exception e ) {
             log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
             return false;
@@ -561,7 +561,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
               } else {
                 Object neoValue = relProp.getType().convertFromKettle( sourceFieldMeta, sourceFieldValue );
                 parameters.put( parameterName, neoValue );
-                cypher.append( "$" + parameterName );
+                cypher.append( buildParameterClause( parameterName ) );
 
                 TargetParameter targetParameter = new TargetParameter( sourceFieldMeta.getName(), propFieldIndex, parameterName, relProp.getType() );
                 cypherParameters.getTargetParameters().add( targetParameter );
@@ -648,7 +648,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
             if ( !firstPrimary ) {
               cypher.append( ", " );
             }
-            cypher.append( napd.property.getName() + " : $" + parameterName + " " );
+            cypher.append( napd.property.getName() + " : " + buildParameterClause( parameterName ) + " " );
 
             firstPrimary = false;
 
@@ -672,7 +672,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
             if ( isNull ) {
               matchCypher.append( "NULL " );
             } else {
-              matchCypher.append( "$" + parameterName + " " );
+              matchCypher.append( buildParameterClause( parameterName ) + " " );
             }
 
             if ( log.isDebug() ) {
@@ -694,9 +694,17 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
       // Add a SET clause if there are any non-primary key fields to update
       //
-      if ( matchCypher.length()>0 ) {
+      if ( matchCypher.length() > 0 ) {
         cypher.append( matchCypher );
       }
+    }
+  }
+
+  private String buildParameterClause( String parameterName ) {
+    if (data.version4) {
+      return "$"+parameterName;
+    } else {
+      return "{"+parameterName+"}";
     }
   }
 

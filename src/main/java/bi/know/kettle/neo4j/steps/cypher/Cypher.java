@@ -143,19 +143,9 @@ public class Cypher extends BaseStep implements StepInterface {
       row = getRow();
       if ( row == null ) {
 
-        // See if there's anything left in the UNWIND list...
+        // See if there's anything left to write...
         //
-        if ( meta.isUsingUnwind() && data.unwindList != null ) {
-          if ( data.unwindList.size() > 0 ) {
-            writeUnwindList();
-          }
-        } else {
-          // See if there are statements left to execute...
-          //
-          if (data.cypherStatements!=null && data.cypherStatements.size()>0) {
-            runCypherStatementsBatch();
-          }
-        }
+        wrapUpTransaction();
 
         // Signal next step(s) we're done processing
         //
@@ -535,7 +525,17 @@ public class Cypher extends BaseStep implements StepInterface {
 
     if (!isStopped()) {
       try {
-        runCypherStatementsBatch();
+        if ( meta.isUsingUnwind() && data.unwindList != null ) {
+          if ( data.unwindList.size() > 0 ) {
+            writeUnwindList();
+          }
+        } else {
+          // See if there are statements left to execute...
+          //
+          if (data.cypherStatements!=null && data.cypherStatements.size()>0) {
+            runCypherStatementsBatch();
+          }
+        }
       } catch ( Exception e ) {
         setErrors( getErrors() + 1 );
         stopAll();
