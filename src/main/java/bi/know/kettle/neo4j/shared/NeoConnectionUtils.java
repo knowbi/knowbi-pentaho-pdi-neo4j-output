@@ -4,7 +4,7 @@ import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.MessageBox;
 import org.eclipse.swt.widgets.Shell;
-import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.Session;
 import org.neo4j.kettle.core.Neo4jDefaults;
 import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.neo4j.kettle.shared.NeoConnection;

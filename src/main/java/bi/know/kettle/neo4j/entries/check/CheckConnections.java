@@ -1,8 +1,8 @@
 package bi.know.kettle.neo4j.entries.check;
 
 import bi.know.kettle.neo4j.shared.MetaStoreUtil;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
 import org.neo4j.kettle.core.Neo4jDefaults;
 import org.neo4j.kettle.shared.DriverSingleton;
 import org.neo4j.kettle.shared.NeoConnection;
@@ -121,8 +121,7 @@ public class CheckConnections extends JobEntryBase implements JobEntryInterface 
         }
         connection.initializeVariablesFrom( this );
 
-        Driver driver = DriverSingleton.getDriver( log, connection );
-        Session session = driver.session();
+        Session session = connection.getSession( log );
         session.close();
 
       } catch ( Exception e ) {

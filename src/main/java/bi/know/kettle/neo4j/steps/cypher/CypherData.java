@@ -1,8 +1,8 @@
 package bi.know.kettle.neo4j.steps.cypher;
 
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
 import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -18,7 +18,6 @@ public class CypherData extends BaseStepData implements StepDataInterface {
   public RowMetaInterface outputRowMeta;
   public NeoConnection neoConnection;
   public String url;
-  public Driver driver;
   public Session session;
   public int[] fieldIndexes;
   public String cypher;

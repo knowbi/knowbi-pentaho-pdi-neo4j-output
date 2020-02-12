@@ -2,9 +2,9 @@ package bi.know.kettle.neo4j.entries.cypherscript;
 
 import bi.know.kettle.neo4j.shared.MetaStoreUtil;
 import org.apache.commons.lang.StringUtils;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
 import org.neo4j.kettle.core.Neo4jDefaults;
 import org.neo4j.kettle.core.metastore.MetaStoreFactory;
 import org.neo4j.kettle.shared.DriverSingleton;
@@ -126,7 +126,6 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
     //
     connection.initializeVariablesFrom( this );
 
-    Driver driver = null;
     Session session = null;
     Transaction transaction = null;
     int nrExecuted = 0;
@@ -134,8 +133,7 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
 
       // Connect to the database
       //
-      driver = DriverSingleton.getDriver( log, connection );
-      session = driver.session();
+      session = connection.getSession(log);
       transaction = session.beginTransaction();
 
       // Split the script into parts : semi-colon at the start of a separate line
@@ -159,12 +157,12 @@ public class CypherScript extends JobEntryBase implements JobEntryInterface {
 
       // Commit
       //
-      transaction.success();
+      transaction.commit();
     } catch(Exception e) {
       // Error connecting or executing
       // Roll back
       if (transaction!=null) {
-        transaction.failure();
+        transaction.rollback();
       }
       result.increaseErrors( 1L );
       result.setResult( false );
