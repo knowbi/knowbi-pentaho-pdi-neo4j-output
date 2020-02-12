@@ -275,7 +275,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
   private void runCypherStatement( Object[] row, String cypher, Map<String, Object> parameters ) throws KettleException {
     data.cypherStatements.add( new CypherStatement( row, cypher, parameters ) );
-    if ( data.cypherStatements.size() >= data.batchSize) {
+    if ( data.cypherStatements.size() >= data.batchSize || !data.hasInput) {
       runCypherStatementsBatch();
     }
   }
