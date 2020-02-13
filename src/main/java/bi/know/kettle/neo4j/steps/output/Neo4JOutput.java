@@ -259,25 +259,6 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
       StringBuilder cypher = new StringBuilder();
       cypher.append( "UNWIND $props as pr " ).append( Const.CR );
 
-      String fromLabelsClause;
-      List<String> fromLabels;
-      String toLabelsClause;
-      List<String>toLabels;
-      String relationshipLabel;
-      if (changedLabel) {
-        fromLabelsClause = data.previousFromLabelsClause;
-        fromLabels = data.previousFromLabels;
-        toLabelsClause = data.previousToLabelsClause;
-        toLabels = data.previousToLabels;
-        relationshipLabel = data.previousRelationshipLabel;
-      } else {
-        fromLabelsClause = data.fromLabelsClause;
-        fromLabels = data.fromLabels;
-        toLabelsClause = data.toLabelsClause;
-        toLabels = data.toLabels;
-        relationshipLabel = data.relationshipLabel;
-      }
-
       // The cypher for the 'from' node:
       //
       boolean takePreviousFrom = data.dynamicFromLabels && changedLabel && data.previousFromLabelsClause != null;
@@ -289,7 +270,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         case CREATE:
           cypher
             .append( "CREATE( " )
-            .append( fromLabelsClause )
+            .append( fromLabelClause )
             .append( " " )
             .append( fromMatchClause )
             .append( ") " )
@@ -302,12 +283,12 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
               .append( Const.CR )
             ;
           }
-          updateUsageMap( fromLabels, GraphUsage.NODE_CREATE );
+          updateUsageMap( data.previousFromLabels, GraphUsage.NODE_CREATE );
           break;
         case MERGE:
           cypher
             .append( "MERGE( " )
-            .append( fromLabelsClause )
+            .append( fromLabelClause )
             .append( " " )
             .append( fromMatchClause )
             .append( ") " )
@@ -320,18 +301,18 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
               .append( Const.CR )
             ;
           }
-          updateUsageMap(fromLabels, GraphUsage.NODE_UPDATE );
+          updateUsageMap( data.previousFromLabels, GraphUsage.NODE_UPDATE );
           break;
         case MATCH:
           cypher
             .append( "MATCH( " )
-            .append( fromLabelsClause )
+            .append( fromLabelClause )
             .append( " " )
             .append( fromMatchClause )
             .append( ") " )
             .append( Const.CR )
           ;
-          updateUsageMap( fromLabels, GraphUsage.NODE_READ );
+          updateUsageMap( data.previousFromLabels, GraphUsage.NODE_READ );
           break;
         default:
           throw new KettleException( "Unsupported operation type for the 'from' node: " + data.fromOperationType );
@@ -361,7 +342,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
               .append( Const.CR )
             ;
           }
-          updateUsageMap( toLabels, GraphUsage.NODE_CREATE );
+          updateUsageMap( data.previousToLabels, GraphUsage.NODE_CREATE );
           break;
         case MERGE:
           cypher
@@ -379,7 +360,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
               .append( Const.CR )
             ;
           }
-          updateUsageMap( toLabels, GraphUsage.NODE_UPDATE );
+          updateUsageMap( data.previousToLabels, GraphUsage.NODE_UPDATE );
           break;
         case MATCH:
           cypher
@@ -390,7 +371,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
             .append( ") " )
             .append( Const.CR )
           ;
-          updateUsageMap( toLabels, GraphUsage.NODE_READ );
+          updateUsageMap( data.previousToLabels, GraphUsage.NODE_READ );
           break;
         default:
           throw new KettleException( "Unsupported operation type for the 'to' node: " + data.toOperationType );
@@ -406,13 +387,13 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
           cypher
             .append( "MERGE (f)-[" )
             .append( "r:" )
-            .append( relationshipLabel )
+            .append( data.previousRelationshipLabel )
             .append( "]->(t) " )
             .append( Const.CR )
             .append( relationshipSetClause )
             .append( Const.CR )
           ;
-          updateUsageMap( Arrays.asList( relationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE );
+          updateUsageMap( Arrays.asList( data.previousRelationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE );
           ;
           break;
         case CREATE:
@@ -450,7 +431,6 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     //
     data.unwindList.clear();
   }
-
 
   private String getMatchClause( String[] propertyNames, boolean[] propertyPrimary, int[] nodePropIndexes, String alias ) {
     StringBuilder clause = new StringBuilder();
