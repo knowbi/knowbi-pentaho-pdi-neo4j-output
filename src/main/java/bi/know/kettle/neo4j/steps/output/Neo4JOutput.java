@@ -677,7 +677,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         data.metaStore = MetaStoreUtil.findMetaStore( this );
         data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnection() );
         data.neoConnection.initializeVariablesFrom( this );
-        data.version4 = data.neoConnection.getDriver( log ).supportsMultiDb();
+        data.version4 = data.neoConnection.isVersion4();
       } catch ( MetaStoreException e ) {
         log.logError( "Could not gencsv Neo4j connection '" + meta.getConnection() + "' from the metastore", e );
         return false;

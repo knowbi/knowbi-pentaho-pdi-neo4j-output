@@ -77,7 +77,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         if ( !meta.isReturningGraph() ) {
           try {
             data.session = data.neoConnection.getSession( log );
-            data.version4 = data.neoConnection.getDriver( log ).supportsMultiDb();
+            data.version4 = data.neoConnection.isVersion4();
           } catch ( Exception e ) {
             log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
             return false;
