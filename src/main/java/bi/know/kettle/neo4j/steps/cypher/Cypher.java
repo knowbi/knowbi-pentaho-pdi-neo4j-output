@@ -14,7 +14,6 @@ import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.kettle.core.data.GraphData;
 import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.model.GraphPropertyType;
-import org.neo4j.kettle.shared.DriverSingleton;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleStepException;
@@ -144,20 +143,9 @@ public class Cypher extends BaseStep implements StepInterface {
       row = getRow();
       if ( row == null ) {
 
-        // See if there's anything left in the UNWIND list...
+        // See if there's anything left to write...
         //
-        if ( meta.isUsingUnwind() && data.unwindList != null ) {
-          if ( data.unwindList.size() > 0 ) {
-            Result result = writeUnwindList();
-            writeResultRows( result, new Object[] {}, meta.isUsingUnwind() );
-          }
-        } else {
-          // See if there are statements left to execute...
-          //
-          if (data.cypherStatements!=null && data.cypherStatements.size()>0) {
-            runCypherStatementsBatch();
-          }
-        }
+        wrapUpTransaction();
 
         // Signal next step(s) we're done processing
         //
@@ -294,7 +282,7 @@ public class Cypher extends BaseStep implements StepInterface {
       for ( CypherStatement cypherStatement : data.cypherStatements ) {
         Result result = transaction.run( cypherStatement.getCypher(), cypherStatement.getParameters() );
         try {
-          List<Object[]> resultRows = writeResultRows( result, cypherStatement.getRow(), false );
+          List<Object[]> resultRows = getResultRows( result, cypherStatement.getRow(), false );
           // Remember the results for when the whole batch is processed.
           // Only then we'll forward the results.
           //
@@ -338,16 +326,17 @@ public class Cypher extends BaseStep implements StepInterface {
     }
   }
 
-  private Result writeUnwindList() throws KettleException {
+  private List<Object[]> writeUnwindList() throws KettleException {
     HashMap<String, Object> unwindMap = new HashMap<>();
     unwindMap.put( data.unwindMapName, data.unwindList );
-    Result result = null;
+    List<Object[]> resultRows = null;
+    CypherTransactionWork cypherTransactionWork = new CypherTransactionWork( this, new Object[ 0 ], true, data.cypher, unwindMap );
     try {
       try {
         if ( meta.isReadOnly() ) {
-          result = data.session.readTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+          resultRows = data.session.readTransaction( cypherTransactionWork );
         } else {
-          result = data.session.writeTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+          resultRows = data.session.writeTransaction( cypherTransactionWork );
         }
       } catch ( ServiceUnavailableException e ) {
         // retry once after reconnecting.
@@ -356,17 +345,16 @@ public class Cypher extends BaseStep implements StepInterface {
         if (meta.isRetrying()) {
           reconnect();
           if ( meta.isReadOnly() ) {
-            result = data.session.readTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+            resultRows = data.session.readTransaction( cypherTransactionWork );
           } else {
-            result = data.session.writeTransaction( tx -> tx.run( data.cypher, unwindMap ) );
+            resultRows = data.session.writeTransaction( cypherTransactionWork );
           }
         } else {
           throw e;
         }
       }
 
-      if (result!=null) {
-        List<Object[]> resultRows = writeResultRows( result, new Object[ 0 ], true );
+      if (resultRows!=null) {
         for (Object[] resultRow : resultRows) {
           putRow(data.outputRowMeta, resultRow);
         }
@@ -381,10 +369,10 @@ public class Cypher extends BaseStep implements StepInterface {
     setLinesOutput( getLinesOutput() + data.unwindList.size() );
     data.unwindList.clear();
     data.outputCount = 0;
-    return result;
+    return resultRows;
   }
 
-  private List<Object[]> writeResultRows( Result result, Object[] row, boolean unwind ) throws KettleException {
+  public List<Object[]> getResultRows( Result result, Object[] row, boolean unwind ) throws KettleException {
     List<Object[]> resultRows = new ArrayList<>();
 
     if ( result != null ) {
@@ -537,7 +525,17 @@ public class Cypher extends BaseStep implements StepInterface {
 
     if (!isStopped()) {
       try {
-        runCypherStatementsBatch();
+        if ( meta.isUsingUnwind() && data.unwindList != null ) {
+          if ( data.unwindList.size() > 0 ) {
+            writeUnwindList();
+          }
+        } else {
+          // See if there are statements left to execute...
+          //
+          if (data.cypherStatements!=null && data.cypherStatements.size()>0) {
+            runCypherStatementsBatch();
+          }
+        }
       } catch ( Exception e ) {
         setErrors( getErrors() + 1 );
         stopAll();

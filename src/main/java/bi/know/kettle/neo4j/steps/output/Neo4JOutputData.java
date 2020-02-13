@@ -65,4 +65,5 @@ public class Neo4JOutputData extends BaseNeoStepData implements StepDataInterfac
   public OperationType relOperationType;
 
   public String cypher;
+  public boolean version4;
 }

@@ -15,7 +15,6 @@ import org.neo4j.kettle.core.data.GraphPropertyData;
 import org.neo4j.kettle.core.data.GraphPropertyDataType;
 import org.neo4j.kettle.core.data.GraphRelationshipData;
 import org.neo4j.kettle.model.GraphPropertyType;
-import org.neo4j.kettle.shared.DriverSingleton;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleValueException;
@@ -281,7 +280,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
       // The cypher for the 'from' node:
       //
-      boolean takePreviousFrom = data.dynamicFromLabels && changedLabel &&  data.previousFromLabelsClause!=null;
+      boolean takePreviousFrom = data.dynamicFromLabels && changedLabel && data.previousFromLabelsClause != null;
       String fromLabelClause = takePreviousFrom ? data.previousFromLabelsClause : data.fromLabelsClause;
       String fromMatchClause = getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" );
       switch ( data.fromOperationType ) {
@@ -700,6 +699,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         data.metaStore = MetaStoreUtil.findMetaStore( this );
         data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnection() );
         data.neoConnection.initializeVariablesFrom( this );
+        data.version4 = data.neoConnection.isVersion4();
       } catch ( MetaStoreException e ) {
         log.logError( "Could not gencsv Neo4j connection '" + meta.getConnection() + "' from the metastore", e );
         return false;
@@ -714,7 +714,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
   public void dispose( StepMetaInterface smi, StepDataInterface sdi ) {
     data = (Neo4JOutputData) sdi;
 
-    if (!isStopped()) {
+    if ( !isStopped() ) {
       try {
         wrapUpTransaction();
       } catch ( KettleException e ) {
@@ -758,6 +758,14 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
     }
   }
 
+  private String buildParameterClause( String parameterName ) {
+    if ( data.version4 ) {
+      return "$" + parameterName;
+    } else {
+      return "{" + parameterName + "}";
+    }
+  }
+
   private String generateMatchClause( String alias, String mapName, List<String> nodeLabels, String[] nodeProps, String[] nodePropNames,
                                       GraphPropertyType[] nodePropTypes,
                                       boolean[] nodePropPrimary,
@@ -787,7 +795,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         String parameterName = "param" + paramNr.incrementAndGet();
 
         if ( mapName == null ) {
-          matchClause += propName + " : $" + parameterName;
+          matchClause += propName + " : " + buildParameterClause( parameterName );
         } else {
           matchClause += propName + " : " + mapName + "." + parameterName;
         }
@@ -897,7 +905,7 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
   private void wrapUpTransaction() throws KettleException {
 
-    if (!isStopped()) {
+    if ( !isStopped() ) {
       if ( data.unwindList != null && data.unwindList.size() > 0 ) {
         emptyUnwindList( true ); // force write!
       }
