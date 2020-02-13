@@ -2,8 +2,6 @@ package bi.know.kettle.neo4j.shared;
 
 import org.apache.commons.lang.StringUtils;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.events.ModifyEvent;
-import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
 import org.eclipse.swt.events.ShellAdapter;
@@ -56,6 +54,8 @@ public class NeoConnectionDialog {
   private TextVar wServer;
   private Label wlDatabaseName;
   private TextVar wDatabaseName;
+  private Label wlVersion4;
+  private Button wVersion4;
   private Label wlBoltPort;
   private TextVar wBoltPort;
   private Label wlBrowserPort;
@@ -228,6 +228,24 @@ public class NeoConnectionDialog {
     wDatabaseName.setLayoutData( fdDatabaseName );
     lastControl = wDatabaseName;
 
+    // Version4?
+    wlVersion4 = new Label( shell, SWT.RIGHT );
+    wlVersion4.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.Version4.Label" ) );
+    props.setLook( wlVersion4 );
+    FormData fdlVersion4 = new FormData();
+    fdlVersion4.top = new FormAttachment( lastControl, margin );
+    fdlVersion4.left = new FormAttachment( 0, 0 );
+    fdlVersion4.right = new FormAttachment( middle, -margin );
+    wlVersion4.setLayoutData( fdlVersion4 );
+    wVersion4 = new Button( shell, SWT.CHECK );
+    props.setLook( wVersion4 );
+    FormData fdVersion4 = new FormData();
+    fdVersion4.top = new FormAttachment( wlVersion4, 0, SWT.CENTER );
+    fdVersion4.left = new FormAttachment( middle, 0 );
+    fdVersion4.right = new FormAttachment( 95, 0 );
+    wVersion4.setLayoutData( fdVersion4 );
+    lastControl = wVersion4;
+
     //Bolt port?
     wlBoltPort = new Label( shell, SWT.RIGHT );
     props.setLook( wlBoltPort );
@@ -361,13 +379,13 @@ public class NeoConnectionDialog {
     wEncryption.setLayoutData( fdEncryption );
     lastControl = wEncryption;
 
-    gAdvanced = new Group(shell, SWT.SHADOW_ETCHED_IN);
+    gAdvanced = new Group( shell, SWT.SHADOW_ETCHED_IN );
     props.setLook( gAdvanced );
     FormLayout advancedLayout = new FormLayout();
     advancedLayout.marginTop = margin;
     advancedLayout.marginBottom = margin;
     gAdvanced.setLayout( advancedLayout );
-    gAdvanced.setText("Advanced options");
+    gAdvanced.setText( "Advanced options" );
 
     // ConnectionLivenessCheckTimeout
     Label wlConnectionLivenessCheckTimeout = new Label( gAdvanced, SWT.RIGHT );
@@ -386,7 +404,7 @@ public class NeoConnectionDialog {
     fdConnectionLivenessCheckTimeout.right = new FormAttachment( 95, 0 );
     wConnectionLivenessCheckTimeout.setLayoutData( fdConnectionLivenessCheckTimeout );
     Control lastGroupControl = wConnectionLivenessCheckTimeout;
-    
+
     // MaxConnectionLifetime
     Label wlMaxConnectionLifetime = new Label( gAdvanced, SWT.RIGHT );
     wlMaxConnectionLifetime.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.MaxConnectionLifetime.Label" ) );
@@ -440,7 +458,7 @@ public class NeoConnectionDialog {
     fdConnectionAcquisitionTimeout.right = new FormAttachment( 95, 0 );
     wConnectionAcquisitionTimeout.setLayoutData( fdConnectionAcquisitionTimeout );
     lastGroupControl = wConnectionAcquisitionTimeout;
-    
+
     // ConnectionTimeout
     Label wlConnectionTimeout = new Label( gAdvanced, SWT.RIGHT );
     wlConnectionTimeout.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.ConnectionTimeout.Label" ) );
@@ -458,7 +476,7 @@ public class NeoConnectionDialog {
     fdConnectionTimeout.right = new FormAttachment( 95, 0 );
     wConnectionTimeout.setLayoutData( fdConnectionTimeout );
     lastGroupControl = wConnectionTimeout;
-    
+
     // MaxTransactionRetryTime
     Label wlMaxTransactionRetryTime = new Label( gAdvanced, SWT.RIGHT );
     wlMaxTransactionRetryTime.setText( BaseMessages.getString( PKG, "NeoConnectionDialog.MaxTransactionRetryTime.Label" ) );
@@ -482,34 +500,46 @@ public class NeoConnectionDialog {
     FormData fdgAdvanced = new FormData();
     fdgAdvanced.left = new FormAttachment( 0, 0 );
     fdgAdvanced.right = new FormAttachment( 100, 0 );
-    fdgAdvanced.top = new FormAttachment( lastControl, margin*2 );
+    fdgAdvanced.top = new FormAttachment( lastControl, margin * 2 );
     gAdvanced.setLayoutData( fdgAdvanced );
     lastControl = gAdvanced;
 
     // The URLs group...
     //
-    Group gUrls = new Group(shell, SWT.SHADOW_ETCHED_IN);
+    Group gUrls = new Group( shell, SWT.SHADOW_ETCHED_IN );
     props.setLook( gUrls );
     FormLayout urlsLayout = new FormLayout();
     urlsLayout.marginTop = margin;
     urlsLayout.marginBottom = margin;
     gUrls.setLayout( urlsLayout );
-    gUrls.setText("Manual URLs");
+    gUrls.setText( "Manual URLs" );
 
     // URLs
     wUrls = new TableView( neoConnection, gUrls, SWT.NONE, new ColumnInfo[] {
-        new ColumnInfo( BaseMessages.getString( PKG, "NeoConnectionDialog.URLColumn.Label" ), ColumnInfo.COLUMN_TYPE_TEXT )
-      },
+      new ColumnInfo( BaseMessages.getString( PKG, "NeoConnectionDialog.URLColumn.Label" ), ColumnInfo.COLUMN_TYPE_TEXT )
+    },
       neoConnection.getManualUrls().size(),
       null,
       props
     );
-    wUrls.table.addListener( SWT.Selection, e->{enableFields();} );
-    wUrls.table.addListener( SWT.MouseDown, e->{enableFields();} );
-    wUrls.table.addListener( SWT.MouseUp, e->{enableFields();} );
-    wUrls.table.addListener( SWT.FocusIn, e->{enableFields();} );
-    wUrls.table.addListener( SWT.FocusOut, e->{enableFields();} );
-    wUrls.addModifyListener( e->{enableFields();} );
+    wUrls.table.addListener( SWT.Selection, e -> {
+      enableFields();
+    } );
+    wUrls.table.addListener( SWT.MouseDown, e -> {
+      enableFields();
+    } );
+    wUrls.table.addListener( SWT.MouseUp, e -> {
+      enableFields();
+    } );
+    wUrls.table.addListener( SWT.FocusIn, e -> {
+      enableFields();
+    } );
+    wUrls.table.addListener( SWT.FocusOut, e -> {
+      enableFields();
+    } );
+    wUrls.addModifyListener( e -> {
+      enableFields();
+    } );
 
     FormData fdUrls = new FormData();
     fdUrls.top = new FormAttachment( 0, 0 );
@@ -523,8 +553,8 @@ public class NeoConnectionDialog {
     FormData fdgUrls = new FormData();
     fdgUrls.left = new FormAttachment( 0, 0 );
     fdgUrls.right = new FormAttachment( 100, 0 );
-    fdgUrls.top = new FormAttachment( lastControl, margin*2 );
-    fdgUrls.bottom = new FormAttachment( wOK, -margin*2 );
+    fdgUrls.top = new FormAttachment( lastControl, margin * 2 );
+    fdgUrls.bottom = new FormAttachment( wOK, -margin * 2 );
     gUrls.setLayoutData( fdgUrls );
     lastControl = gUrls;
   }
@@ -533,10 +563,10 @@ public class NeoConnectionDialog {
     wlPolicy.setEnabled( wRouting.getSelection() );
     wPolicy.setEnabled( wRouting.getSelection() );
 
-    boolean hasNoUrls = wUrls.nrNonEmpty()==0;
-    for (Control control : new Control[] {
-      wlServer, wServer, wlDatabaseName, wDatabaseName, wlBoltPort, wBoltPort, wlRouting, wRouting, wlPolicy, wPolicy, wlEncryption, wEncryption, gAdvanced}
-      ) {
+    boolean hasNoUrls = wUrls.nrNonEmpty() == 0;
+    for ( Control control : new Control[] {
+      wlServer, wServer, wlDatabaseName, wDatabaseName, wlBoltPort, wBoltPort, wlRouting, wRouting, wlPolicy, wPolicy, wlEncryption, wEncryption, gAdvanced }
+    ) {
       control.setEnabled( hasNoUrls );
     }
   }
@@ -550,23 +580,24 @@ public class NeoConnectionDialog {
     wName.setText( Const.NVL( neoConnection.getName(), "" ) );
     wServer.setText( Const.NVL( neoConnection.getServer(), "" ) );
     wDatabaseName.setText( Const.NVL( neoConnection.getDatabaseName(), "" ) );
+    wVersion4.setSelection( neoConnection.isVersion4() );
     wBoltPort.setText( Const.NVL( neoConnection.getBoltPort(), "" ) );
     wBrowserPort.setText( Const.NVL( neoConnection.getBrowserPort(), "" ) );
     wRouting.setSelection( neoConnection.isRouting() );
-    wRouting.setVariableName( Const.NVL(neoConnection.getRoutingVariable(), "") );
+    wRouting.setVariableName( Const.NVL( neoConnection.getRoutingVariable(), "" ) );
     wPolicy.setText( Const.NVL( neoConnection.getRoutingPolicy(), "" ) );
     wUsername.setText( Const.NVL( neoConnection.getUsername(), "" ) );
     wPassword.setText( Const.NVL( neoConnection.getPassword(), "" ) );
     wEncryption.setSelection( neoConnection.isUsingEncryption() );
-    wConnectionLivenessCheckTimeout.setText( Const.NVL(neoConnection.getConnectionLivenessCheckTimeout(), "") );
-    wMaxConnectionLifetime.setText( Const.NVL(neoConnection.getMaxConnectionLifetime(), "") );
-    wMaxConnectionPoolSize.setText( Const.NVL(neoConnection.getMaxConnectionPoolSize(), "") );
-    wConnectionAcquisitionTimeout.setText( Const.NVL(neoConnection.getConnectionAcquisitionTimeout(), "") );
-    wConnectionTimeout.setText( Const.NVL(neoConnection.getConnectionTimeout(), "") );
-    wMaxTransactionRetryTime.setText( Const.NVL(neoConnection.getMaxTransactionRetryTime(), "") );
-    for (int i=0;i<neoConnection.getManualUrls().size();i++) {
+    wConnectionLivenessCheckTimeout.setText( Const.NVL( neoConnection.getConnectionLivenessCheckTimeout(), "" ) );
+    wMaxConnectionLifetime.setText( Const.NVL( neoConnection.getMaxConnectionLifetime(), "" ) );
+    wMaxConnectionPoolSize.setText( Const.NVL( neoConnection.getMaxConnectionPoolSize(), "" ) );
+    wConnectionAcquisitionTimeout.setText( Const.NVL( neoConnection.getConnectionAcquisitionTimeout(), "" ) );
+    wConnectionTimeout.setText( Const.NVL( neoConnection.getConnectionTimeout(), "" ) );
+    wMaxTransactionRetryTime.setText( Const.NVL( neoConnection.getMaxTransactionRetryTime(), "" ) );
+    for ( int i = 0; i < neoConnection.getManualUrls().size(); i++ ) {
       TableItem item = wUrls.table.getItem( i );
-      item.setText(1, Const.NVL(neoConnection.getManualUrls().get( i ), ""));
+      item.setText( 1, Const.NVL( neoConnection.getManualUrls().get( i ), "" ) );
     }
     wUrls.setRowNums();
     wUrls.optWidth( true );
@@ -598,6 +629,7 @@ public class NeoConnectionDialog {
     neo.setName( wName.getText() );
     neo.setServer( wServer.getText() );
     neo.setDatabaseName( wDatabaseName.getText() );
+    neo.setVersion4( wVersion4.getSelection() );
     neo.setBoltPort( wBoltPort.getText() );
     neo.setBrowserPort( wBrowserPort.getText() );
     neo.setRouting( wRouting.getSelection() );
@@ -615,9 +647,9 @@ public class NeoConnectionDialog {
     neo.setMaxTransactionRetryTime( wMaxTransactionRetryTime.getText() );
 
     neo.getManualUrls().clear();
-    for (int i=0;i<wUrls.nrNonEmpty();i++){
+    for ( int i = 0; i < wUrls.nrNonEmpty(); i++ ) {
       TableItem item = wUrls.getNonEmpty( i );
-      neo.getManualUrls().add(item.getText( 1 ));
+      neo.getManualUrls().add( item.getText( 1 ) );
     }
   }
 
