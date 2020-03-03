@@ -5,9 +5,9 @@ import bi.know.kettle.neo4j.shared.MetaStoreUtil;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import bi.know.kettle.neo4j.steps.BaseNeoStep;
 import org.apache.commons.lang.StringUtils;
-import org.neo4j.driver.v1.StatementResult;
-import org.neo4j.driver.v1.summary.Notification;
-import org.neo4j.driver.v1.summary.ResultSummary;
+import org.neo4j.driver.Result;
+import org.neo4j.driver.summary.Notification;
+import org.neo4j.driver.summary.ResultSummary;
 import org.neo4j.kettle.core.GraphUsage;
 import org.neo4j.kettle.core.data.GraphData;
 import org.neo4j.kettle.core.data.GraphNodeData;
@@ -19,7 +19,6 @@ import org.neo4j.kettle.model.GraphNode;
 import org.neo4j.kettle.model.GraphProperty;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.model.GraphRelationship;
-import org.neo4j.kettle.shared.DriverSingleton;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleValueException;
@@ -33,6 +32,7 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
+import org.pentaho.metastore.stores.xml.XmlMetaStore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -73,13 +73,20 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         }
 
         data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
+        if (data.neoConnection==null) {
+          log.logError("Connection '"+meta.getConnectionName()+"' could not be found in the metastore "+MetaStoreUtil.getMetaStoreDescription(metaStore));
+          return false;
+        }
         data.neoConnection.initializeVariablesFrom( this );
 
-        try {
-          data.driver = DriverSingleton.getDriver( log, data.neoConnection );
-        } catch ( Exception e ) {
-          log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
-          return false;
+        if ( !meta.isReturningGraph() ) {
+          try {
+            data.session = data.neoConnection.getSession( log );
+            data.version4 = data.neoConnection.isVersion4();
+          } catch ( Exception e ) {
+            log.logError( "Unable to get or create Neo4j database driver for database '" + data.neoConnection.getName() + "'", e );
+            return false;
+          }
         }
 
         data.batchSize = Const.toLong( environmentSubstitute( meta.getBatchSize() ), 1 );
@@ -202,10 +209,6 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
       if ( !meta.isReturningGraph() ) {
 
-        // Create a session
-        //
-        data.session = data.driver.session();
-
         // See if we need to create indexes...
         //
         if ( meta.isCreatingIndexes() ) {
@@ -304,7 +307,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
   }
 
   private boolean executeStatement( GraphOutputData data, String cypher, Map<String, Object> parameters ) {
-    StatementResult result;
+    Result result;
     boolean errors = false;
     if ( data.batchSize <= 1 ) {
       result = data.session.run( cypher, parameters );
@@ -320,7 +323,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
       incrementLinesOutput();
 
       if ( !errors && data.outputCount >= data.batchSize ) {
-        data.transaction.success();
+        data.transaction.commit();
         data.transaction.close();
         data.outputCount = 0;
       }
@@ -338,7 +341,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     return errors;
   }
 
-  private boolean processSummary( StatementResult result ) {
+  private boolean processSummary( Result result ) {
     boolean errors = false;
     ResultSummary summary = result.consume();
     for ( Notification notification : summary.notifications() ) {
@@ -563,7 +566,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
               } else {
                 Object neoValue = relProp.getType().convertFromKettle( sourceFieldMeta, sourceFieldValue );
                 parameters.put( parameterName, neoValue );
-                cypher.append( "{" + parameterName + "}" );
+                cypher.append( buildParameterClause( parameterName ) );
 
                 TargetParameter targetParameter = new TargetParameter( sourceFieldMeta.getName(), propFieldIndex, parameterName, relProp.getType() );
                 cypherParameters.getTargetParameters().add( targetParameter );
@@ -650,7 +653,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
             if ( !firstPrimary ) {
               cypher.append( ", " );
             }
-            cypher.append( napd.property.getName() + " : {" + parameterName + "} " );
+            cypher.append( napd.property.getName() + " : " + buildParameterClause( parameterName ) + " " );
 
             firstPrimary = false;
 
@@ -674,7 +677,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
             if ( isNull ) {
               matchCypher.append( "NULL " );
             } else {
-              matchCypher.append( "{" + parameterName + "} " );
+              matchCypher.append( buildParameterClause( parameterName ) + " " );
             }
 
             if ( log.isDebug() ) {
@@ -696,9 +699,17 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
       // Add a SET clause if there are any non-primary key fields to update
       //
-      if ( matchCypher.length()>0 ) {
+      if ( matchCypher.length() > 0 ) {
         cypher.append( matchCypher );
       }
+    }
+  }
+
+  private String buildParameterClause( String parameterName ) {
+    if (data.version4) {
+      return "$"+parameterName;
+    } else {
+      return "{"+parameterName+"}";
     }
   }
 
@@ -708,7 +719,7 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
 
   private void wrapUpTransaction() {
     if ( data.outputCount > 0 ) {
-      data.transaction.success();
+      data.transaction.commit();
       data.transaction.close();
 
       // Force creation of a new transaction on the next batch of records

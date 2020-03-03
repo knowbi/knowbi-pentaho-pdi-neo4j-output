@@ -1,9 +1,9 @@
 package bi.know.kettle.neo4j.steps.graph;
 
 import bi.know.kettle.neo4j.steps.BaseNeoStepData;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
 import org.neo4j.kettle.model.GraphModel;
 import org.neo4j.kettle.model.GraphProperty;
 import org.neo4j.kettle.shared.NeoConnection;
@@ -19,7 +19,6 @@ public class GraphOutputData extends BaseNeoStepData implements StepDataInterfac
   public RowMetaInterface outputRowMeta;
   public NeoConnection neoConnection;
   public String url;
-  public Driver driver;
   public Session session;
   public int[] fieldIndexes;
   public long batchSize;
@@ -31,4 +30,5 @@ public class GraphOutputData extends BaseNeoStepData implements StepDataInterfac
   public IMetaStore metaStore;
   public Map<String, CypherParameters> cypherMap;
   public HashMap<String, Map<GraphProperty, Integer>> relationshipPropertyIndexMap;
+  public boolean version4;
 }

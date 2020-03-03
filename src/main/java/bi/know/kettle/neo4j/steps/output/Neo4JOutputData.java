@@ -1,9 +1,9 @@
 package bi.know.kettle.neo4j.steps.output;
 
 import bi.know.kettle.neo4j.steps.BaseNeoStepData;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.Transaction;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -65,4 +65,5 @@ public class Neo4JOutputData extends BaseNeoStepData implements StepDataInterfac
   public OperationType relOperationType;
 
   public String cypher;
+  public boolean version4;
 }
