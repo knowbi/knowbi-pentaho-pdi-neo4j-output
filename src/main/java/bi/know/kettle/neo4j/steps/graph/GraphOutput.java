@@ -32,6 +32,7 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
+import org.pentaho.metastore.stores.xml.XmlMetaStore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,6 +73,10 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         }
 
         data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
+        if (data.neoConnection==null) {
+          log.logError("Connection '"+meta.getConnectionName()+"' could not be found in the metastore "+MetaStoreUtil.getMetaStoreDescription(metaStore));
+          return false;
+        }
         data.neoConnection.initializeVariablesFrom( this );
 
         if ( !meta.isReturningGraph() ) {

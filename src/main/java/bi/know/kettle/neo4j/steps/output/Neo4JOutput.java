@@ -29,6 +29,7 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
+import org.pentaho.metastore.stores.xml.XmlMetaStore;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -676,6 +677,10 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
         //
         data.metaStore = MetaStoreUtil.findMetaStore( this );
         data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnection() );
+        if (data.neoConnection==null) {
+          log.logError("Connection '"+meta.getConnection()+"' could not be found in the metastore "+MetaStoreUtil.getMetaStoreDescription(metaStore));
+          return false;
+        }
         data.neoConnection.initializeVariablesFrom( this );
         data.version4 = data.neoConnection.isVersion4();
       } catch ( MetaStoreException e ) {

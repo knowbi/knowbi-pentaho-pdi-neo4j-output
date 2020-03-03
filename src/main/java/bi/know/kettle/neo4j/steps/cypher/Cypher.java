@@ -28,6 +28,7 @@ import org.pentaho.di.trans.step.StepInterface;
 import org.pentaho.di.trans.step.StepMeta;
 import org.pentaho.di.trans.step.StepMetaInterface;
 import org.pentaho.metastore.api.exceptions.MetaStoreException;
+import org.pentaho.metastore.stores.xml.XmlMetaStore;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -69,6 +70,10 @@ public class Cypher extends BaseStep implements StepInterface {
       //
       data.metaStore = MetaStoreUtil.findMetaStore( this );
       data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
+      if (data.neoConnection==null) {
+        log.logError("Connection '"+meta.getConnectionName()+"' could not be found in the metastore "+MetaStoreUtil.getMetaStoreDescription(metaStore));
+        return false;
+      }
       data.neoConnection.initializeVariablesFrom( this );
 
     } catch ( MetaStoreException e ) {
