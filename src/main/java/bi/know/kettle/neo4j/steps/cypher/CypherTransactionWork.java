@@ -8,7 +8,7 @@ import org.pentaho.di.core.exception.KettleException;
 import java.util.List;
 import java.util.Map;
 
-public class CypherTransactionWork implements TransactionWork<List<Object[]>> {
+public class CypherTransactionWork implements TransactionWork<Void> {
   private final Cypher step;
   private final Object[] currentRow;
   private final boolean unwind;
@@ -23,10 +23,11 @@ public class CypherTransactionWork implements TransactionWork<List<Object[]>> {
     this.unwindMap = unwindMap;
   }
 
-  @Override public List<Object[]> execute( Transaction tx ) {
+  @Override public Void execute( Transaction tx ) {
     Result result = tx.run( cypher, unwindMap );
     try {
-      return step.getResultRows( result, currentRow, unwind );
+      step.getResultRows( result, currentRow, unwind );
+      return null;
     } catch ( KettleException e ) {
       throw new RuntimeException( "Unable to execute cypher statement '"+cypher+"'", e );
     }
