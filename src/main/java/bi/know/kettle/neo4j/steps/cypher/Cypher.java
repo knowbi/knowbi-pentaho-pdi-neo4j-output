@@ -287,11 +287,9 @@ public class Cypher extends BaseStep implements StepInterface {
       for ( CypherStatement cypherStatement : data.cypherStatements ) {
         Result result = transaction.run( cypherStatement.getCypher(), cypherStatement.getParameters() );
         try {
-          List<Object[]> resultRows = getResultRows( result, cypherStatement.getRow(), false );
-          // Remember the results for when the whole batch is processed.
-          // Only then we'll forward the results.
-          //
-          cypherStatement.setResultRows( resultRows );
+          getResultRows( result, cypherStatement.getRow(), false );
+
+
         } catch(Exception e) {
           throw new RuntimeException( "Error parsing result of cypher statement '"+cypherStatement.getCypher()+"'", e );
         }
@@ -314,14 +312,6 @@ public class Cypher extends BaseStep implements StepInterface {
         logDebug( "Processed "+nrProcessed+" statements" );
       }
 
-      // Forward all rows from the batch of records...
-      //
-      for (CypherStatement cypherStatement : data.cypherStatements) {
-        for (Object[] resultRow : cypherStatement.getResultRows()) {
-          putRow( data.outputRowMeta, resultRow );
-        }
-      }
-
       // Clear out the batch of statements.
       //
       data.cypherStatements.clear();
@@ -339,9 +329,9 @@ public class Cypher extends BaseStep implements StepInterface {
     try {
       try {
         if ( meta.isReadOnly() ) {
-          resultRows = data.session.readTransaction( cypherTransactionWork );
+          data.session.readTransaction( cypherTransactionWork );
         } else {
-          resultRows = data.session.writeTransaction( cypherTransactionWork );
+          data.session.writeTransaction( cypherTransactionWork );
         }
       } catch ( ServiceUnavailableException e ) {
         // retry once after reconnecting.
@@ -350,18 +340,12 @@ public class Cypher extends BaseStep implements StepInterface {
         if (meta.isRetrying()) {
           reconnect();
           if ( meta.isReadOnly() ) {
-            resultRows = data.session.readTransaction( cypherTransactionWork );
+            data.session.readTransaction( cypherTransactionWork );
           } else {
-            resultRows = data.session.writeTransaction( cypherTransactionWork );
+            data.session.writeTransaction( cypherTransactionWork );
           }
         } else {
           throw e;
-        }
-      }
-
-      if (resultRows!=null) {
-        for (Object[] resultRow : resultRows) {
-          putRow(data.outputRowMeta, resultRow);
         }
       }
     } catch ( Exception e ) {
@@ -377,8 +361,7 @@ public class Cypher extends BaseStep implements StepInterface {
     return resultRows;
   }
 
-  public List<Object[]> getResultRows( Result result, Object[] row, boolean unwind ) throws KettleException {
-    List<Object[]> resultRows = new ArrayList<>();
+  public void getResultRows( Result result, Object[] row, boolean unwind ) throws KettleException {
 
     if ( result != null ) {
 
@@ -398,8 +381,7 @@ public class Cypher extends BaseStep implements StepInterface {
         int index = data.hasInput && !unwind ? getInputRowMeta().size() : 0;
 
         outputRowData[ index ] = graphData;
-
-        resultRows.add(outputRowData);
+        putRow( data.outputRowMeta, outputRowData );
 
       } else {
 
@@ -479,7 +461,7 @@ public class Cypher extends BaseStep implements StepInterface {
 
           // Pass the rows to the next steps
           //
-          resultRows.add(outputRow);
+          putRow( data.outputRowMeta, outputRow );
         }
       }
 
@@ -491,16 +473,7 @@ public class Cypher extends BaseStep implements StepInterface {
         setOutputDone();
         throw new KettleException( "Error found in executing cypher statement" );
       }
-
-      if ( data.hasInput && resultRows.size() == 0 ) {
-        // At least pass a copy of the input row
-        //
-        Object[] outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
-        resultRows.add(outputRow);
-      }
     }
-
-    return resultRows;
   }
 
   private boolean processSummary( Result result ) {
