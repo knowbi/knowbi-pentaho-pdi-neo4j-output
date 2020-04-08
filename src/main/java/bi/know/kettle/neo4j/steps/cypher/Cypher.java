@@ -4,6 +4,9 @@ package bi.know.kettle.neo4j.steps.cypher;
 import bi.know.kettle.neo4j.shared.MetaStoreUtil;
 import bi.know.kettle.neo4j.shared.NeoConnectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import org.neo4j.driver.Record;
 import org.neo4j.driver.Result;
 import org.neo4j.driver.TransactionWork;
@@ -403,11 +406,12 @@ public class Cypher extends BaseStep implements StepInterface {
             Value recordValue = record.get( returnValue.getName() );
             ValueMetaInterface targetValueMeta = data.outputRowMeta.getValueMeta( index );
             Object value = null;
+            GraphPropertyDataType neoType = data.returnSourceTypeMap.get( returnValue.getName() );
             if ( recordValue != null && !recordValue.isNull()) {
               try {
                 switch ( targetValueMeta.getType() ) {
                   case ValueMetaInterface.TYPE_STRING:
-                    value = recordValue.asString();
+                    value = convertToString(recordValue, neoType);
                     break;
                   case ValueMetaInterface.TYPE_INTEGER:
                     value = recordValue.asLong();
@@ -422,10 +426,9 @@ public class Cypher extends BaseStep implements StepInterface {
                     value = new BigDecimal( recordValue.asString() );
                     break;
                   case ValueMetaInterface.TYPE_DATE:
-                    GraphPropertyDataType type = data.returnSourceTypeMap.get( returnValue.getName() );
-                    if (type!=null) {
+                    if (neoType!=null) {
                      // Standard...
-                     switch(type) {
+                     switch(neoType) {
                        case LocalDateTime: {
                          LocalDateTime localDateTime = recordValue.asLocalDateTime();
                          value = java.sql.Date.valueOf( localDateTime.toLocalDate() );
@@ -437,7 +440,7 @@ public class Cypher extends BaseStep implements StepInterface {
                          break;
                        }
                        default:
-                         throw new KettleException( "Conversion from Neo4j daa type "+type.name()+" to a Kettle Date isn't supported yet" );
+                         throw new KettleException( "Conversion from Neo4j daa type "+neoType.name()+" to a Kettle Date isn't supported yet" );
                      }
                     } else {
                       LocalDate localDate = recordValue.asLocalDate();
@@ -473,6 +476,22 @@ public class Cypher extends BaseStep implements StepInterface {
         setOutputDone();
         throw new KettleException( "Error found in executing cypher statement" );
       }
+    }
+  }
+
+  /**
+   * Convert the given record value to String.
+   * For complex data types it's a conversion to JSON.
+   *
+   * @param recordValue
+   * @param sourceType
+   * @return
+   * @throws KettleException
+   */
+  private String convertToString( Value recordValue, GraphPropertyDataType sourceType ) {
+    switch(sourceType){
+      case String: return recordValue.asString();
+      default: return JSONValue.toJSONString( recordValue.asObject() );
     }
   }
 
