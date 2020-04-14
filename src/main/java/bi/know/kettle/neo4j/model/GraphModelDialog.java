@@ -450,6 +450,7 @@ public class GraphModelDialog extends Dialog {
     props.setLook( wImportGraph );
     FormData fdImportGraph = new FormData();
     fdImportGraph.left = new FormAttachment( middle, 0 );
+    fdImportGraph.right = new FormAttachment( 75, 0 );
     fdImportGraph.top = new FormAttachment( lastControl, 50 );
     wImportGraph.setLayoutData( fdImportGraph );
     wImportGraph.addListener( SWT.Selection, ( e ) -> importGraphFromFile() );
@@ -460,16 +461,18 @@ public class GraphModelDialog extends Dialog {
     props.setLook( wExportGraph );
     FormData fdExportGraph = new FormData();
     fdExportGraph.left = new FormAttachment( middle, 0 );
+    fdExportGraph.right = new FormAttachment( 75, 0 );
     fdExportGraph.top = new FormAttachment( lastControl, margin );
     wExportGraph.setLayoutData( fdExportGraph );
     wExportGraph.addListener( SWT.Selection, ( e ) -> exportGraphToFile() );
     lastControl = wExportGraph;
 
     Button wCypherWorkbenchImportGraph = new Button( wModelComp, SWT.PUSH );
-    wCypherWorkbenchImportGraph.setText( "Import graph from JSON" );
+    wCypherWorkbenchImportGraph.setText( "Import Cypher Workbench model" );
     props.setLook( wCypherWorkbenchImportGraph );
     FormData fdCypherWorkbenchImportGraph = new FormData();
     fdCypherWorkbenchImportGraph.left = new FormAttachment( middle, 0 );
+    fdCypherWorkbenchImportGraph.right = new FormAttachment( 75, 0 );
     fdCypherWorkbenchImportGraph.top = new FormAttachment( lastControl, 50 );
     wCypherWorkbenchImportGraph.setLayoutData( fdCypherWorkbenchImportGraph );
     wCypherWorkbenchImportGraph.addListener( SWT.Selection, ( e ) -> importGraphFromCypherWorkbench() );
