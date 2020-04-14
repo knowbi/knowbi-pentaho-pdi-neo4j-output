@@ -41,6 +41,7 @@ import org.neo4j.kettle.model.GraphPresentation;
 import org.neo4j.kettle.model.GraphProperty;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.model.GraphRelationship;
+import org.neo4j.kettle.model.cw.CypherWorkbenchImporter;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.row.RowMetaInterface;
@@ -462,6 +463,17 @@ public class GraphModelDialog extends Dialog {
     fdExportGraph.top = new FormAttachment( lastControl, margin );
     wExportGraph.setLayoutData( fdExportGraph );
     wExportGraph.addListener( SWT.Selection, ( e ) -> exportGraphToFile() );
+    lastControl = wExportGraph;
+
+    Button wCypherWorkbenchImportGraph = new Button( wModelComp, SWT.PUSH );
+    wCypherWorkbenchImportGraph.setText( "Import graph from JSON" );
+    props.setLook( wCypherWorkbenchImportGraph );
+    FormData fdCypherWorkbenchImportGraph = new FormData();
+    fdCypherWorkbenchImportGraph.left = new FormAttachment( middle, 0 );
+    fdCypherWorkbenchImportGraph.top = new FormAttachment( lastControl, 50 );
+    wCypherWorkbenchImportGraph.setLayoutData( fdCypherWorkbenchImportGraph );
+    wCypherWorkbenchImportGraph.addListener( SWT.Selection, ( e ) -> importGraphFromCypherWorkbench() );
+    lastControl = wCypherWorkbenchImportGraph;
 
     FormData fdModelComp = new FormData();
     fdModelComp.left = new FormAttachment( 0, 0 );
@@ -1741,6 +1753,28 @@ public class GraphModelDialog extends Dialog {
       dialog.open();
     } catch ( Exception e ) {
       new ErrorDialog( shell, "ERROR", "Error serializing to JSON", e );
+    }
+  }
+
+  private void importGraphFromCypherWorkbench() {
+    try {
+      EnterTextDialog dialog = new EnterTextDialog( shell, "Cypher Workbench Export", "Paste the cypher workbench model export (JSON) below", "{}", true );
+      String jsonModelString = dialog.open();
+      if ( jsonModelString == null ) {
+        return;
+      }
+
+      // The graph model is loaded, replace the one in memory
+      //
+      GraphModel importedModel = CypherWorkbenchImporter.importFromCwJson( jsonModelString );
+      graphModel = CypherWorkbenchImporter.changeNamesToLabels( importedModel );
+
+      // Refresh the dialog.
+      //
+      getData();
+
+    } catch ( Exception e ) {
+      new ErrorDialog( shell, "ERROR", "Error importing JSON", e );
     }
   }
 
