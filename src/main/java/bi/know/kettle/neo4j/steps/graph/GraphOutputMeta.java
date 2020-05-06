@@ -52,6 +52,7 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
   public static final String TARGET_TYPE = "target_type";
   public static final String TARGET_NAME = "target_name";
   public static final String TARGET_PROPERTY = "target_property";
+  public static final String VALIDATE_AGAINST_MODEL = "validate_against_model";
 
   @Injection( name = CONNECTION )
   private String connectionName;
@@ -70,6 +71,9 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
 
   @Injection( name = RETURN_GRAPH_FIELD )
   private String returnGraphField;
+
+  @Injection( name = VALIDATE_AGAINST_MODEL )
+  private boolean validatingAgainstModel;
 
   @InjectionDeep
   private List<FieldModelMapping> fieldModelMappings;
@@ -117,6 +121,7 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
     xml.append( XMLHandler.addTagValue( CREATE_INDEXES, creatingIndexes ) );
     xml.append( XMLHandler.addTagValue( RETURNING_GRAPH, returningGraph ) );
     xml.append( XMLHandler.addTagValue( RETURN_GRAPH_FIELD, returnGraphField ) );
+    xml.append( XMLHandler.addTagValue( VALIDATE_AGAINST_MODEL, validatingAgainstModel ) );
 
     xml.append( XMLHandler.openTag( MAPPINGS ) );
     for ( FieldModelMapping fieldModelMapping : fieldModelMappings ) {
@@ -139,6 +144,7 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
     creatingIndexes = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, CREATE_INDEXES ) );
     returningGraph = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, RETURNING_GRAPH ) );
     returnGraphField = XMLHandler.getTagValue( stepnode, RETURN_GRAPH_FIELD );
+    validatingAgainstModel = "Y".equalsIgnoreCase( XMLHandler.getTagValue( stepnode, VALIDATE_AGAINST_MODEL ) );
 
     // Parse parameter mappings
     //
@@ -306,5 +312,21 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
    */
   public void setReturnGraphField( String returnGraphField ) {
     this.returnGraphField = returnGraphField;
+  }
+
+  /**
+   * Gets validatingAgainstModel
+   *
+   * @return value of validatingAgainstModel
+   */
+  public boolean isValidatingAgainstModel() {
+    return validatingAgainstModel;
+  }
+
+  /**
+   * @param validatingAgainstModel The validatingAgainstModel to set
+   */
+  public void setValidatingAgainstModel( boolean validatingAgainstModel ) {
+    this.validatingAgainstModel = validatingAgainstModel;
   }
 }

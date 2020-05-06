@@ -323,10 +323,14 @@ public class GraphModelDialog extends Dialog {
     for ( int i = 0; i < activeNode.getProperties().size(); i++ ) {
       GraphProperty property = activeNode.getProperties().get( i );
       TableItem item = new TableItem( wNodeProperties.table, SWT.NONE );
-      item.setText( 1, Const.NVL( property.getName(), "" ) );
-      item.setText( 2, GraphPropertyType.getCode( property.getType() ) );
-      item.setText( 3, Const.NVL( property.getDescription(), "" ) );
-      item.setText( 4, property.isPrimary() ? "Y" : "N" );
+      int col=1;
+      item.setText( col++, Const.NVL( property.getName(), "" ) );
+      item.setText( col++, GraphPropertyType.getCode( property.getType() ) );
+      item.setText( col++, Const.NVL( property.getDescription(), "" ) );
+      item.setText( col++, property.isPrimary() ? "Y" : "N" );
+      item.setText( col++, property.isMandatory() ? "Y" : "N" );
+      item.setText( col++, property.isIndexed() ? "Y" : "N" );
+      item.setText( col++, property.isUnique() ? "Y" : "N" );
     }
     wNodeProperties.removeEmptyRows( 1 );
     wNodeProperties.setRowNums();
@@ -356,10 +360,14 @@ public class GraphModelDialog extends Dialog {
     for ( int i = 0; i < activeRelationship.getProperties().size(); i++ ) {
       GraphProperty property = activeRelationship.getProperties().get( i );
       TableItem item = new TableItem( wRelProperties.table, SWT.NONE );
-      item.setText( 1, Const.NVL( property.getName(), "" ) );
-      item.setText( 2, GraphPropertyType.getCode( property.getType() ) );
-      item.setText( 3, Const.NVL( property.getDescription(), "" ) );
-      item.setText( 4, property.isPrimary() ? "Y" : "N" );
+      int col=1;
+      item.setText( col++, Const.NVL( property.getName(), "" ) );
+      item.setText( col++, GraphPropertyType.getCode( property.getType() ) );
+      item.setText( col++, Const.NVL( property.getDescription(), "" ) );
+      item.setText( col++, property.isPrimary() ? "Y" : "N" );
+      item.setText( col++, property.isMandatory() ? "Y" : "N" );
+      item.setText( col++, property.isIndexed() ? "Y" : "N" );
+      item.setText( col++, property.isUnique() ? "Y" : "N" );
     }
     wRelProperties.removeEmptyRows( 1 );
     wRelProperties.setRowNums();
@@ -648,10 +656,12 @@ public class GraphModelDialog extends Dialog {
       new ColumnInfo( "Property Type", ColumnInfo.COLUMN_TYPE_CCOMBO, GraphPropertyType.getNames(), false ),
       new ColumnInfo( "Description", ColumnInfo.COLUMN_TYPE_TEXT, false ),
       new ColumnInfo( "Primary?", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "Y", "N" }, false ),
+      new ColumnInfo( "Mandatory?", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "Y", "N" }, false ),
+      new ColumnInfo( "Unique?", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "Y", "N" }, false ),
+      new ColumnInfo( "Indexed?", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "Y", "N" }, false ),
     };
     ModifyListener propertyModifyListener = modifyEvent -> getNodePropertiesFromView();
-    wNodeProperties =
-      new TableView( new Variables(), wNodesComp, SWT.FULL_SELECTION | SWT.MULTI | SWT.BORDER, propertyColumns, 1, propertyModifyListener, props );
+    wNodeProperties = new TableView( new Variables(), wNodesComp, SWT.FULL_SELECTION | SWT.MULTI | SWT.BORDER, propertyColumns, 1, propertyModifyListener, props );
     wNodeProperties.table.addListener( SWT.FocusOut, event -> getNodePropertiesFromView() );
     props.setLook( wNodeProperties );
     FormData fdNodeProperties = new FormData();
@@ -781,11 +791,16 @@ public class GraphModelDialog extends Dialog {
         java.util.List<GraphProperty> properties = new ArrayList<>();
         for ( int i = 0; i < wNodeProperties.nrNonEmpty(); i++ ) {
           TableItem item = wNodeProperties.getNonEmpty( i );
-          String propertyKey = item.getText( 1 );
-          GraphPropertyType propertyType = GraphPropertyType.parseCode( item.getText( 2 ) );
-          String propertyDescription = item.getText( 3 );
-          boolean propertyPrimary = "Y".equalsIgnoreCase( item.getText( 4 ) );
-          properties.add( new GraphProperty( propertyKey, propertyDescription, propertyType, propertyPrimary ) );
+          int col=1;
+          String propertyKey = item.getText( col++ );
+          GraphPropertyType propertyType = GraphPropertyType.parseCode( item.getText( col++ ) );
+          String propertyDescription = item.getText( col++ );
+          boolean propertyPrimary = "Y".equalsIgnoreCase( item.getText( col++ ) );
+          boolean propertyMandatory = "Y".equalsIgnoreCase( item.getText( col++ ) );
+          boolean propertyUnique = "Y".equalsIgnoreCase( item.getText( col++ ) );
+          boolean propertyIndexed = "Y".equalsIgnoreCase( item.getText( col++ ) );
+          properties.add( new GraphProperty( propertyKey, propertyDescription, propertyType, propertyPrimary,
+            propertyMandatory, propertyUnique, propertyIndexed ) );
         }
 
         activeNode.setProperties( properties );
@@ -834,7 +849,7 @@ public class GraphModelDialog extends Dialog {
         }
 
         String propertyName = Neo4jUtil.standardizePropertyName( valueMeta );
-        activeNode.getProperties().add( new GraphProperty( propertyName, "", propertyType, false ) );
+        activeNode.getProperties().add( new GraphProperty( propertyName, "", propertyType, false, false, false, false ) );
       }
       refreshNodeFields();
     }
@@ -1079,6 +1094,9 @@ public class GraphModelDialog extends Dialog {
       new ColumnInfo( "Property Type", ColumnInfo.COLUMN_TYPE_CCOMBO, GraphPropertyType.getNames(), false ),
       new ColumnInfo( "Description", ColumnInfo.COLUMN_TYPE_TEXT, false ),
       new ColumnInfo( "Primary?", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "Y", "N" }, false ),
+      new ColumnInfo( "Mandatory?", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "Y", "N" }, false ),
+      new ColumnInfo( "Unique?", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "Y", "N" }, false ),
+      new ColumnInfo( "Indexed?", ColumnInfo.COLUMN_TYPE_CCOMBO, new String[] { "Y", "N" }, false ),
     };
     ModifyListener propertyModifyListener = modifyEvent -> getRelationshipPropertiesFromView();
     wRelProperties =
@@ -1124,11 +1142,17 @@ public class GraphModelDialog extends Dialog {
         java.util.List<GraphProperty> properties = new ArrayList<>();
         for ( int i = 0; i < wRelProperties.nrNonEmpty(); i++ ) {
           TableItem item = wRelProperties.getNonEmpty( i );
-          String propertyKey = item.getText( 1 );
-          GraphPropertyType propertyType = GraphPropertyType.parseCode( item.getText( 2 ) );
-          String propertyDescription = item.getText( 3 );
-          boolean propertyPrimary = "Y".equalsIgnoreCase( item.getText( 4 ) );
-          properties.add( new GraphProperty( propertyKey, propertyDescription, propertyType, propertyPrimary ) );
+          int col=1;
+          String propertyKey = item.getText( col++ );
+          GraphPropertyType propertyType = GraphPropertyType.parseCode( item.getText( col++ ) );
+          String propertyDescription = item.getText( col++ );
+          boolean propertyPrimary = "Y".equalsIgnoreCase( item.getText( col++ ) );
+          boolean propertyMandatory = "Y".equalsIgnoreCase( item.getText( col++ ) );
+          boolean propertyUnique = "Y".equalsIgnoreCase( item.getText( col++ ) );
+          boolean propertyIndexed = "Y".equalsIgnoreCase( item.getText( col++ ) );
+
+          properties.add( new GraphProperty( propertyKey, propertyDescription, propertyType, propertyPrimary,
+            propertyMandatory, propertyUnique, propertyIndexed) );
         }
 
         activeRelationship.setProperties( properties );
