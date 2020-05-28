@@ -19,6 +19,8 @@ import org.neo4j.kettle.model.GraphNode;
 import org.neo4j.kettle.model.GraphProperty;
 import org.neo4j.kettle.model.GraphPropertyType;
 import org.neo4j.kettle.model.GraphRelationship;
+import org.neo4j.kettle.model.validation.ModelValidator;
+import org.neo4j.kettle.model.validation.NodeProperty;
 import org.pentaho.di.core.Const;
 import org.pentaho.di.core.exception.KettleException;
 import org.pentaho.di.core.exception.KettleValueException;
@@ -101,6 +103,22 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
         logError( "Model '" + meta.getModel() + "' could not be found!" );
         return false;
       }
+
+      data.modelValidator = null;
+      if (meta.isValidatingAgainstModel()) {
+        // Validate the model...
+        //
+        List<NodeProperty> usedNodeProperties = findUsedNodeProperties();
+        data.modelValidator = new ModelValidator( data.graphModel, usedNodeProperties );
+        int nrErrors = data.modelValidator.validateBeforeLoad( log, data.session );
+        if (nrErrors>0) {
+          // There were validation errors, we can stop here...
+          log.logError("Validation against graph model '"+data.graphModel.getName()+"' failed with "+nrErrors+" errors.");
+          return false;
+        } else {
+          log.logBasic("Validation against graph model '"+data.graphModel.getName()+"' was successful.");
+        }
+      }
     } catch ( MetaStoreException e ) {
       log.logError( "Could not gencsv connection'" + meta.getConnectionName() + "' from the metastore", e );
       return false;
@@ -110,6 +128,16 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
     data.nodeCount = countDistinctNodes( meta.getFieldModelMappings() );
 
     return super.init( smi, sdi );
+  }
+
+  private List<NodeProperty> findUsedNodeProperties() {
+    List<NodeProperty> list = new ArrayList<>();
+    for (FieldModelMapping fieldModelMapping : meta.getFieldModelMappings()) {
+      if (fieldModelMapping.getTargetType()==ModelTargetType.Node) {
+        list.add(new NodeProperty(fieldModelMapping.getTargetName(), fieldModelMapping.getTargetProperty()));
+      }
+    }
+    return list;
   }
 
   private int countDistinctNodes( List<FieldModelMapping> fieldModelMappings ) {

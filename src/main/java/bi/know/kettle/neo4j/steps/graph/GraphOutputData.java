@@ -6,6 +6,7 @@ import org.neo4j.driver.Session;
 import org.neo4j.driver.Transaction;
 import org.neo4j.kettle.model.GraphModel;
 import org.neo4j.kettle.model.GraphProperty;
+import org.neo4j.kettle.model.validation.ModelValidator;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.core.row.RowMetaInterface;
 import org.pentaho.di.trans.step.StepDataInterface;
@@ -31,4 +32,5 @@ public class GraphOutputData extends BaseNeoStepData implements StepDataInterfac
   public Map<String, CypherParameters> cypherMap;
   public HashMap<String, Map<GraphProperty, Integer>> relationshipPropertyIndexMap;
   public boolean version4;
+  public ModelValidator modelValidator;;
 }

@@ -485,10 +485,15 @@ public class Cypher extends BaseStep implements StepInterface {
    *
    * @param recordValue
    * @param sourceType
-   * @return
-   * @throws KettleException
+   * @return the JSON string
    */
   private String convertToString( Value recordValue, GraphPropertyDataType sourceType ) {
+    if (recordValue==null) {
+      return null;
+    }
+    if (sourceType==null) {
+      return JSONValue.toJSONString( recordValue.asObject() );
+    }
     switch(sourceType){
       case String: return recordValue.asString();
       default: return JSONValue.toJSONString( recordValue.asObject() );

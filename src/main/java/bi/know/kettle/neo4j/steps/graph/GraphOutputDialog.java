@@ -68,9 +68,9 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
   private Button wReturnGraph;
   private Label wlReturnGraphField;
   private TextVar wReturnGraphField;
+  private Button wValidateAgainstModel;
 
   private TableView wFieldMappings;
-
 
   private GraphOutputMeta input;
 
@@ -274,6 +274,26 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     fdReturnGraphField.top = new FormAttachment( wlReturnGraphField, 0, SWT.CENTER );
     wReturnGraphField.setLayoutData( fdReturnGraphField );
     lastControl = wReturnGraphField;
+
+    Label wlValidateAgainstModel = new Label( shell, SWT.RIGHT );
+    wlValidateAgainstModel.setText( "Validate against model?" );
+    wlValidateAgainstModel.setToolTipText( "This validates indexes, constraints and properties as specified in the model" );
+    props.setLook( wlValidateAgainstModel );
+    FormData fdlValidateAgainstModel = new FormData();
+    fdlValidateAgainstModel.left = new FormAttachment( 0, 0 );
+    fdlValidateAgainstModel.right = new FormAttachment( middle, -margin );
+    fdlValidateAgainstModel.top = new FormAttachment( lastControl, 2 * margin );
+    wlValidateAgainstModel.setLayoutData( fdlValidateAgainstModel );
+    wValidateAgainstModel = new Button( shell, SWT.CHECK | SWT.BORDER );
+    wValidateAgainstModel.setToolTipText( returnGraphTooltipText );
+    props.setLook( wValidateAgainstModel );
+    FormData fdValidateAgainstModel = new FormData();
+    fdValidateAgainstModel.left = new FormAttachment( middle, 0 );
+    fdValidateAgainstModel.right = new FormAttachment( 100, 0 );
+    fdValidateAgainstModel.top = new FormAttachment( wlValidateAgainstModel, 0, SWT.CENTER );
+    wValidateAgainstModel.setLayoutData( fdValidateAgainstModel );
+    wValidateAgainstModel.addListener( SWT.Selection, e -> enableFields() );
+    lastControl = wValidateAgainstModel;
 
     // Some buttons at the bottom...
     //
@@ -506,6 +526,8 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     wReturnGraph.setSelection( input.isReturningGraph() );
     wReturnGraphField.setText( Const.NVL( input.getReturnGraphField(), "" ) );
 
+    wValidateAgainstModel.setSelection( input.isValidatingAgainstModel() );
+
     enableFields();
   }
 
@@ -565,6 +587,8 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
 
     input.setReturningGraph( wReturnGraph.getSelection() );
     input.setReturnGraphField( wReturnGraphField.getText() );
+
+    input.setValidatingAgainstModel( wValidateAgainstModel.getSelection() );
 
     List<FieldModelMapping> mappings = new ArrayList<>();
     for ( int i = 0; i < wFieldMappings.nrNonEmpty(); i++ ) {
