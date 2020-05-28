@@ -288,7 +288,7 @@ public class CypherMeta extends BaseStepMeta implements StepMetaInterface {
     returnGraphField = rep.getStepAttributeString( stepId, RETURN_GRAPH_FIELD );
 
     parameterMappings = new ArrayList<>();
-    int nrMappings = rep.countNrStepAttributes( stepId, PARAMETER );
+    int nrMappings = rep.countNrStepAttributes( stepId, PARAMETER_NAME );
     for ( int i = 0; i < nrMappings; i++ ) {
       String parameter = rep.getStepAttributeString( stepId, i, PARAMETER_NAME );
       String field = rep.getStepAttributeString( stepId, i, PARAMETER_FIELD );
