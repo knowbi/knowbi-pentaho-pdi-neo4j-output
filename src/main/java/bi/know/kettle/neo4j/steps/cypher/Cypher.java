@@ -388,83 +388,95 @@ public class Cypher extends BaseStep implements StepInterface {
 
       } else {
 
-        while ( result.hasNext() ) {
-          Record record = result.next();
-
-          // Create output row
-          Object[] outputRow;
-          if ( unwind ) {
-            outputRow = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
-          } else {
-            outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
-          }
-
-          // add result values...
+        // Are we returning values?
+        //
+        if ( meta.getReturnValues().isEmpty() ) {
+          // If we're not returning any values then we simply need to pass the input rows without
+          // We're consuming any optional results below
           //
-          int index = data.hasInput && !unwind ? getInputRowMeta().size() : 0;
-          for ( ReturnValue returnValue : meta.getReturnValues() ) {
-            Value recordValue = record.get( returnValue.getName() );
-            ValueMetaInterface targetValueMeta = data.outputRowMeta.getValueMeta( index );
-            Object value = null;
-            GraphPropertyDataType neoType = data.returnSourceTypeMap.get( returnValue.getName() );
-            if ( recordValue != null && !recordValue.isNull()) {
-              try {
-                switch ( targetValueMeta.getType() ) {
-                  case ValueMetaInterface.TYPE_STRING:
-                    value = convertToString(recordValue, neoType);
-                    break;
-                  case ValueMetaInterface.TYPE_INTEGER:
-                    value = recordValue.asLong();
-                    break;
-                  case ValueMetaInterface.TYPE_NUMBER:
-                    value = recordValue.asDouble();
-                    break;
-                  case ValueMetaInterface.TYPE_BOOLEAN:
-                    value = recordValue.asBoolean();
-                    break;
-                  case ValueMetaInterface.TYPE_BIGNUMBER:
-                    value = new BigDecimal( recordValue.asString() );
-                    break;
-                  case ValueMetaInterface.TYPE_DATE:
-                    if (neoType!=null) {
-                     // Standard...
-                     switch(neoType) {
-                       case LocalDateTime: {
-                         LocalDateTime localDateTime = recordValue.asLocalDateTime();
-                         value = java.sql.Date.valueOf( localDateTime.toLocalDate() );
-                         break;
-                       }
-                       case Date: {
-                         LocalDate localDate = recordValue.asLocalDate();
-                         value = java.sql.Date.valueOf( localDate );
-                         break;
-                       }
-                       default:
-                         throw new KettleException( "Conversion from Neo4j daa type "+neoType.name()+" to a Kettle Date isn't supported yet" );
-                     }
-                    } else {
-                      LocalDate localDate = recordValue.asLocalDate();
-                      value = java.sql.Date.valueOf( localDate );
-                    }
-                    break;
-                  case ValueMetaInterface.TYPE_TIMESTAMP:
-                    LocalDateTime localDateTime = recordValue.asLocalDateTime();
-                    value = java.sql.Timestamp.valueOf( localDateTime );
-                    break;
-                  default:
-                    throw new KettleException( "Unable to convert Neo4j data to type " + targetValueMeta.toStringMeta() );
-                }
-              } catch ( Exception e ) {
-                throw new KettleException(
-                  "Unable to convert Neo4j record value '" + returnValue.getName() + "' to type : " + targetValueMeta.getTypeDesc(), e );
-              }
+          putRow( data.outputRowMeta, row );
+        } else {
+          // If we're returning values we pass all result records per input row.
+          // This can be 0, 1 or more per input row
+          //
+          while ( result.hasNext() ) {
+            Record record = result.next();
+
+            // Create output row
+            Object[] outputRow;
+            if ( unwind ) {
+              outputRow = RowDataUtil.allocateRowData( data.outputRowMeta.size() );
+            } else {
+              outputRow = RowDataUtil.createResizedCopy( row, data.outputRowMeta.size() );
             }
-            outputRow[ index++ ] = value;
-          }
 
-          // Pass the rows to the next steps
-          //
-          putRow( data.outputRowMeta, outputRow );
+            // add result values...
+            //
+            int index = data.hasInput && !unwind ? getInputRowMeta().size() : 0;
+            for ( ReturnValue returnValue : meta.getReturnValues() ) {
+              Value recordValue = record.get( returnValue.getName() );
+              ValueMetaInterface targetValueMeta = data.outputRowMeta.getValueMeta( index );
+              Object value = null;
+              GraphPropertyDataType neoType = data.returnSourceTypeMap.get( returnValue.getName() );
+              if ( recordValue != null && !recordValue.isNull() ) {
+                try {
+                  switch ( targetValueMeta.getType() ) {
+                    case ValueMetaInterface.TYPE_STRING:
+                      value = convertToString( recordValue, neoType );
+                      break;
+                    case ValueMetaInterface.TYPE_INTEGER:
+                      value = recordValue.asLong();
+                      break;
+                    case ValueMetaInterface.TYPE_NUMBER:
+                      value = recordValue.asDouble();
+                      break;
+                    case ValueMetaInterface.TYPE_BOOLEAN:
+                      value = recordValue.asBoolean();
+                      break;
+                    case ValueMetaInterface.TYPE_BIGNUMBER:
+                      value = new BigDecimal( recordValue.asString() );
+                      break;
+                    case ValueMetaInterface.TYPE_DATE:
+                      if ( neoType != null ) {
+                        // Standard...
+                        switch ( neoType ) {
+                          case LocalDateTime: {
+                            LocalDateTime localDateTime = recordValue.asLocalDateTime();
+                            value = java.sql.Date.valueOf( localDateTime.toLocalDate() );
+                            break;
+                          }
+                          case Date: {
+                            LocalDate localDate = recordValue.asLocalDate();
+                            value = java.sql.Date.valueOf( localDate );
+                            break;
+                          }
+                          default:
+                            throw new KettleException( "Conversion from Neo4j daa type " + neoType.name() + " to a Kettle Date isn't supported yet" );
+                        }
+                      } else {
+                        LocalDate localDate = recordValue.asLocalDate();
+                        value = java.sql.Date.valueOf( localDate );
+                      }
+                      break;
+                    case ValueMetaInterface.TYPE_TIMESTAMP:
+                      LocalDateTime localDateTime = recordValue.asLocalDateTime();
+                      value = java.sql.Timestamp.valueOf( localDateTime );
+                      break;
+                    default:
+                      throw new KettleException( "Unable to convert Neo4j data to type " + targetValueMeta.toStringMeta() );
+                  }
+                } catch ( Exception e ) {
+                  throw new KettleException(
+                    "Unable to convert Neo4j record value '" + returnValue.getName() + "' to type : " + targetValueMeta.getTypeDesc(), e );
+                }
+              }
+              outputRow[ index++ ] = value;
+            }
+
+            // Pass the rows to the next steps
+            //
+            putRow( data.outputRowMeta, outputRow );
+          }
         }
       }
 
