@@ -120,10 +120,7 @@ public class CheckConnections extends JobEntryBase implements JobEntryInterface 
           throw new KettleException( "Unable to find connection with name '" + connectionName + "'" );
         }
         connection.initializeVariablesFrom( this );
-
-        Session session = connection.getSession( log );
-        session.close();
-
+        connection.test();
       } catch ( Exception e ) {
         // Something bad happened, log the error, flag error
         //
