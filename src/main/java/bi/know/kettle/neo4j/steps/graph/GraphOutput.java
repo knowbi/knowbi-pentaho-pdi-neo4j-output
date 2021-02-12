@@ -74,7 +74,8 @@ public class GraphOutput extends BaseNeoStep implements StepInterface {
           return false;
         }
 
-        data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
+        String realConnectionName = environmentSubstitute( meta.getConnectionName() );
+        data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( realConnectionName );
         if (data.neoConnection==null) {
           log.logError("Connection '"+meta.getConnectionName()+"' could not be found in the metastore "+MetaStoreUtil.getMetaStoreDescription(metaStore));
           return false;
