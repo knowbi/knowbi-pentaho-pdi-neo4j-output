@@ -55,7 +55,7 @@ public class NeoConnectionDialog {
   private Label wlDatabaseName;
   private TextVar wDatabaseName;
   private Label wlVersion4;
-  private Button wVersion4;
+  private CheckBoxVar wVersion4;
   private Label wlBoltPort;
   private TextVar wBoltPort;
   private Label wlBrowserPort;
@@ -67,7 +67,7 @@ public class NeoConnectionDialog {
   private Label wlRouting;
   private CheckBoxVar wRouting;
   private Label wlEncryption;
-  private Button wEncryption;
+  private CheckBoxVar wEncryption;
 
   Control lastControl;
 
@@ -237,7 +237,7 @@ public class NeoConnectionDialog {
     fdlVersion4.left = new FormAttachment( 0, 0 );
     fdlVersion4.right = new FormAttachment( middle, -margin );
     wlVersion4.setLayoutData( fdlVersion4 );
-    wVersion4 = new Button( shell, SWT.CHECK );
+    wVersion4 = new CheckBoxVar( neoConnection, shell, SWT.CHECK );
     props.setLook( wVersion4 );
     FormData fdVersion4 = new FormData();
     fdVersion4.top = new FormAttachment( wlVersion4, 0, SWT.CENTER );
@@ -370,7 +370,7 @@ public class NeoConnectionDialog {
     fdlEncryption.left = new FormAttachment( 0, 0 );
     fdlEncryption.right = new FormAttachment( middle, -margin );
     wlEncryption.setLayoutData( fdlEncryption );
-    wEncryption = new Button( shell, SWT.CHECK );
+    wEncryption = new CheckBoxVar( neoConnection, shell, SWT.CHECK );
     props.setLook( wEncryption );
     FormData fdEncryption = new FormData();
     fdEncryption.top = new FormAttachment( wlEncryption, 0, SWT.CENTER );
@@ -581,6 +581,7 @@ public class NeoConnectionDialog {
     wServer.setText( Const.NVL( neoConnection.getServer(), "" ) );
     wDatabaseName.setText( Const.NVL( neoConnection.getDatabaseName(), "" ) );
     wVersion4.setSelection( neoConnection.isVersion4() );
+    wVersion4.setVariableName( neoConnection.getVersion4Variable() );
     wBoltPort.setText( Const.NVL( neoConnection.getBoltPort(), "" ) );
     wBrowserPort.setText( Const.NVL( neoConnection.getBrowserPort(), "" ) );
     wRouting.setSelection( neoConnection.isRouting() );
@@ -589,6 +590,7 @@ public class NeoConnectionDialog {
     wUsername.setText( Const.NVL( neoConnection.getUsername(), "" ) );
     wPassword.setText( Const.NVL( neoConnection.getPassword(), "" ) );
     wEncryption.setSelection( neoConnection.isUsingEncryption() );
+    wEncryption.setVariableName( neoConnection.getUsingEncryptionVariable() );
     wConnectionLivenessCheckTimeout.setText( Const.NVL( neoConnection.getConnectionLivenessCheckTimeout(), "" ) );
     wMaxConnectionLifetime.setText( Const.NVL( neoConnection.getMaxConnectionLifetime(), "" ) );
     wMaxConnectionPoolSize.setText( Const.NVL( neoConnection.getMaxConnectionPoolSize(), "" ) );
@@ -630,6 +632,7 @@ public class NeoConnectionDialog {
     neo.setServer( wServer.getText() );
     neo.setDatabaseName( wDatabaseName.getText() );
     neo.setVersion4( wVersion4.getSelection() );
+    neo.setVersion4Variable( wVersion4.getVariableName() );
     neo.setBoltPort( wBoltPort.getText() );
     neo.setBrowserPort( wBrowserPort.getText() );
     neo.setRouting( wRouting.getSelection() );
@@ -638,6 +641,7 @@ public class NeoConnectionDialog {
     neo.setUsername( wUsername.getText() );
     neo.setPassword( wPassword.getText() );
     neo.setUsingEncryption( wEncryption.getSelection() );
+    neo.setUsingEncryptionVariable( wEncryption.getVariableName() );
 
     neo.setConnectionLivenessCheckTimeout( wConnectionLivenessCheckTimeout.getText() );
     neo.setMaxConnectionLifetime( wMaxConnectionLifetime.getText() );

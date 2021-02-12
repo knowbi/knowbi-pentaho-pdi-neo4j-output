@@ -51,6 +51,7 @@ import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.dialog.PreviewRowsDialog;
 import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
+import org.pentaho.di.ui.core.widget.ComboVar;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
@@ -70,7 +71,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
 
   private Text wStepname;
 
-  private CCombo wConnection;
+  private ComboVar wConnection;
   private TextVar wBatchSize;
   private Button wReadOnly;
   private Button wRetry;
@@ -186,7 +187,7 @@ public class CypherDialog extends BaseStepDialog implements StepDialogInterface 
     fdNewConnection.right = new FormAttachment( wEditConnection, -margin );
     wNewConnection.setLayoutData( fdNewConnection );
 
-    wConnection = new CCombo( wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wConnection = new ComboVar( transMeta, wComposite, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wConnection );
     wConnection.addModifyListener( lsMod );
     FormData fdConnection = new FormData();

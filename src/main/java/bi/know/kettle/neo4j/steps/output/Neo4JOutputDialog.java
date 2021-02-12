@@ -45,6 +45,7 @@ import org.pentaho.di.ui.core.PropsUI;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.gui.GUIResource;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
+import org.pentaho.di.ui.core.widget.ComboVar;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
@@ -60,7 +61,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
   private Neo4JOutputMeta input;
 
   private Label wlConnection;
-  private CCombo wConnection;
+  private ComboVar wConnection;
   private Label wlBatchSize;
   private TextVar wBatchSize;
   private Label wlCreateIndexes;
@@ -182,7 +183,7 @@ public class Neo4JOutputDialog extends BaseStepDialog implements StepDialogInter
       }
     } );
 
-    wConnection = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wConnection = new ComboVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wConnection );
     wConnection.addModifyListener( lsMod );
     FormData fdConnection = new FormData();

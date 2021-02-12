@@ -39,6 +39,7 @@ import org.pentaho.di.trans.step.StepDialogInterface;
 import org.pentaho.di.ui.core.dialog.EnterMappingDialog;
 import org.pentaho.di.ui.core.dialog.ErrorDialog;
 import org.pentaho.di.ui.core.widget.ColumnInfo;
+import org.pentaho.di.ui.core.widget.ComboVar;
 import org.pentaho.di.ui.core.widget.TableView;
 import org.pentaho.di.ui.core.widget.TextVar;
 import org.pentaho.di.ui.spoon.Spoon;
@@ -56,7 +57,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
   private Text wStepname;
 
   private Label wlConnection;
-  private CCombo wConnection;
+  private ComboVar wConnection;
   private Button wEditConnection;
   private Button wNewConnection;
 
@@ -152,7 +153,7 @@ public class GraphOutputDialog extends BaseStepDialog implements StepDialogInter
     fdNewConnection.right = new FormAttachment( wEditConnection, -margin );
     wNewConnection.setLayoutData( fdNewConnection );
 
-    wConnection = new CCombo( shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
+    wConnection = new ComboVar( transMeta, shell, SWT.SINGLE | SWT.LEFT | SWT.BORDER );
     props.setLook( wConnection );
     wConnection.addModifyListener( lsMod );
     FormData fdConnection = new FormData();

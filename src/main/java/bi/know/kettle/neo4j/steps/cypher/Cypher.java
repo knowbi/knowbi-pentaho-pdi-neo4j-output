@@ -72,7 +72,8 @@ public class Cypher extends BaseStep implements StepInterface {
       // To correct lazy programmers who built certain PDI steps...
       //
       data.metaStore = MetaStoreUtil.findMetaStore( this );
-      data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( meta.getConnectionName() );
+      String realConnectionName = environmentSubstitute( meta.getConnectionName() );
+      data.neoConnection = NeoConnectionUtils.getConnectionFactory( data.metaStore ).loadElement( realConnectionName );
       if (data.neoConnection==null) {
         log.logError("Connection '"+meta.getConnectionName()+"' could not be found in the metastore "+MetaStoreUtil.getMetaStoreDescription(metaStore));
         return false;

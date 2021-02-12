@@ -1,10 +1,7 @@
 package bi.know.kettle.neo4j.entries.check;
 
 import bi.know.kettle.neo4j.shared.MetaStoreUtil;
-import org.neo4j.driver.Driver;
-import org.neo4j.driver.Session;
 import org.neo4j.kettle.core.Neo4jDefaults;
-import org.neo4j.kettle.shared.DriverSingleton;
 import org.neo4j.kettle.shared.NeoConnection;
 import org.pentaho.di.cluster.SlaveServer;
 import org.pentaho.di.core.Result;
@@ -120,10 +117,7 @@ public class CheckConnections extends JobEntryBase implements JobEntryInterface 
           throw new KettleException( "Unable to find connection with name '" + connectionName + "'" );
         }
         connection.initializeVariablesFrom( this );
-
-        Session session = connection.getSession( log );
-        session.close();
-
+        connection.test();
       } catch ( Exception e ) {
         // Something bad happened, log the error, flag error
         //
