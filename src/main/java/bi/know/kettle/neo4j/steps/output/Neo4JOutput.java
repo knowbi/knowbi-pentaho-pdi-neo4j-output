@@ -250,184 +250,188 @@ public class Neo4JOutput extends BaseNeoStep implements StepInterface {
 
   private void emptyUnwindList( boolean changedLabel ) throws KettleException {
 
-    Map<String, Object> properties = Collections.singletonMap( "props", data.unwindList );
+    try {
+      Map<String, Object> properties = Collections.singletonMap( "props", data.unwindList );
 
-    if ( data.cypher == null || changedLabel ) {
+      if ( data.cypher == null || changedLabel ) {
 
-      StringBuilder cypher = new StringBuilder();
-      cypher.append( "UNWIND $props as pr " ).append( Const.CR );
+        StringBuilder cypher = new StringBuilder();
+        cypher.append( "UNWIND $props as pr " ).append( Const.CR );
 
-      // The cypher for the 'from' node:
-      //
-      boolean takePreviousFrom = data.dynamicFromLabels && changedLabel && data.previousFromLabelsClause != null;
-      String fromLabelClause = takePreviousFrom ? data.previousFromLabelsClause : data.fromLabelsClause;
-      String fromMatchClause = getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" );
-      switch ( data.fromOperationType ) {
-        case NONE:
-          break;
-        case CREATE:
-          cypher
-            .append( "CREATE( " )
-            .append( fromLabelClause )
-            .append( " " )
-            .append( fromMatchClause )
-            .append( ") " )
-            .append( Const.CR )
-          ;
-          String setClause = getSetClause( false, "f", meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes );
-          if ( StringUtils.isNotEmpty( setClause ) ) {
+        // The cypher for the 'from' node:
+        //
+        boolean takePreviousFrom = data.dynamicFromLabels && changedLabel && data.previousFromLabelsClause != null;
+        String fromLabelClause = takePreviousFrom ? data.previousFromLabelsClause : data.fromLabelsClause;
+        String fromMatchClause = getMatchClause( meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes, "f" );
+        switch ( data.fromOperationType ) {
+          case NONE:
+            break;
+          case CREATE:
             cypher
-              .append( setClause )
+              .append( "CREATE( " )
+              .append( fromLabelClause )
+              .append( " " )
+              .append( fromMatchClause )
+              .append( ") " )
               .append( Const.CR )
             ;
-          }
-          updateUsageMap( data.fromLabels, GraphUsage.NODE_CREATE );
-          break;
-        case MERGE:
-          cypher
-            .append( "MERGE( " )
-            .append( fromLabelClause )
-            .append( " " )
-            .append( fromMatchClause )
-            .append( ") " )
-            .append( Const.CR )
-          ;
-          setClause = getSetClause( false, "f", meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes );
-          if ( StringUtils.isNotEmpty( setClause ) ) {
+            String setClause = getSetClause( false, "f", meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes );
+            if ( StringUtils.isNotEmpty( setClause ) ) {
+              cypher
+                .append( setClause )
+                .append( Const.CR )
+              ;
+            }
+            updateUsageMap( data.fromLabels, GraphUsage.NODE_CREATE );
+            break;
+          case MERGE:
             cypher
-              .append( setClause )
+              .append( "MERGE( " )
+              .append( fromLabelClause )
+              .append( " " )
+              .append( fromMatchClause )
+              .append( ") " )
               .append( Const.CR )
             ;
-          }
-          updateUsageMap( data.fromLabels, GraphUsage.NODE_UPDATE );
-          break;
-        case MATCH:
-          cypher
-            .append( "MATCH( " )
-            .append( fromLabelClause )
-            .append( " " )
-            .append( fromMatchClause )
-            .append( ") " )
-            .append( Const.CR )
-          ;
-          updateUsageMap( data.toLabels, GraphUsage.NODE_READ );
-          break;
-        default:
-          throw new KettleException( "Unsupported operation type for the 'from' node: " + data.fromOperationType );
+            setClause = getSetClause( false, "f", meta.getFromNodePropNames(), meta.getFromNodePropPrimary(), data.fromNodePropIndexes );
+            if ( StringUtils.isNotEmpty( setClause ) ) {
+              cypher
+                .append( setClause )
+                .append( Const.CR )
+              ;
+            }
+            updateUsageMap( data.fromLabels, GraphUsage.NODE_UPDATE );
+            break;
+          case MATCH:
+            cypher
+              .append( "MATCH( " )
+              .append( fromLabelClause )
+              .append( " " )
+              .append( fromMatchClause )
+              .append( ") " )
+              .append( Const.CR )
+            ;
+            updateUsageMap( data.toLabels, GraphUsage.NODE_READ );
+            break;
+          default:
+            throw new KettleException( "Unsupported operation type for the 'from' node: " + data.fromOperationType );
+        }
+
+        // The cypher for the 'to' node:
+        //
+        boolean takePreviousTo = data.dynamicToLabels && changedLabel;
+        String toLabelsClause = takePreviousTo ? data.previousToLabelsClause : data.toLabelsClause;
+        String toMatchClause = getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes, "f" );
+        switch ( data.toOperationType ) {
+          case NONE:
+            break;
+          case CREATE:
+            cypher
+              .append( "CREATE( " )
+              .append( toLabelsClause )
+              .append( " " )
+              .append( toMatchClause )
+              .append( ") " )
+              .append( Const.CR )
+            ;
+            String setClause = getSetClause( false, "t", meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes );
+            if ( StringUtils.isNotEmpty( setClause ) ) {
+              cypher
+                .append( setClause )
+                .append( Const.CR )
+              ;
+            }
+            updateUsageMap( data.toLabels, GraphUsage.NODE_CREATE );
+            break;
+          case MERGE:
+            cypher
+              .append( "MERGE( " )
+              .append( toLabelsClause )
+              .append( " " )
+              .append( toMatchClause )
+              .append( ") " )
+              .append( Const.CR )
+            ;
+            setClause = getSetClause( false, "t", meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes );
+            if ( StringUtils.isNotEmpty( setClause ) ) {
+              cypher
+                .append( setClause )
+                .append( Const.CR )
+              ;
+            }
+            updateUsageMap( data.toLabels, GraphUsage.NODE_UPDATE );
+            break;
+          case MATCH:
+            cypher
+              .append( "MATCH( " )
+              .append( toLabelsClause )
+              .append( " " )
+              .append( toMatchClause )
+              .append( ") " )
+              .append( Const.CR )
+            ;
+            updateUsageMap( data.toLabels, GraphUsage.NODE_READ );
+            break;
+          default:
+            throw new KettleException( "Unsupported operation type for the 'to' node: " + data.toOperationType );
+        }
+
+        // The cypher for the relationship:
+        //
+        String relationshipSetClause = getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ], data.relPropIndexes );
+        switch ( data.relOperationType ) {
+          case NONE:
+            break;
+          case MERGE:
+            cypher
+              .append( "MERGE (f)-[" )
+              .append( "r:" )
+              .append( data.relationshipLabel )
+              .append( "]->(t) " )
+              .append( Const.CR )
+              .append( relationshipSetClause )
+              .append( Const.CR )
+            ;
+            updateUsageMap( Arrays.asList( data.relationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE );
+            ;
+            break;
+          case CREATE:
+            cypher
+              .append( "CREATE (f)-[" )
+              .append( "r:" )
+              .append( data.relationshipLabel )
+              .append( "]->(t) " )
+              .append( Const.CR )
+              .append( getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ], data.relPropIndexes ) )
+              .append( Const.CR )
+            ;
+            updateUsageMap( Arrays.asList( data.relationshipLabel ), GraphUsage.RELATIONSHIP_CREATE );
+            break;
+        }
+
+        data.cypher = cypher.toString();
       }
 
-      // The cypher for the 'to' node:
+      // OK now we have the cypher statement, we can execute it...
       //
-      boolean takePreviousTo = data.dynamicToLabels && changedLabel;
-      String toLabelsClause = takePreviousTo ? data.previousToLabelsClause : data.toLabelsClause;
-      String toMatchClause = getMatchClause( meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes, "f" );
-      switch ( data.toOperationType ) {
-        case NONE:
-          break;
-        case CREATE:
-          cypher
-            .append( "CREATE( " )
-            .append( toLabelsClause )
-            .append( " " )
-            .append( toMatchClause )
-            .append( ") " )
-            .append( Const.CR )
-          ;
-          String setClause = getSetClause( false, "t", meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes );
-          if ( StringUtils.isNotEmpty( setClause ) ) {
-            cypher
-              .append( setClause )
-              .append( Const.CR )
-            ;
-          }
-          updateUsageMap( data.toLabels, GraphUsage.NODE_CREATE );
-          break;
-        case MERGE:
-          cypher
-            .append( "MERGE( " )
-            .append( toLabelsClause )
-            .append( " " )
-            .append( toMatchClause )
-            .append( ") " )
-            .append( Const.CR )
-          ;
-          setClause = getSetClause( false, "t", meta.getToNodePropNames(), meta.getToNodePropPrimary(), data.toNodePropIndexes );
-          if ( StringUtils.isNotEmpty( setClause ) ) {
-            cypher
-              .append( setClause )
-              .append( Const.CR )
-            ;
-          }
-          updateUsageMap( data.toLabels, GraphUsage.NODE_UPDATE );
-          break;
-        case MATCH:
-          cypher
-            .append( "MATCH( " )
-            .append( toLabelsClause )
-            .append( " " )
-            .append( toMatchClause )
-            .append( ") " )
-            .append( Const.CR )
-          ;
-          updateUsageMap( data.toLabels, GraphUsage.NODE_READ );
-          break;
-        default:
-          throw new KettleException( "Unsupported operation type for the 'to' node: " + data.toOperationType );
+      if ( isDebug() ) {
+        logDebug( "Running Cypher: " + data.cypher );
+        logDebug( "properties list size : " + data.unwindList.size() );
       }
 
-      // The cypher for the relationship:
+      // Run it always without beginTransaction()...
       //
-      String relationshipSetClause = getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ], data.relPropIndexes );
-      switch ( data.relOperationType ) {
-        case NONE:
-          break;
-        case MERGE:
-          cypher
-            .append( "MERGE (f)-[" )
-            .append( "r:" )
-            .append( data.relationshipLabel )
-            .append( "]->(t) " )
-            .append( Const.CR )
-            .append( relationshipSetClause )
-            .append( Const.CR )
-          ;
-          updateUsageMap( Arrays.asList( data.relationshipLabel ), GraphUsage.RELATIONSHIP_UPDATE );
-          ;
-          break;
-        case CREATE:
-          cypher
-            .append( "CREATE (f)-[" )
-            .append( "r:" )
-            .append( data.relationshipLabel )
-            .append( "]->(t) " )
-            .append( Const.CR )
-            .append( getSetClause( false, "r", meta.getRelPropNames(), new boolean[ meta.getRelPropNames().length ], data.relPropIndexes ) )
-            .append( Const.CR )
-          ;
-          updateUsageMap( Arrays.asList( data.relationshipLabel ), GraphUsage.RELATIONSHIP_CREATE );
-          break;
-      }
+      Result result = data.session.writeTransaction( tx -> tx.run( data.cypher, properties ) );
+      processSummary( result );
 
-      data.cypher = cypher.toString();
+      setLinesOutput( getLinesOutput() + data.unwindList.size() );
+
+      // Clear the list
+      //
+      data.unwindList.clear();
+    } catch(Throwable e) {
+      throw new KettleException("Error sending unwind statement to Neo4j", e);
     }
-
-    // OK now we have the cypher statement, we can execute it...
-    //
-    if ( isDebug() ) {
-      logDebug( "Running Cypher: " + data.cypher );
-      logDebug( "properties list size : " + data.unwindList.size() );
-    }
-
-    // Run it always without beginTransaction()...
-    //
-    Result result = data.session.writeTransaction( tx -> tx.run( data.cypher, properties ) );
-    processSummary( result );
-
-    setLinesOutput( getLinesOutput() + data.unwindList.size() );
-
-    // Clear the list
-    //
-    data.unwindList.clear();
   }
 
 
