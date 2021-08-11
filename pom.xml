@@ -13,7 +13,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <pdi.version>8.2.0.7-719</pdi.version>
-		<neo4j.driver.version>4.2.1</neo4j.driver.version>
+		<neo4j.driver.version>4.3.4</neo4j.driver.version>
   </properties>
 
 	<build>
