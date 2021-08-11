@@ -4,7 +4,7 @@
 
   <groupId>bi.know.kettle.neo4j.output</groupId>
   <artifactId>Neo4JOutput</artifactId>
-  <version>5.0.8</version>
+  <version>5.0.9</version>
   <packaging>jar</packaging>
 
   <name>Neo4JOutput</name>
@@ -13,7 +13,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <pdi.version>8.2.0.7-719</pdi.version>
-		<neo4j.driver.version>4.2.1</neo4j.driver.version>
+		<neo4j.driver.version>4.3.4</neo4j.driver.version>
   </properties>
 
 	<build>

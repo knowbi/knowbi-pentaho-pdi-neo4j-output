@@ -176,7 +176,7 @@ public class GraphOutputMeta extends BaseStepMeta implements StepMetaInterface {
       rep.saveStepAttribute( transId, stepId, i, SOURCE_FIELD, fieldModelMapping.getField() );
       rep.saveStepAttribute( transId, stepId, i, TARGET_TYPE, ModelTargetType.getCode( fieldModelMapping.getTargetType() ) );
       rep.saveStepAttribute( transId, stepId, i, TARGET_NAME, fieldModelMapping.getField() );
-      rep.saveStepAttribute( transId, stepId, i, TARGET_PROPERTY, fieldModelMapping.getField() );
+      rep.saveStepAttribute( transId, stepId, i, TARGET_PROPERTY, fieldModelMapping.getTargetProperty() );
     }
 
   }
